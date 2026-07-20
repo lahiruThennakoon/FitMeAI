@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/*.db
+
+# Build / test output
+coverage/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# BMAD / Cursor tooling (framework install, not product code)
+/.agents/
+/_bmad/
