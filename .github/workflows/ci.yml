@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: fitmind-ai
+        working-directory: fitme-ai
     env:
       # Dummy values so build/type steps that touch config don't warn or fail.
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/fitmind?schema=public"
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/fitme?schema=public"
       BETTER_AUTH_SECRET: "ci-dummy-secret-please-override-in-prod"
       BETTER_AUTH_URL: "http://localhost:3000"
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: fitmind-ai/package-lock.json
+          cache-dependency-path: fitme-ai/package-lock.json
       - run: npm ci
       - run: npm run db:generate
       - run: npm run lint

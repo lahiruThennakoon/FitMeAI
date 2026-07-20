@@ -1,4 +1,4 @@
-# FitMind AI
+# FitMe AI
 
 Accuracy-first personal calorie & nutrition tracker (PWA) with Sri Lankan food support. AI parses natural-language meals and matches them to a curated nutrition database (the source of truth); estimates are clearly labelled.
 
@@ -84,4 +84,4 @@ tests/          # unit tests
 - No health/PII data in logs or error messages.
 - Times stored in UTC; the "day" is computed in the user's profile timezone.
 
-Not a medical device. Estimates are not medical advice.
+FitMe AI helps you track, not diagnose. Consult a professional for medical concerns.

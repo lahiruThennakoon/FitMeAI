@@ -1,15 +1,15 @@
 ---
-title: "Product Brief: FitMind AI"
+title: "Product Brief: FitMe AI"
 status: final
 created: 2026-07-20
 updated: 2026-07-20
 ---
 
-# Product Brief: FitMind AI
+# Product Brief: FitMe AI
 
 ## Executive Summary
 
-FitMind AI is an accuracy-first personal calorie and nutrition tracker, delivered as a responsive Progressive Web App, built for people who have quit every other tracker because logging their real food felt impossible and inaccurate. Its beating heart is a single promise: **effortless food input that produces precise, *sourced* nutrition data** — then balances it against calories burned so the user always knows where they stand.
+FitMe AI is an accuracy-first personal calorie and nutrition tracker, delivered as a responsive Progressive Web App, built for people who have quit every other tracker because logging their real food felt impossible and inaccurate. Its beating heart is a single promise: **effortless food input that produces precise, *sourced* nutrition data** — then balances it against calories burned so the user always knows where they stand.
 
 The core innovation is not "AI that guesses calories." It is a disciplined pipeline where a **curated nutrition database is the source of truth** and AI is the smart translator that parses natural language, decomposes a composite dish (like rice and curry with three sides) into ingredients and proportions, matches them to that database, and asks *one* tappable clarifying question only about what is genuinely uncertain. When a food is not in the database, AI provides a clearly labeled estimate with a confidence level — never silently faking precision.
 
@@ -27,7 +27,7 @@ The cost of the status quo: users stay in the dark about their intake, make no s
 
 ## The Solution
 
-FitMind AI lets a user log a meal by typing or speaking natural language. Behind the scenes:
+FitMe AI lets a user log a meal by typing or speaking natural language. Behind the scenes:
 
 ```
 parse → decompose into ingredients + proportions → match curated DB (source of truth)
@@ -40,7 +40,7 @@ Food intake is balanced against calories burned (auto-estimated baseline from th
 
 ## What Makes This Different
 
-- **Accurate-data-first, not chatbot-first.** Most AI health apps ship a conversational coach on top of shaky numbers. FitMind AI inverts this: get the *calculation engine* trustworthy first; the conversational coach comes later. [ASSUMPTION] This ordering is the primary product bet.
+- **Accurate-data-first, not chatbot-first.** Most AI health apps ship a conversational coach on top of shaky numbers. FitMe AI inverts this: get the *calculation engine* trustworthy first; the conversational coach comes later. [ASSUMPTION] This ordering is the primary product bet.
 - **Genuine Sri Lankan food coverage** via ingredient-level decomposition, not a bolted-on food list.
 - **Trust as a designed feature** — visible sources, labeled estimates, confidence levels, and a user-review step — rather than an afterthought.
 - **Honest about limits.** Estimates are never dressed up as medical fact. The moat is execution and local-market fit, not a defensible technical secret.
@@ -88,4 +88,4 @@ Business metrics (revenue, growth, monetization) are intentionally deferred to a
 
 ## Vision
 
-If it succeeds, FitMind AI grows from an accurate tracker into a genuine personal health assistant: a supportive daily reflection and weekly-report layer, photo-based logging, richer body and habit tracking, and eventually coach/nutritionist collaboration and multilingual (including Sinhala) support — expanding across South Asian cuisines where mainstream trackers fail. The through-line never changes: **trustworthy numbers first, gentle guidance second, never guilt.**
+If it succeeds, FitMe AI grows from an accurate tracker into a genuine personal health assistant: a supportive daily reflection and weekly-report layer, photo-based logging, richer body and habit tracking, and eventually coach/nutritionist collaboration and multilingual (including Sinhala) support — expanding across South Asian cuisines where mainstream trackers fail. The through-line never changes: **trustworthy numbers first, gentle guidance second, never guilt.**

@@ -1,24 +1,24 @@
 ---
-title: FitMind AI
+title: FitMe AI
 status: final
 created: 2026-07-20
 updated: 2026-07-20
 ---
 
-# PRD: FitMind AI
+# PRD: FitMe AI
 *Working title — confirm.*
 
 ## 0. Document Purpose
 
-This PRD is for the builder/PM and the downstream BMAD workflows (UX, architecture, epics/stories, QA). It builds on two upstream artifacts and does not duplicate them: the Product Brief (`_bmad-output/planning-artifacts/briefs/brief-FitMe_AI-2026-07-20/brief.md`) and the brainstorm intent (`_bmad-output/brainstorming/brainstorm-fitmind-ai-2026-07-20/brainstorm-intent.md`). It is Glossary-anchored: features are grouped with functional requirements (FRs) nested under them and numbered globally (FR-N) for stable downstream references. Assumptions are tagged inline as `[ASSUMPTION]` and indexed in §12. Technical/implementation choices are intentionally excluded here and belong in the architecture workflow.
+This PRD is for the builder/PM and the downstream BMAD workflows (UX, architecture, epics/stories, QA). It builds on two upstream artifacts and does not duplicate them: the Product Brief (`_bmad-output/planning-artifacts/briefs/brief-FitMe_AI-2026-07-20/brief.md`) and the brainstorm intent (`_bmad-output/brainstorming/brainstorm-fitme-ai-2026-07-20/brainstorm-intent.md`). It is Glossary-anchored: features are grouped with functional requirements (FRs) nested under them and numbered globally (FR-N) for stable downstream references. Assumptions are tagged inline as `[ASSUMPTION]` and indexed in §12. Technical/implementation choices are intentionally excluded here and belong in the architecture workflow.
 
 ## 1. Vision
 
-FitMind AI is an accuracy-first personal calorie and nutrition tracker delivered as a responsive Progressive Web App. It exists for people who have quit every other tracker because logging their real food — especially composite Sri Lankan meals — felt impossible and the numbers felt invented. Its promise is effortless food input that produces precise, *sourced* nutrition data, balanced against calories burned so the user always knows where they stand.
+FitMe AI is an accuracy-first personal calorie and nutrition tracker delivered as a responsive Progressive Web App. It exists for people who have quit every other tracker because logging their real food — especially composite Sri Lankan meals — felt impossible and the numbers felt invented. Its promise is effortless food input that produces precise, *sourced* nutrition data, balanced against calories burned so the user always knows where they stand.
 
 The wedge is a disciplined pipeline: a curated nutrition database is the source of truth, and AI is the translator that parses natural language, decomposes a composite dish into ingredients and proportions, matches them to the database, and asks one tappable clarifying question only when a portion is genuinely uncertain. Unknown foods fall back to an AI estimate that is clearly labeled with a confidence level — never silent false precision.
 
-If it earns trust, FitMind AI grows from an accurate tracker into a supportive personal health assistant (daily reflections, weekly reports, photo logging, richer health tracking). The through-line never changes: trustworthy numbers first, gentle guidance second, never guilt.
+If it earns trust, FitMe AI grows from an accurate tracker into a supportive personal health assistant (daily reflections, weekly reports, photo logging, richer health tracking). The through-line never changes: trustworthy numbers first, gentle guidance second, never guilt.
 
 ## 2. Target User
 
@@ -262,7 +262,7 @@ The system records User Corrections to AI-produced values.
 
 ## 5. Non-Goals (Explicit)
 
-- FitMind AI is **not a medical device** and does not diagnose, treat, or prescribe.
+- FitMe AI is **not a medical device** and does not diagnose, treat, or prescribe.
 - Not a social network: no cross-user sharing, feeds, or comparison in v1.
 - Not a coach/nutritionist platform in v1 (no professional portal).
 - Not multilingual in v1 (English only; Sinhala deferred).

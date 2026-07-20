@@ -1,4 +1,4 @@
-# FitMind AI — MVP Scope One-Pager
+# FitMe AI — MVP Scope One-Pager
 
 **An accurate-data-first calorie tracker: effortless food logging + precise nutrition, powered by AI as the calc engine (conversational coach comes later).**
 

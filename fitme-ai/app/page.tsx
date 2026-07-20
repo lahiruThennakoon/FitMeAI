@@ -1,18 +1,24 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 px-5 py-10 sm:max-w-lg">
-      <header className="space-y-3 text-center">
-        <span className="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-teal-600/20 dark:bg-teal-950/40 dark:text-teal-300">
+      <header className="space-y-4 text-center">
+        <Image
+          src="/brand/logo.png"
+          alt="FitMe AI"
+          width={516}
+          height={156}
+          priority
+          className="mx-auto h-auto w-56 sm:w-64"
+        />
+        <span className="inline-flex items-center rounded-full bg-brand-blue/10 px-3 py-1 text-xs font-medium text-brand-blue ring-1 ring-brand-blue/20">
           Accuracy-first
         </span>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          FitMind AI
-        </h1>
         <p className="text-balance text-sm text-neutral-600 dark:text-neutral-400">
-          Log your real food — Sri Lankan meals included — in seconds, and trust
-          the numbers. Calories in vs. out, at a glance.
+          Log your real food in seconds, and trust the numbers. Calories in vs.
+          out, at a glance.
         </p>
       </header>
 
@@ -31,20 +37,21 @@ export default function Home() {
       <div className="flex flex-col gap-3">
         <Link
           href="/register"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-teal-600 px-6 text-base font-medium text-white transition hover:bg-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+          className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           Get started
         </Link>
         <Link
           href="/login"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-teal-700 ring-1 ring-inset ring-teal-600/30 transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:bg-teal-950/30"
+          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/30 transition hover:bg-brand-blue/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           I already have an account
         </Link>
       </div>
 
       <p className="text-center text-xs text-neutral-500 dark:text-neutral-500">
-        Not a medical device. Estimates are not medical advice.
+        FitMe AI helps you track, not diagnose. Consult a professional for
+        medical concerns.
       </p>
     </main>
   );

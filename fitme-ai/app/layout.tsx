@@ -14,16 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitMind AI",
+  title: "FitMe AI",
   description:
     "Accuracy-first calorie & nutrition tracker with Sri Lankan food support.",
   manifest: "/manifest.webmanifest",
-  applicationName: "FitMind AI",
-  appleWebApp: { capable: true, title: "FitMind AI", statusBarStyle: "default" },
+  applicationName: "FitMe AI",
+  appleWebApp: { capable: true, title: "FitMe AI", statusBarStyle: "default" },
+  icons: {
+    icon: "/brand/app-icon.png",
+    apple: "/brand/app-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f766e",
+  themeColor: "#2f57e3",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

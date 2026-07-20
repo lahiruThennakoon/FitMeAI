@@ -1,7 +1,7 @@
-# FitMind AI — Brainstorm Intent
+# FitMe AI — Brainstorm Intent
 
 ## 1. Product
-FitMind AI is an accuracy-first calorie & nutrition tracker (PWA) that turns effortless food input into precise, sourced nutrition data, balanced against calories burned.
+FitMe AI is an accuracy-first calorie & nutrition tracker (PWA) that turns effortless food input into precise, sourced nutrition data, balanced against calories burned.
 
 ## 2. Target User + Core Insight
 - **Persona (Nimali):** wants usability above all, but fears inaccurate nutrition/estimates; her non-negotiable is that the app be precise when taking inputs.

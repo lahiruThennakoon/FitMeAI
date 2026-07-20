@@ -12,7 +12,7 @@ export async function GET() {
   return NextResponse.json(
     {
       status: env.ok ? "ok" : "degraded",
-      service: "fitmind-ai",
+      service: "fitme-ai",
       time: new Date().toISOString(),
       env: { ok: env.ok, missing: env.missing },
     },

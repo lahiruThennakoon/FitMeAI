@@ -1,10 +1,10 @@
 ---
-name: FitMind AI
+name: FitMe AI
 type: architecture-spine
 purpose: build-substrate
 altitude: initiative
 paradigm: Layered App Router + server-only Data Access Layer, with ports-and-adapters for AI
-scope: FitMind AI MVP v1 (all features FR-1..FR-31)
+scope: FitMe AI MVP v1 (all features FR-1..FR-31)
 status: final
 created: 2026-07-20
 updated: 2026-07-20
@@ -15,7 +15,7 @@ sources:
 companions: []
 ---
 
-# Architecture Spine — FitMind AI
+# Architecture Spine — FitMe AI
 
 ## Design Paradigm
 
@@ -150,7 +150,7 @@ graph TD
 ## Structural Seed
 
 ```text
-fitmind-ai/
+fitme-ai/
   app/
     (auth)/            # sign-in, register, reset — Better Auth surfaces
     (app)/             # authenticated app shell

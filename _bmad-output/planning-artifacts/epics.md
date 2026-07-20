@@ -6,11 +6,11 @@ inputDocuments:
   - _bmad-output/planning-artifacts/briefs/brief-FitMe_AI-2026-07-20/brief.md
 ---
 
-# FitMind AI - Epic Breakdown
+# FitMe AI - Epic Breakdown
 
 ## Overview
 
-This document decomposes the FitMind AI MVP requirements (from the PRD and Architecture Spine) into implementable epics and stories. UX requirements are embedded in the PRD (§10 Information Architecture, §11 Aesthetic & Tone) and are folded into the relevant feature stories rather than a standalone UX epic. Each story includes acceptance criteria in Given/When/Then form plus edge cases, dependencies, test scenarios, and a definition of done, so a single developer agent can implement it end to end.
+This document decomposes the FitMe AI MVP requirements (from the PRD and Architecture Spine) into implementable epics and stories. UX requirements are embedded in the PRD (§10 Information Architecture, §11 Aesthetic & Tone) and are folded into the relevant feature stories rather than a standalone UX epic. Each story includes acceptance criteria in Given/When/Then form plus edge cases, dependencies, test scenarios, and a definition of done, so a single developer agent can implement it end to end.
 
 ## Requirements Inventory
 
@@ -120,7 +120,7 @@ Users see calories in vs. out and their daily standing at a glance, with baselin
 **FRs covered:** FR-13, FR-14, FR-15
 
 ### Epic 4: Offline-Ready PWA
-Users can install FitMind AI and keep logging common foods instantly even on weak or no network, with entries reconciled when back online.
+Users can install FitMe AI and keep logging common foods instantly even on weak or no network, with entries reconciled when back online.
 **FRs covered:** FR-16
 
 ---

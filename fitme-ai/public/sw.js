@@ -1,9 +1,9 @@
-// FitMind AI service worker — baseline (Story 1.1).
+// FitMe AI service worker — baseline (Story 1.1).
 // The offline instant-path cache + reconcile logic lands in Epic 4 (AD-12).
 // For now this establishes an installable, controllable SW with a passthrough
 // fetch handler and lifecycle hooks ready to extend.
 
-const CACHE = "fitmind-shell-v1";
+const CACHE = "fitme-shell-v1";
 const SHELL = ["/"];
 
 self.addEventListener("install", (event) => {
