@@ -44,6 +44,40 @@ npm run dev
 
 Open http://localhost:3000. Health check: http://localhost:3000/api/health.
 
+### Email verification (registration)
+
+Registration requires email verification before sign-in (Story 1.2 / FR-1).
+
+- **Local / no API key:** leave `RESEND_API_KEY` unset. No real email is sent. The console/dev adapter logs a redacted `{ event, userId, path }` **and** prints the full clickable verification URL in the terminal running `npm run dev`. Open that link to verify. Registration fails if delivery fails (Resend down, timeout, or production without `RESEND_API_KEY`).
+- **Real inbox email:** set `RESEND_API_KEY` (and optionally `EMAIL_FROM`) in `.env`, then restart the server. With Resend’s free `onboarding@resend.dev` sender you can usually only deliver to the email on your Resend account until you verify a domain.
+
+Register at `/register`. After signup you should see a “check your email” success state. Sign in at `/login` — verified users land on `/dashboard`.
+
+### Password reset
+
+Forgot-password flow (Story 1.4 / FR-2) uses the same mail adapter as verification.
+
+- Request a link at `/forgot-password` — the UI always shows the same neutral success message (no email enumeration).
+- The email link lands on `/reset-password?token=…`; submitting a new password signs you out of all prior sessions.
+- Invalid or expired links show a clear message with a link to request a new one.
+
+### Account deletion
+
+Account deletion (Story 1.5 / FR-3) lives at `/settings` (requires sign-in).
+
+- Re-enter your password and type `DELETE` to confirm — explicit consent before any data is removed.
+- Better Auth hard-deletes the user row; sessions and credential accounts cascade via Prisma.
+- Orphaned verification tokens are purged in a `beforeDelete` hook; an audit event is logged without health payloads.
+
+### Profile & targets
+
+After sign-in, open **Profile & targets** at `/goals` (Story 1.6 / FR-4).
+
+- Enter profile details; suggested targets use Mifflin–St Jeor BMR × activity multiplier.
+- Formula, inputs, and “estimates, not medical advice” are shown on the page.
+- Values store in canonical units (g, cm, kcal, ml); metric/imperial toggle converts at the edges.
+- Safety ladder warnings arrive in Story 1.7.
+
 ## Scripts
 
 | Script | Purpose |

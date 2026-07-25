@@ -10,6 +10,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),
+      // Next's server-only guard throws in Vitest; stub it for unit tests.
+      "server-only": fileURLToPath(
+        new URL("./tests/mocks/server-only.ts", import.meta.url),
+      ),
     },
   },
 });

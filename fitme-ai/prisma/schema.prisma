@@ -27,8 +27,84 @@ model User {
 
   sessions Session[]
   accounts Account[]
+  profile  UserProfile?
+  goal     Goal?
 
   @@map("user")
+}
+
+// ---------------------------------------------------------------------------
+// Profile & goals (Story 1.6 / FR-4) — canonical units: g, cm, kcal, ml (AD-11)
+// ---------------------------------------------------------------------------
+
+enum Sex {
+  male
+  female
+}
+
+enum ActivityLevel {
+  sedentary
+  lightly_active
+  moderately_active
+  very_active
+  extra_active
+}
+
+enum GoalType {
+  weight_loss
+  maintenance
+  muscle_gain
+  general_health
+}
+
+enum PreferredUnits {
+  metric
+  imperial
+}
+
+model UserProfile {
+  id                 String         @id @default(cuid())
+  userId             String         @unique
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName        String
+  ageYears           Int
+  sex                Sex
+  heightCm           Float
+  currentWeightG     Int
+  targetWeightG      Int
+  activityLevel      ActivityLevel
+  dietaryPreferences String[]       @default([])
+  goalType           GoalType
+  preferredUnits     PreferredUnits @default(metric)
+  country            String
+  timezone           String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@map("user_profile")
+}
+
+model Goal {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bmrKcal              Int
+  tdeeKcal             Int
+  caloriesKcal         Int
+  proteinG             Int
+  carbsG               Int
+  fatG                 Int
+  fibreG               Int
+  waterMl              Int
+  steps                Int
+  exerciseMinutes      Int
+  weeklyWeightChangeG  Int
+  /// JSON map of overridden target field names (e.g. ["caloriesKcal","proteinG"]).
+  overriddenFields     String[] @default([])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("goal")
 }
 
 model Session {

@@ -11,6 +11,9 @@ const serverEnvSchema = z.object({
     .min(16, "BETTER_AUTH_SECRET must be at least 16 characters"),
   BETTER_AUTH_URL: z.string().url().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  // Optional mail (Story 1.2). Console/dev adapter used when RESEND_API_KEY is unset.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
