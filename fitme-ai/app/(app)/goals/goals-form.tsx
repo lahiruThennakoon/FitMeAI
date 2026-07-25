@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfileAction } from "@/app/actions/profile";
 import {
@@ -152,7 +152,11 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
       ),
     }),
   );
-  const [safetyConsent, setSafetyConsent] = useState(false);
+  /** Consent is bound to the current safety fingerprint — changes clear it without an effect. */
+  const [safetyConsentState, setSafetyConsentState] = useState({
+    fingerprint: "",
+    consented: false,
+  });
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -264,10 +268,9 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
         live.weightKg,
       ].join(":")
     : "";
-
-  useEffect(() => {
-    setSafetyConsent(false);
-  }, [safetyFingerprint]);
+  const safetyConsent =
+    safetyConsentState.fingerprint === safetyFingerprint &&
+    safetyConsentState.consented;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -671,7 +674,12 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
                     <input
                       type="checkbox"
                       checked={safetyConsent}
-                      onChange={(e) => setSafetyConsent(e.target.checked)}
+                      onChange={(e) =>
+                        setSafetyConsentState({
+                          fingerprint: safetyFingerprint,
+                          consented: e.target.checked,
+                        })
+                      }
                       className="mt-1 h-4 w-4"
                       aria-invalid={Boolean(fieldErrors.safetyConsent)}
                       aria-describedby={
