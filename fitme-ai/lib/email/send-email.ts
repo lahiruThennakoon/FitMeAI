@@ -20,13 +20,18 @@ export function isProductionMailConfigured(): boolean {
 }
 
 /**
- * Strip secret token query params so console/dev logs never contain the raw token.
+ * Strip secret tokens so logs never contain raw email links (AD-9).
+ * Handles `?token=` query params and path segments like `/reset-password/{token}`.
  */
 export function verificationPathForLog(url: string): string {
   try {
     const parsed = new URL(url);
     parsed.searchParams.delete("token");
-    return `${parsed.pathname}${parsed.search}`;
+    const redactedPath = parsed.pathname.replace(
+      /\/[A-Za-z0-9_-]{16,}(?=\/|$)/g,
+      "/[redacted]",
+    );
+    return `${redactedPath}${parsed.search}`;
   } catch {
     return "/api/auth/verify-email";
   }
@@ -101,21 +106,10 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     ? verificationPathForLog(input.verificationUrl)
     : undefined;
 
-  // Structured log stays redacted (AD-9). In local/dev without Resend, also
-  // print the full clickable URL to the terminal so signup can be completed.
+  // Local/dev without Resend: structured redacted log only (no token URLs).
   logger.info("email.verification.dev", {
     event: "verification_email",
     userId: input.userId,
     ...(path ? { path } : {}),
   });
-
-  if (input.verificationUrl) {
-    console.info(
-      `\n[FitMe AI] Dev mail (no RESEND_API_KEY) — open this link to verify:\n${input.verificationUrl}\n`,
-    );
-  } else {
-    console.info(
-      `\n[FitMe AI] Dev mail (no RESEND_API_KEY) — subject: ${input.subject}\n${input.text}\n`,
-    );
-  }
 }

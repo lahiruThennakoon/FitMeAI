@@ -30,6 +30,14 @@ describe("verificationPathForLog (never expose raw token)", () => {
     expect(path).toContain("/api/auth/verify-email");
     expect(path).toContain("callbackURL");
   });
+
+  it("redacts path-embedded reset tokens", () => {
+    const path = verificationPathForLog(
+      "http://localhost:3000/api/auth/reset-password/super-secret-token-value",
+    );
+    expect(path).not.toContain("super-secret-token-value");
+    expect(path).toContain("[redacted]");
+  });
 });
 
 describe("isProductionMailConfigured", () => {
@@ -64,9 +72,8 @@ describe("sendEmail (mail port adapters)", () => {
     });
     expect(JSON.stringify(meta)).not.toContain("nimali@example.com");
     expect(JSON.stringify(meta)).not.toContain("abc123");
-    // Local DX: full link is printed separately so signup can be completed.
-    expect(consoleInfo).toHaveBeenCalled();
-    expect(String(consoleInfo.mock.calls[0]?.[0])).toContain("token=abc123");
+    // Decision D2 option 3: never print raw token URLs to the console.
+    expect(consoleInfo).not.toHaveBeenCalled();
   });
 
   it("throws in production when RESEND_API_KEY is missing", async () => {

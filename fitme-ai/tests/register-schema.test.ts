@@ -35,4 +35,19 @@ describe("registerSchema (field-keyed validation for registration)", () => {
       expect(passwordIssue?.message).toBe("Use at least 8 characters.");
     }
   });
+
+  it("rejects whitespace-only passwords and trims emails", () => {
+    expect(
+      registerSchema.safeParse({
+        email: "  nimali@example.com  ",
+        password: "securepass",
+      }).success,
+    ).toBe(true);
+    expect(
+      registerSchema.safeParse({
+        email: "nimali@example.com",
+        password: "        ",
+      }).success,
+    ).toBe(false);
+  });
 });

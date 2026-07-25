@@ -12,22 +12,24 @@ Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor (all completed).
 
 ### Decision needed
 
-- [ ] [Review][Decision] Override-any-target only wired for calories in UI — AC/FR-4 say every Target is overridable; schema allows all fields but `goals-form.tsx` only exposes calorie override. Choose: (1) add override inputs for all targets now, or (2) defer non-calorie overrides to a follow-up and narrow the story note.
-- [ ] [Review][Decision] Dev console prints full verification/reset URLs (with tokens) — intentional local DX without Resend, but conflicts with Story 1.2 “never tokens in logs.” Choose: (1) keep terminal print for local-only (document as exception), (2) print redacted + add a `scripts/get-verify-link` helper, or (3) remove console token print.
+- [x] [Review][Decision] Override-any-target only wired for calories in UI — **resolved: option 1** — add override inputs for all targets now → patched.
+- [x] [Review][Decision] Dev console prints full verification/reset URLs (with tokens) — **resolved: option 3** — remove token print entirely → patched.
 
 ### Patch
 
-- [ ] [Review][Patch] Add Better Auth `nextCookies()` plugin so Server Action sign-in/delete set cookies [`fitme-ai/lib/auth.ts`]
-- [ ] [Review][Patch] Always return neutral success from `requestPasswordResetAction` even when mail throws [`fitme-ai/app/actions/auth.ts`]
-- [ ] [Review][Patch] Redact path-embedded reset tokens in structured `path` log (not only `?token=`) [`fitme-ai/lib/email/send-email.ts`]
-- [ ] [Review][Patch] Map login “unverified” only on `EMAIL_NOT_VERIFIED`, not all `FORBIDDEN` [`fitme-ai/lib/auth/actions-shared.ts`]
-- [ ] [Review][Patch] Reject whitespace-only passwords/tokens; trim/normalize emails [`fitme-ai/lib/schemas/auth.ts`]
-- [ ] [Review][Patch] Bound target overrides (min 0 + sane ceilings); cap dietary preference string length [`fitme-ai/lib/schemas/profile.ts`]
-- [ ] [Review][Patch] Validate timezone as IANA [`fitme-ai/lib/schemas/profile.ts`]
-- [ ] [Review][Patch] Add `(app)/layout.tsx` session guard choke-point [`fitme-ai/app/(app)/layout.tsx`]
-- [ ] [Review][Patch] Add sign-out control on dashboard/settings [`fitme-ai/app/(app)/`]
-- [ ] [Review][Patch] Align live preview age bounds with schema; harden unit toggle when values invalid [`fitme-ai/app/(app)/goals/goals-form.tsx`]
-- [ ] [Review][Patch] Align imperial height/weight floors with metric after conversion [`fitme-ai/lib/schemas/profile.ts`]
+- [x] [Review][Patch] Add override inputs for all target fields in goals UI (D1) [`fitme-ai/app/(app)/goals/goals-form.tsx`]
+- [x] [Review][Patch] Remove full URL/token `console.info` from local mail adapter (D2) [`fitme-ai/lib/email/send-email.ts`]
+- [x] [Review][Patch] Add Better Auth `nextCookies()` plugin so Server Action sign-in/delete set cookies [`fitme-ai/lib/auth.ts`]
+- [x] [Review][Patch] Always return neutral success from `requestPasswordResetAction` even when mail throws [`fitme-ai/app/actions/auth.ts`]
+- [x] [Review][Patch] Redact path-embedded reset tokens in structured `path` log (not only `?token=`) [`fitme-ai/lib/email/send-email.ts`]
+- [x] [Review][Patch] Map login “unverified” only on `EMAIL_NOT_VERIFIED`, not all `FORBIDDEN` [`fitme-ai/lib/auth/actions-shared.ts`]
+- [x] [Review][Patch] Reject whitespace-only passwords/tokens; trim/normalize emails [`fitme-ai/lib/schemas/auth.ts`]
+- [x] [Review][Patch] Bound target overrides (min 0 + sane ceilings); cap dietary preference string length [`fitme-ai/lib/schemas/profile.ts`]
+- [x] [Review][Patch] Validate timezone as IANA [`fitme-ai/lib/schemas/profile.ts`]
+- [x] [Review][Patch] Add `(app)/layout.tsx` session guard choke-point [`fitme-ai/app/(app)/layout.tsx`]
+- [x] [Review][Patch] Add sign-out control on dashboard/settings [`fitme-ai/app/(app)/`]
+- [x] [Review][Patch] Align live preview age bounds with schema; harden unit toggle when values invalid [`fitme-ai/app/(app)/goals/goals-form.tsx`]
+- [x] [Review][Patch] Align imperial height/weight floors with metric after conversion [`fitme-ai/lib/schemas/profile.ts`]
 
 ### Deferred
 
@@ -42,3 +44,7 @@ Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor (all completed).
 
 - Protected pages use `getSession`+redirect vs `requireSession` — equivalent for null session
 - Partial-macro recompute after calorie-only override — product heuristic, not a defect until full override UI decision
+
+### Change Log
+
+- 2026-07-25: Applied all 13 patch findings (D1=1, D2=3).

@@ -16,7 +16,27 @@ export const goalTypeSchema = z.enum([
 ]);
 export const preferredUnitsSchema = z.enum(["metric", "imperial"]);
 
-const overrideNumber = z.number().finite().optional();
+/** Optional override: finite, non-negative, with a sane ceiling. */
+function overrideField(max: number) {
+  return z.number().finite().min(0).max(max).optional();
+}
+
+function isValidIanaTimezone(tz: string): boolean {
+  try {
+    if (
+      typeof Intl !== "undefined" &&
+      "supportedValuesOf" in Intl &&
+      typeof Intl.supportedValuesOf === "function"
+    ) {
+      return Intl.supportedValuesOf("timeZone").includes(tz);
+    }
+    // Fallback: accept if DateTimeFormat accepts it without throwing.
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Profile + optional target overrides from the goals form.
@@ -35,20 +55,14 @@ export const saveProfileSchema = z
       .min(13, "You must be at least 13.")
       .max(120, "Enter a realistic age."),
     sex: sexSchema,
-    height: z
-      .number()
-      .finite()
-      .positive("Enter your height."),
-    currentWeight: z
-      .number()
-      .finite()
-      .positive("Enter your current weight."),
-    targetWeight: z
-      .number()
-      .finite()
-      .positive("Enter your target weight."),
+    height: z.number().finite().positive("Enter your height."),
+    currentWeight: z.number().finite().positive("Enter your current weight."),
+    targetWeight: z.number().finite().positive("Enter your target weight."),
     activityLevel: activityLevelSchema,
-    dietaryPreferences: z.array(z.string().trim().min(1)).max(20).default([]),
+    dietaryPreferences: z
+      .array(z.string().trim().min(1).max(40))
+      .max(20)
+      .default([]),
     goalType: goalTypeSchema,
     preferredUnits: preferredUnitsSchema,
     country: z
@@ -59,18 +73,26 @@ export const saveProfileSchema = z
     timezone: z
       .string()
       .trim()
-      .min(1, "Choose a timezone."),
+      .min(1, "Choose a timezone.")
+      .refine(isValidIanaTimezone, {
+        message: "Choose a valid timezone (e.g. Asia/Colombo).",
+      }),
     overrides: z
       .object({
-        caloriesKcal: overrideNumber,
-        proteinG: overrideNumber,
-        carbsG: overrideNumber,
-        fatG: overrideNumber,
-        fibreG: overrideNumber,
-        waterMl: overrideNumber,
-        steps: overrideNumber,
-        exerciseMinutes: overrideNumber,
-        weeklyWeightChangeG: overrideNumber,
+        caloriesKcal: overrideField(20_000),
+        proteinG: overrideField(1_000),
+        carbsG: overrideField(2_000),
+        fatG: overrideField(1_000),
+        fibreG: overrideField(200),
+        waterMl: overrideField(20_000),
+        steps: overrideField(100_000),
+        exerciseMinutes: overrideField(600),
+        weeklyWeightChangeG: z
+          .number()
+          .finite()
+          .min(-5_000)
+          .max(5_000)
+          .optional(),
       })
       .optional(),
   })
@@ -98,25 +120,26 @@ export const saveProfileSchema = z
         });
       }
     } else {
-      if (data.height < 39 || data.height > 98) {
+      // Align imperial floors/ceilings with metric after conversion (~2.54 cm/in, ~2.205 lb/kg).
+      if (data.height < 40 || data.height > 98) {
         ctx.addIssue({
           code: "custom",
           path: ["height"],
-          message: "Height should be between 39 and 98 in.",
+          message: "Height should be between 40 and 98 in.",
         });
       }
-      if (data.currentWeight < 66 || data.currentWeight > 880) {
+      if (data.currentWeight < 67 || data.currentWeight > 881) {
         ctx.addIssue({
           code: "custom",
           path: ["currentWeight"],
-          message: "Weight should be between 66 and 880 lb.",
+          message: "Weight should be between 67 and 881 lb.",
         });
       }
-      if (data.targetWeight < 66 || data.targetWeight > 880) {
+      if (data.targetWeight < 67 || data.targetWeight > 881) {
         ctx.addIssue({
           code: "custom",
           path: ["targetWeight"],
-          message: "Target weight should be between 66 and 880 lb.",
+          message: "Target weight should be between 67 and 881 lb.",
         });
       }
     }

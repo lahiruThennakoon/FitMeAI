@@ -48,7 +48,7 @@ Open http://localhost:3000. Health check: http://localhost:3000/api/health.
 
 Registration requires email verification before sign-in (Story 1.2 / FR-1).
 
-- **Local / no API key:** leave `RESEND_API_KEY` unset. No real email is sent. The console/dev adapter logs a redacted `{ event, userId, path }` **and** prints the full clickable verification URL in the terminal running `npm run dev`. Open that link to verify. Registration fails if delivery fails (Resend down, timeout, or production without `RESEND_API_KEY`).
+- **Local / no API key:** leave `RESEND_API_KEY` unset. No real email is sent. The console/dev adapter logs a redacted `{ event, userId, path }` only (tokens never printed). Set `RESEND_API_KEY` for a real inbox link, or verify via your mail provider in staging. Registration fails if delivery fails (Resend down, timeout, or production without `RESEND_API_KEY`).
 - **Real inbox email:** set `RESEND_API_KEY` (and optionally `EMAIL_FROM`) in `.env`, then restart the server. With Resend’s free `onboarding@resend.dev` sender you can usually only deliver to the email on your Resend account until you verify a domain.
 
 Register at `/register`. After signup you should see a “check your email” success state. Sign in at `/login` — verified users land on `/dashboard`.

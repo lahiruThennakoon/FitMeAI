@@ -4,8 +4,7 @@ baseline_commit: bbe22deb711a24e1fabae58d1c1ddcede26ed7b4
 
 # Story 1.4: Password reset
 
-Status: review
-
+Status: done
 ## Story
 
 As a user who forgot my password,

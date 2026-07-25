@@ -4,8 +4,7 @@ baseline_commit: bbe22deb711a24e1fabae58d1c1ddcede26ed7b4
 
 # Story 1.2: Email registration
 
-Status: review
-
+Status: done
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Story

@@ -4,8 +4,7 @@ baseline_commit: bbe22deb711a24e1fabae58d1c1ddcede26ed7b4
 
 # Story 1.3: Login & session management
 
-Status: review
-
+Status: done
 ## Story
 
 As a returning user,

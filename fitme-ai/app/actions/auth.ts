@@ -141,8 +141,8 @@ export async function requestPasswordResetAction(
       },
     });
   } catch {
+    // Always neutral — never reveal whether the email exists or mail failed (enumeration-safe).
     logger.error("auth.password_reset_request.failed", { outcome: "error" });
-    return err(REGISTER_GENERIC_ERROR);
   }
 
   logger.info("auth.password_reset_request.completed", { outcome: "accepted" });

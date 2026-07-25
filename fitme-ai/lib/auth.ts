@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/db";
 import { deliverVerificationEmail } from "@/lib/email/verification-email";
 import { deliverPasswordResetEmail } from "@/lib/email/password-reset-email";
@@ -11,6 +12,7 @@ import { logger } from "@/lib/logging";
  * - Email/password enabled; passwords stored hashed by Better Auth.
  * - Sessions are DB-backed so revocation (deleting the session row) is immediate.
  * - Email verification required before sign-in (Story 1.2 / FR-1).
+ * - nextCookies() last so Server Actions can write session cookies.
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -61,6 +63,7 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [nextCookies()],
 });
 
 export type Auth = typeof auth;

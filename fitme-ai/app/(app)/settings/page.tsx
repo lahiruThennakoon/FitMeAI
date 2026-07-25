@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getSession } from "@/lib/dal";
+import { SignOutButton } from "../sign-out-button";
 import { DeleteAccountForm } from "./delete-account-form";
 
 export default async function SettingsPage() {
   const user = await getSession();
-  if (!user) redirect("/login");
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-5 py-10">
@@ -23,8 +22,11 @@ export default async function SettingsPage() {
           Signed in
         </h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-          {user.email}
+          {user?.email}
         </p>
+        <div className="mt-4">
+          <SignOutButton />
+        </div>
       </section>
 
       <section

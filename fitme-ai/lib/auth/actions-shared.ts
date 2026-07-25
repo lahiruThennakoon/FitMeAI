@@ -133,12 +133,7 @@ export function mapLoginError(error: unknown): string {
   if (typeof error === "object" && error !== null) {
     const code =
       "code" in error && typeof error.code === "string" ? error.code : undefined;
-    const status =
-      "status" in error && typeof error.status === "string"
-        ? error.status
-        : undefined;
-
-    if (code === "EMAIL_NOT_VERIFIED" || status === "FORBIDDEN") {
+    if (code === "EMAIL_NOT_VERIFIED") {
       return LOGIN_UNVERIFIED_MESSAGE;
     }
   }

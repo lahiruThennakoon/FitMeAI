@@ -30,6 +30,29 @@ type Props = {
   initialGoal: GoalDto | null;
 };
 
+type OverrideKey =
+  | "caloriesKcal"
+  | "proteinG"
+  | "carbsG"
+  | "fatG"
+  | "fibreG"
+  | "waterMl"
+  | "steps"
+  | "exerciseMinutes"
+  | "weeklyWeightChangeG";
+
+const OVERRIDE_KEYS: OverrideKey[] = [
+  "caloriesKcal",
+  "proteinG",
+  "carbsG",
+  "fatG",
+  "fibreG",
+  "waterMl",
+  "steps",
+  "exerciseMinutes",
+  "weeklyWeightChangeG",
+];
+
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string }[] = [
   { value: "sedentary", label: "Sedentary (little or no exercise)" },
   { value: "lightly_active", label: "Lightly active (1–3 days/week)" },
@@ -51,6 +74,20 @@ function defaultTimezone() {
   } catch {
     return "UTC";
   }
+}
+
+function initialOverrideValue(
+  goal: GoalDto | null,
+  key: OverrideKey,
+): string {
+  if (!goal?.overriddenFields.includes(key)) return "";
+  return String(goal[key]);
+}
+
+function parseOptionalNumber(raw: string): number | undefined {
+  if (raw.trim() === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.round(n) : undefined;
 }
 
 export function GoalsForm({ initialProfile, initialGoal }: Props) {
@@ -94,34 +131,64 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
   const [timezone, setTimezone] = useState(
     initialProfile?.timezone ?? defaultTimezone(),
   );
-  const [calorieOverride, setCalorieOverride] = useState(
-    initialGoal?.overriddenFields.includes("caloriesKcal")
-      ? String(initialGoal.caloriesKcal)
-      : "",
+  const [overrides, setOverrides] = useState<Record<OverrideKey, string>>(
+    () => ({
+      caloriesKcal: initialOverrideValue(initialGoal, "caloriesKcal"),
+      proteinG: initialOverrideValue(initialGoal, "proteinG"),
+      carbsG: initialOverrideValue(initialGoal, "carbsG"),
+      fatG: initialOverrideValue(initialGoal, "fatG"),
+      fibreG: initialOverrideValue(initialGoal, "fibreG"),
+      waterMl: initialOverrideValue(initialGoal, "waterMl"),
+      steps: initialOverrideValue(initialGoal, "steps"),
+      exerciseMinutes: initialOverrideValue(initialGoal, "exerciseMinutes"),
+      weeklyWeightChangeG: initialOverrideValue(
+        initialGoal,
+        "weeklyWeightChangeG",
+      ),
+    }),
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+  function setOverride(key: OverrideKey, value: string) {
+    setOverrides((prev) => ({ ...prev, [key]: value }));
+  }
 
   function switchUnits(next: PreferredUnits) {
     if (next === units) return;
     const h = Number(height);
     const cw = Number(currentWeight);
     const tw = Number(targetWeight);
-    if (Number.isFinite(h) && h > 0) {
-      const cm = parseHeightToCm(h, units);
-      setHeight(String(displayHeight(cm, next)));
+    const canConvert =
+      Number.isFinite(h) &&
+      h > 0 &&
+      Number.isFinite(cw) &&
+      cw > 0 &&
+      Number.isFinite(tw) &&
+      tw > 0;
+    if (!canConvert) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        height: "Enter valid height and weight before switching units.",
+      }));
+      return;
     }
-    if (Number.isFinite(cw) && cw > 0) {
-      const g = parseMassToG(cw, units);
-      setCurrentWeight(String(displayMass(g, next)));
-    }
-    if (Number.isFinite(tw) && tw > 0) {
-      const g = parseMassToG(tw, units);
-      setTargetWeight(String(displayMass(g, next)));
-    }
+    setFieldErrors({});
+    setHeight(String(displayHeight(parseHeightToCm(h, units), next)));
+    setCurrentWeight(String(displayMass(parseMassToG(cw, units), next)));
+    setTargetWeight(String(displayMass(parseMassToG(tw, units), next)));
     setUnits(next);
   }
+
+  const builtOverrides = useMemo(() => {
+    const out: Partial<Record<OverrideKey, number>> = {};
+    for (const key of OVERRIDE_KEYS) {
+      const n = parseOptionalNumber(overrides[key]);
+      if (n !== undefined) out[key] = n;
+    }
+    return out;
+  }, [overrides]);
 
   const live = useMemo(() => {
     const age = Number(ageYears);
@@ -131,6 +198,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     if (
       !Number.isFinite(age) ||
       age < 13 ||
+      age > 120 ||
       !Number.isFinite(h) ||
       h <= 0 ||
       !Number.isFinite(cw) ||
@@ -149,17 +217,10 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
       goalType,
       targetWeightG: parseMassToG(tw, units),
     });
-    const overrideKcal = Number(calorieOverride);
-    const effective = mergeOverrides(
-      suggested,
-      Number.isFinite(overrideKcal) && calorieOverride.trim() !== ""
-        ? { caloriesKcal: Math.round(overrideKcal) }
-        : {},
-    );
+    const effective = mergeOverrides(suggested, builtOverrides);
     return {
       suggested,
       effective,
-      multiplier: ACTIVITY_MULTIPLIERS[activityLevel],
       weightKg: gToKg(parseMassToG(cw, units)),
     };
   }, [
@@ -171,7 +232,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     sex,
     activityLevel,
     goalType,
-    calorieOverride,
+    builtOverrides,
   ]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -180,10 +241,8 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     setFieldErrors({});
     setSavedMessage(null);
 
-    const overrides =
-      calorieOverride.trim() !== "" && Number.isFinite(Number(calorieOverride))
-        ? { caloriesKcal: Math.round(Number(calorieOverride)) }
-        : undefined;
+    const overridePayload =
+      Object.keys(builtOverrides).length > 0 ? builtOverrides : undefined;
 
     startTransition(async () => {
       try {
@@ -203,7 +262,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           preferredUnits: units,
           country,
           timezone,
-          overrides,
+          overrides: overridePayload,
         });
         if (!result.ok) {
           setFormError(result.error);
@@ -392,8 +451,8 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           </li>
           {live ? (
             <li>
-              Inputs: {live.weightKg.toFixed(1)} kg · {Number(height)} {heightUnit}{" "}
-              · age {ageYears} · {sex}
+              Inputs: {live.weightKg.toFixed(1)} kg · {Number(height)}{" "}
+              {heightUnit} · age {ageYears} · {sex}
             </li>
           ) : null}
         </ul>
@@ -439,18 +498,93 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
                 }`}
               />
             </dl>
-            <Field
-              id="calorieOverride"
-              label="Override calories (optional)"
-              type="number"
-              value={calorieOverride}
-              onChange={setCalorieOverride}
-              hint={`Suggested: ${live.suggested.caloriesKcal} kcal — leave blank to use suggestion`}
-            />
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">
+                Override any target (optional)
+              </legend>
+              <p className="text-sm text-neutral-500">
+                Leave a field blank to keep the suggestion. Values use canonical
+                units (kcal, g, ml, steps, minutes, g/week).
+              </p>
+              <OverrideField
+                id="caloriesKcal"
+                label="Calories (kcal)"
+                suggested={live.suggested.caloriesKcal}
+                value={overrides.caloriesKcal}
+                onChange={(v) => setOverride("caloriesKcal", v)}
+                error={fieldErrors["overrides.caloriesKcal"]}
+              />
+              <OverrideField
+                id="proteinG"
+                label="Protein (g)"
+                suggested={live.suggested.proteinG}
+                value={overrides.proteinG}
+                onChange={(v) => setOverride("proteinG", v)}
+                error={fieldErrors["overrides.proteinG"]}
+              />
+              <OverrideField
+                id="carbsG"
+                label="Carbs (g)"
+                suggested={live.suggested.carbsG}
+                value={overrides.carbsG}
+                onChange={(v) => setOverride("carbsG", v)}
+                error={fieldErrors["overrides.carbsG"]}
+              />
+              <OverrideField
+                id="fatG"
+                label="Fat (g)"
+                suggested={live.suggested.fatG}
+                value={overrides.fatG}
+                onChange={(v) => setOverride("fatG", v)}
+                error={fieldErrors["overrides.fatG"]}
+              />
+              <OverrideField
+                id="fibreG"
+                label="Fibre (g)"
+                suggested={live.suggested.fibreG}
+                value={overrides.fibreG}
+                onChange={(v) => setOverride("fibreG", v)}
+                error={fieldErrors["overrides.fibreG"]}
+              />
+              <OverrideField
+                id="waterMl"
+                label="Water (ml)"
+                suggested={live.suggested.waterMl}
+                value={overrides.waterMl}
+                onChange={(v) => setOverride("waterMl", v)}
+                error={fieldErrors["overrides.waterMl"]}
+              />
+              <OverrideField
+                id="steps"
+                label="Steps"
+                suggested={live.suggested.steps}
+                value={overrides.steps}
+                onChange={(v) => setOverride("steps", v)}
+                error={fieldErrors["overrides.steps"]}
+              />
+              <OverrideField
+                id="exerciseMinutes"
+                label="Exercise (minutes)"
+                suggested={live.suggested.exerciseMinutes}
+                value={overrides.exerciseMinutes}
+                onChange={(v) => setOverride("exerciseMinutes", v)}
+                error={fieldErrors["overrides.exerciseMinutes"]}
+              />
+              <OverrideField
+                id="weeklyWeightChangeG"
+                label="Weekly weight change (g)"
+                suggested={live.suggested.weeklyWeightChangeG}
+                value={overrides.weeklyWeightChangeG}
+                onChange={(v) => setOverride("weeklyWeightChangeG", v)}
+                error={fieldErrors["overrides.weeklyWeightChangeG"]}
+                hint="Negative = loss, positive = gain"
+              />
+            </fieldset>
           </>
         ) : (
           <p className="text-sm text-neutral-500">
-            Fill in age, height, and weight to see live suggestions.
+            Fill in age (13–120), height, and weight to see live suggestions.
           </p>
         )}
       </section>
@@ -474,6 +608,31 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
         {pending ? "Saving…" : "Save profile & targets"}
       </button>
     </form>
+  );
+}
+
+function OverrideField(props: {
+  id: string;
+  label: string;
+  suggested: number;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+  hint?: string;
+}) {
+  return (
+    <Field
+      id={props.id}
+      label={props.label}
+      type="number"
+      value={props.value}
+      onChange={props.onChange}
+      error={props.error}
+      hint={
+        props.hint ??
+        `Suggested: ${props.suggested} — leave blank to use suggestion`
+      }
+    />
   );
 }
 
@@ -503,7 +662,11 @@ function Field(props: {
         onChange={(e) => props.onChange(e.target.value)}
         aria-invalid={Boolean(props.error)}
         aria-describedby={
-          props.error ? `${props.id}-error` : props.hint ? `${props.id}-hint` : undefined
+          props.error
+            ? `${props.id}-error`
+            : props.hint
+              ? `${props.id}-hint`
+              : undefined
         }
         className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950"
       />

@@ -75,4 +75,19 @@ describe("loginAction (generic errors + session creation)", () => {
       expect(result.error).toBe(LOGIN_UNVERIFIED_MESSAGE);
     }
   });
+
+  it("keeps generic credential error for unrelated FORBIDDEN statuses", async () => {
+    const signInEmail = vi.fn().mockRejectedValue({
+      status: "FORBIDDEN",
+      code: "SOME_OTHER_REASON",
+    });
+    const result = await loginAction(
+      { email: "nimali@example.com", password: "securepass" },
+      loginDeps(signInEmail),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe(LOGIN_GENERIC_ERROR);
+    }
+  });
 });

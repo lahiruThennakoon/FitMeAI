@@ -6,6 +6,7 @@ import { GoalsForm } from "./goals-form";
 
 export default async function GoalsPage() {
   const user = await getSession();
+  // Layout already guards; redirect keeps the type narrow for DAL calls.
   if (!user) redirect("/login");
 
   const [profile, goal] = await Promise.all([

@@ -35,6 +35,20 @@ describe("requestPasswordResetAction (non-enumerable)", () => {
     });
     expect(requestPasswordReset).toHaveBeenCalledOnce();
   });
+
+  it("still returns neutral success when mail/API throws (no enumeration)", async () => {
+    const requestPasswordReset = vi
+      .fn()
+      .mockRejectedValue(new Error("mail down"));
+    const result = await requestPasswordResetAction(
+      { email: "nimali@example.com" },
+      { requestPasswordReset },
+    );
+    expect(result).toEqual({
+      ok: true,
+      data: { message: REQUEST_RESET_SUCCESS_MESSAGE },
+    });
+  });
 });
 
 describe("resetPasswordAction", () => {
