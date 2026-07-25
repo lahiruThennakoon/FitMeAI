@@ -9,6 +9,12 @@ import {
 } from "@/lib/dal/profile";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
 import {
+  evaluateSafetyLadder,
+  NO_MEDICAL_ADVICE,
+  SAFETY_CONSENT_REQUIRED_ERROR,
+  type SafetyAssessment,
+} from "@/lib/domain/safety/ladder";
+import {
   MIFFLIN_ST_JEOR_FORMULA,
   ACTIVITY_MULTIPLIERS,
 } from "@/lib/domain/targets/bmr";
@@ -25,11 +31,14 @@ import { logger } from "@/lib/logging";
 import { err, ok, type Result } from "@/lib/result";
 import { saveProfileSchema } from "@/lib/schemas/profile";
 
+export { SAFETY_CONSENT_REQUIRED_ERROR };
+
 export type SaveProfileResult = Result<{
   profile: ProfileDto;
   goal: GoalDto;
   formula: typeof MIFFLIN_ST_JEOR_FORMULA;
   activityMultiplier: number;
+  safety: SafetyAssessment;
 }>;
 
 export type LoadProfileResult = Result<{
@@ -43,6 +52,8 @@ export type PreviewTargetsResult = Result<{
   effective: ReturnType<typeof suggestTargets>;
   formula: typeof MIFFLIN_ST_JEOR_FORMULA;
   activityMultiplier: number;
+  safety: SafetyAssessment;
+  noMedicalAdvice: string;
 }>;
 
 export type ProfileActionDeps = {
@@ -74,6 +85,30 @@ function toCanonical(input: {
   };
 }
 
+function assess(
+  data: {
+    sex: "male" | "female";
+    goalType: string;
+  },
+  canonical: {
+    heightCm: number;
+    currentWeightG: number;
+    targetWeightG: number;
+  },
+  effective: ReturnType<typeof suggestTargets>,
+): SafetyAssessment {
+  return evaluateSafetyLadder({
+    sex: data.sex,
+    heightCm: canonical.heightCm,
+    currentWeightG: canonical.currentWeightG,
+    targetWeightG: canonical.targetWeightG,
+    caloriesKcal: effective.caloriesKcal,
+    tdeeKcal: effective.tdeeKcal,
+    weeklyWeightChangeG: effective.weeklyWeightChangeG,
+    goalType: data.goalType,
+  });
+}
+
 export async function previewTargetsAction(
   input: unknown,
 ): Promise<PreviewTargetsResult> {
@@ -97,12 +132,15 @@ export async function previewTargetsAction(
     targetWeightG: canonical.targetWeightG,
   });
   const effective = mergeOverrides(suggested, data.overrides ?? {});
+  const safety = assess(data, canonical, effective);
 
   return ok({
     suggested,
     effective,
     formula: MIFFLIN_ST_JEOR_FORMULA,
     activityMultiplier: ACTIVITY_MULTIPLIERS[data.activityLevel],
+    safety,
+    noMedicalAdvice: NO_MEDICAL_ADVICE,
   });
 }
 
@@ -142,7 +180,20 @@ export async function saveProfileAction(
   });
   const effective = mergeOverrides(suggested, data.overrides ?? {});
   const overriddenFields = overriddenFieldNames(data.overrides);
+  const safety = assess(data, canonical, effective);
 
+  if (safety.requiresConsent && !data.safetyConsent) {
+    logger.info("profile.save.blocked_safety", {
+      outcome: "consent_required",
+      userId,
+      level: safety.level,
+    });
+    return err(SAFETY_CONSENT_REQUIRED_ERROR, {
+      safetyConsent: SAFETY_CONSENT_REQUIRED_ERROR,
+    });
+  }
+
+  const consented = safety.level === "red" && Boolean(data.safetyConsent);
   const payload: UpsertProfileGoalInput = {
     profile: {
       displayName: data.displayName,
@@ -171,16 +222,26 @@ export async function saveProfileAction(
       exerciseMinutes: effective.exerciseMinutes,
       weeklyWeightChangeG: effective.weeklyWeightChangeG,
       overriddenFields,
+      safetyLevel: safety.level,
+      safetyReasons: safety.reasons,
+      safetyConsentGiven: consented,
+      safetyConsentAt: consented ? new Date() : null,
     },
   };
 
   try {
     const saved = await upsert(userId, payload);
-    logger.info("profile.save.completed", { outcome: "accepted", userId });
+    logger.info("profile.save.completed", {
+      outcome: "accepted",
+      userId,
+      safetyLevel: safety.level,
+      safetyConsent: consented,
+    });
     return ok({
       ...saved,
       formula: MIFFLIN_ST_JEOR_FORMULA,
       activityMultiplier: ACTIVITY_MULTIPLIERS[data.activityLevel],
+      safety,
     });
   } catch {
     logger.error("profile.save.failed", { outcome: "error", userId });

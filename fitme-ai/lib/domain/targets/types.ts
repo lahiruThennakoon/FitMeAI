@@ -20,6 +20,8 @@ export type ProfileDto = {
   timezone: string;
 };
 
+export type SafetyLevelDto = "green" | "yellow" | "red";
+
 export type GoalDto = {
   bmrKcal: number;
   tdeeKcal: number;
@@ -33,6 +35,10 @@ export type GoalDto = {
   exerciseMinutes: number;
   weeklyWeightChangeG: number;
   overriddenFields: string[];
+  safetyLevel: SafetyLevelDto;
+  safetyReasons: string[];
+  safetyConsentGiven: boolean;
+  safetyConsentAt: string | null;
 };
 
 export type { ActivityLevel, GoalType, PreferredUnits, Sex };

@@ -76,7 +76,22 @@ After sign-in, open **Profile & targets** at `/goals` (Story 1.6 / FR-4).
 - Enter profile details; suggested targets use Mifflin–St Jeor BMR × activity multiplier.
 - Formula, inputs, and “estimates, not medical advice” are shown on the page.
 - Values store in canonical units (g, cm, kcal, ml); metric/imperial toggle converts at the edges.
-- Safety ladder warnings arrive in Story 1.7.
+- Safety ladder (Story 1.7 / FR-5): green / yellow (“not recommended”) / red (consent required). Thresholds and sources are shown on `/goals`. Dangerous saves record consent; safer edits clear it.
+
+### Rate limiting & logging (Story 1.8 / FR-30–31)
+
+Auth abuse protection uses an in-memory sliding window (fine for single-instance / one Edge isolate; not shared across multiple replicas — swap the store later for Redis if you scale out). AI endpoint limits land in Epic 2.
+
+| Surface | Limit | Window |
+| --- | --- | --- |
+| `/api/auth/*` other paths (middleware) | 60 | 1 minute |
+| Login (Server Action + `/api/auth/sign-in/*`) | 10 | 15 minutes |
+| Register (Server Action + `/api/auth/sign-up/*`) | 5 | 1 hour |
+| Password-reset request (Action + forget-password HTTP) | 5 | 1 hour |
+| Password-reset submit (Action + reset-password HTTP) | 10 | 1 hour |
+| Account delete (Server Action; password-gated) | 10 | 15 minutes (login bucket) |
+
+Over-limit responses use the safe copy *“Too many attempts. Please try again later.”* (HTTP `429` + `Retry-After` on the API). Client keys prefer platform IP headers (`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`) over raw `x-forwarded-for`. Logs go through `lib/logging` redaction — no email/password/health keys or raw `Error.message` values.
 
 ## Scripts
 
@@ -103,10 +118,12 @@ lib/
   ai/           # provider-agnostic AI port + adapters — added in Epic 2
   schemas/      # shared Zod schemas
   logging/      # redaction logger (no PII/health in logs)
+  rate-limit/   # auth rate-limit buckets + in-memory store (FR-30)
   auth.ts       # Better Auth server config
   db.ts         # Prisma singleton
   env.ts        # env validation (fail fast)
   result.ts     # typed result envelope
+middleware.ts   # /api/auth rate limit (defense in depth)
 prisma/         # schema + migrations + seed
 tests/          # unit tests
 ```

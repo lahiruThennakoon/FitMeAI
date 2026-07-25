@@ -95,6 +95,8 @@ export const saveProfileSchema = z
           .optional(),
       })
       .optional(),
+    /** Required when the safety ladder evaluates to red (Story 1.7). */
+    safetyConsent: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {
     if (data.preferredUnits === "metric") {

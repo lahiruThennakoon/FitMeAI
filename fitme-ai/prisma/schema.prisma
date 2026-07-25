@@ -84,10 +84,16 @@ model UserProfile {
   @@map("user_profile")
 }
 
+enum SafetyLevel {
+  green
+  yellow
+  red
+}
+
 model Goal {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String      @id @default(cuid())
+  userId               String      @unique
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   bmrKcal              Int
   tdeeKcal             Int
   caloriesKcal         Int
@@ -99,10 +105,15 @@ model Goal {
   steps                Int
   exerciseMinutes      Int
   weeklyWeightChangeG  Int
-  /// JSON map of overridden target field names (e.g. ["caloriesKcal","proteinG"]).
-  overriddenFields     String[] @default([])
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  /// Overridden target field names (e.g. ["caloriesKcal","proteinG"]).
+  overriddenFields     String[]    @default([])
+  /// Story 1.7 / FR-5 — recorded safety ladder decision.
+  safetyLevel          SafetyLevel @default(green)
+  safetyReasons        String[]    @default([])
+  safetyConsentGiven   Boolean     @default(false)
+  safetyConsentAt      DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   @@map("goal")
 }

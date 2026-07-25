@@ -7,6 +7,7 @@ import {
   requestPasswordResetAction,
   resetPasswordAction,
 } from "@/app/actions/auth";
+import { authRateLimitTestDeps } from "@/tests/helpers/auth-rate-limit";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -17,7 +18,7 @@ describe("requestPasswordResetAction (non-enumerable)", () => {
     const requestPasswordReset = vi.fn();
     const result = await requestPasswordResetAction(
       { email: "bad" },
-      { requestPasswordReset },
+      { requestPasswordReset, ...authRateLimitTestDeps },
     );
     expect(result.ok).toBe(false);
     expect(requestPasswordReset).not.toHaveBeenCalled();
@@ -27,7 +28,7 @@ describe("requestPasswordResetAction (non-enumerable)", () => {
     const requestPasswordReset = vi.fn().mockResolvedValue({ status: true });
     const result = await requestPasswordResetAction(
       { email: "nimali@example.com" },
-      { requestPasswordReset },
+      { requestPasswordReset, ...authRateLimitTestDeps },
     );
     expect(result).toEqual({
       ok: true,
@@ -42,7 +43,7 @@ describe("requestPasswordResetAction (non-enumerable)", () => {
       .mockRejectedValue(new Error("mail down"));
     const result = await requestPasswordResetAction(
       { email: "nimali@example.com" },
-      { requestPasswordReset },
+      { requestPasswordReset, ...authRateLimitTestDeps },
     );
     expect(result).toEqual({
       ok: true,
@@ -56,7 +57,7 @@ describe("resetPasswordAction", () => {
     const resetPassword = vi.fn().mockRejectedValue({ code: "INVALID_TOKEN" });
     const result = await resetPasswordAction(
       { token: "bad", password: "newsecurepass" },
-      { resetPassword },
+      { resetPassword, ...authRateLimitTestDeps },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -68,7 +69,7 @@ describe("resetPasswordAction", () => {
     const resetPassword = vi.fn().mockResolvedValue({ status: true });
     const result = await resetPasswordAction(
       { token: "valid-token", password: "newsecurepass" },
-      { resetPassword },
+      { resetPassword, ...authRateLimitTestDeps },
     );
     expect(result).toEqual({
       ok: true,

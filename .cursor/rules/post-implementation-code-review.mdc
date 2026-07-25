@@ -1,0 +1,15 @@
+---
+description: Always run adversarial code review after implementing a story or feature
+alwaysApply: true
+---
+
+# Post-implementation code review
+
+After finishing implementation of a story, feature, or non-trivial fix (status ready for review / ACs met / tests green):
+
+1. **Immediately run a code review** — use the `bmad-code-review` workflow (or equivalent adversarial review) on the implemented diff. Do not wait for the user to ask.
+2. Prefer reviewing against the story/spec file when one exists (`review_mode: full`).
+3. Present findings with triage (patch / defer / discard) before offering commit/push.
+4. If the user already asked to commit/push in the same turn, still surface critical review findings first; only skip review for trivial one-line typo fixes with no behavior change.
+
+This is standing process for FitMe_AI — treat “implemented” as incomplete until reviewed.

@@ -6,6 +6,7 @@ import {
   assertStoredPasswordIsHashed,
 } from "@/lib/auth/actions-shared";
 import { registerAction } from "@/app/actions/auth";
+import { authRateLimitTestDeps } from "@/tests/helpers/auth-rate-limit";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -14,6 +15,7 @@ afterEach(() => {
 const validDeps = () => ({
   signUpEmail: vi.fn().mockResolvedValue({ user: { id: "u1" }, token: null }),
   sendVerificationEmail: vi.fn().mockResolvedValue({ status: true }),
+  ...authRateLimitTestDeps,
 });
 
 describe("registerAction (non-enumerable signup + Result envelope)", () => {
@@ -26,7 +28,7 @@ describe("registerAction (non-enumerable signup + Result envelope)", () => {
     const sendVerificationEmail = vi.fn();
     const result = await registerAction(
       { email: "bad", password: "short" },
-      { signUpEmail, sendVerificationEmail },
+      { signUpEmail, sendVerificationEmail, ...authRateLimitTestDeps },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {

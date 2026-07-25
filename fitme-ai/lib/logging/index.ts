@@ -1,18 +1,35 @@
 /**
  * Redacted structured logger (AD-9 / FR-31).
  * Health, body and PII values must never appear in logs or error messages.
- * We redact by key name and never log raw request/response bodies.
+ * We redact by key name and never log raw request/response bodies or Error.message.
  */
 
-const SENSITIVE_KEY = /(password|token|secret|email|weight|height|dob|birth|age|sex|body|calorie|nutri|health|measurement|photo|address|phone|name)/i;
+const SENSITIVE_KEY =
+  /(password|token|secret|authorization|cookie|email|weight|height|dob|birth|age|sex|body|calorie|nutri|health|measurement|photo|address|phone|name|apikey|api_key|message|detail|reason|^error$|err)/i;
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
+
+function isErrorLike(
+  value: unknown,
+): value is { name?: unknown; message?: unknown } {
+  if (value instanceof Error) return true;
+  if (typeof value !== "object" || value === null) return false;
+  const o = value as Record<string, unknown>;
+  return typeof o.message === "string" && ("name" in o || "code" in o || "status" in o);
+}
 
 export function redact(value: unknown, depth = 0): unknown {
   if (depth > 4) return "[Truncated]";
   if (value === null || value === undefined) return value;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return value;
+  }
+  if (isErrorLike(value)) {
+    // Better Auth / runtime errors may embed emails in `.message` — never emit raw.
+    return {
+      name: typeof value.name === "string" ? value.name : "Error",
+      message: "[Redacted]",
+    };
   }
   if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
   if (typeof value === "object") {

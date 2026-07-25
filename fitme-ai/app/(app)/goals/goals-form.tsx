@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfileAction } from "@/app/actions/profile";
 import {
@@ -9,6 +9,11 @@ import {
   type ActivityLevel,
   type Sex,
 } from "@/lib/domain/targets/bmr";
+import {
+  evaluateSafetyLadder,
+  NO_MEDICAL_ADVICE,
+  SAFETY_CONSENT_REQUIRED_ERROR,
+} from "@/lib/domain/safety/ladder";
 import {
   mergeOverrides,
   suggestTargets,
@@ -147,6 +152,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
       ),
     }),
   );
+  const [safetyConsent, setSafetyConsent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -218,10 +224,24 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
       targetWeightG: parseMassToG(tw, units),
     });
     const effective = mergeOverrides(suggested, builtOverrides);
+    const weightG = parseMassToG(cw, units);
+    const heightCm = parseHeightToCm(h, units);
+    const targetG = parseMassToG(tw, units);
+    const safety = evaluateSafetyLadder({
+      sex,
+      heightCm,
+      currentWeightG: weightG,
+      targetWeightG: targetG,
+      caloriesKcal: effective.caloriesKcal,
+      tdeeKcal: effective.tdeeKcal,
+      weeklyWeightChangeG: effective.weeklyWeightChangeG,
+      goalType,
+    });
     return {
       suggested,
       effective,
-      weightKg: gToKg(parseMassToG(cw, units)),
+      safety,
+      weightKg: gToKg(weightG),
     };
   }, [
     ageYears,
@@ -235,11 +255,31 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     builtOverrides,
   ]);
 
+  const safetyFingerprint = live
+    ? [
+        live.safety.level,
+        live.safety.reasons.join("|"),
+        live.effective.caloriesKcal,
+        live.effective.weeklyWeightChangeG,
+        live.weightKg,
+      ].join(":")
+    : "";
+
+  useEffect(() => {
+    setSafetyConsent(false);
+  }, [safetyFingerprint]);
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
     setFieldErrors({});
     setSavedMessage(null);
+
+    if (live?.safety.requiresConsent && !safetyConsent) {
+      setFormError(SAFETY_CONSENT_REQUIRED_ERROR);
+      setFieldErrors({ safetyConsent: SAFETY_CONSENT_REQUIRED_ERROR });
+      return;
+    }
 
     const overridePayload =
       Object.keys(builtOverrides).length > 0 ? builtOverrides : undefined;
@@ -263,6 +303,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           country,
           timezone,
           overrides: overridePayload,
+          safetyConsent,
         });
         if (!result.ok) {
           setFormError(result.error);
@@ -581,6 +622,82 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
                 hint="Negative = loss, positive = gain"
               />
             </fieldset>
+
+            <section
+              aria-labelledby="safety-heading"
+              aria-live="polite"
+              className={`space-y-3 rounded-xl border p-4 ${
+                live.safety.level === "red"
+                  ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                  : live.safety.level === "yellow"
+                    ? "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
+                    : "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
+              }`}
+            >
+              <h3 id="safety-heading" className="text-sm font-semibold">
+                {live.safety.level === "green"
+                  ? "Safety: looking good"
+                  : live.safety.level === "yellow"
+                    ? "Not recommended"
+                    : "Dangerous — consent required"}
+              </h3>
+              {live.safety.messages.length > 0 ? (
+                <ul className="list-disc space-y-1 pl-5 text-sm">
+                  {live.safety.messages.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm">
+                  Your suggested targets are within the usual planning ranges.
+                </p>
+              )}
+              <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                {NO_MEDICAL_ADVICE}
+              </p>
+              <details className="text-sm text-neutral-600 dark:text-neutral-400">
+                <summary className="cursor-pointer font-medium">
+                  Sources cited in-app
+                </summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {live.safety.citations.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </details>
+              {live.safety.requiresConsent ? (
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={safetyConsent}
+                      onChange={(e) => setSafetyConsent(e.target.checked)}
+                      className="mt-1 h-4 w-4"
+                      aria-invalid={Boolean(fieldErrors.safetyConsent)}
+                      aria-describedby={
+                        fieldErrors.safetyConsent
+                          ? "safety-consent-error safety-consent-hint"
+                          : "safety-consent-hint"
+                      }
+                    />
+                    <span id="safety-consent-hint">
+                      I understand this target is labeled dangerous and I still
+                      want to save it. I can change it back to safer values
+                      anytime.
+                    </span>
+                  </label>
+                  {fieldErrors.safetyConsent ? (
+                    <p
+                      id="safety-consent-error"
+                      role="alert"
+                      className="text-sm text-red-600"
+                    >
+                      {fieldErrors.safetyConsent}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
           </>
         ) : (
           <p className="text-sm text-neutral-500">
@@ -602,7 +719,9 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={
+          pending || Boolean(live?.safety.requiresConsent && !safetyConsent)
+        }
         className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white disabled:opacity-60"
       >
         {pending ? "Saving…" : "Save profile & targets"}

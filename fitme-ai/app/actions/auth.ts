@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
   DELETE_ACCOUNT_GENERIC_ERROR,
+  RATE_LIMIT_ERROR,
   REGISTER_GENERIC_ERROR,
   REGISTER_SUCCESS_MESSAGE,
   REQUEST_RESET_SUCCESS_MESSAGE,
@@ -11,6 +12,8 @@ import {
   fieldErrorsFromZod,
   mapLoginError,
   nameFromEmail,
+  type AuthClientKeyFn,
+  type AuthRateLimitFn,
   type DeleteAccountDeps,
   type DeleteAccountResult,
   type LoginActionDeps,
@@ -23,6 +26,11 @@ import {
   type ResetPasswordResult,
 } from "@/lib/auth/actions-shared";
 import { logger } from "@/lib/logging";
+import {
+  enforceAuthRateLimit,
+  type AuthRateLimitBucket,
+} from "@/lib/rate-limit";
+import { clientKeyFromHeaders } from "@/lib/rate-limit/client-key";
 import { err, ok } from "@/lib/result";
 import {
   deleteAccountSchema,
@@ -32,10 +40,48 @@ import {
   resetPasswordSchema,
 } from "@/lib/schemas/auth";
 
+async function defaultClientKey(): Promise<string> {
+  return clientKeyFromHeaders(await headers());
+}
+
+function defaultRateLimit(bucket: AuthRateLimitBucket, clientKey: string) {
+  return enforceAuthRateLimit({ bucket, clientKey });
+}
+
+async function guardAuthRateLimit(opts: {
+  bucket: AuthRateLimitBucket;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
+  event: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const getClientKey = opts.getClientKey ?? defaultClientKey;
+    const rateLimit = opts.rateLimit ?? defaultRateLimit;
+    const clientKey = await getClientKey();
+    const result = rateLimit(opts.bucket, clientKey);
+    if (!result.ok) {
+      logger.warn(opts.event, { outcome: "rate_limited" });
+      return { ok: false, error: RATE_LIMIT_ERROR };
+    }
+    return { ok: true };
+  } catch {
+    logger.warn(opts.event, { outcome: "rate_limit_error" });
+    return { ok: false, error: RATE_LIMIT_ERROR };
+  }
+}
+
 export async function registerAction(
   input: unknown,
   deps: RegisterActionDeps = {},
 ): Promise<RegisterActionResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "register",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.register.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
     return err(
@@ -86,6 +132,14 @@ export async function loginAction(
   input: unknown,
   deps: LoginActionDeps = {},
 ): Promise<LoginActionResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "login",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.login.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return err(
@@ -121,6 +175,14 @@ export async function requestPasswordResetAction(
   input: unknown,
   deps: RequestPasswordResetDeps = {},
 ): Promise<RequestPasswordResetResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "passwordResetRequest",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.password_reset_request.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
   const parsed = requestPasswordResetSchema.safeParse(input);
   if (!parsed.success) {
     return err(
@@ -153,6 +215,14 @@ export async function resetPasswordAction(
   input: unknown,
   deps: ResetPasswordDeps = {},
 ): Promise<ResetPasswordResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "passwordReset",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.password_reset.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) {
     return err(
@@ -183,6 +253,14 @@ export async function deleteAccountAction(
   input: unknown,
   deps: DeleteAccountDeps = {},
 ): Promise<DeleteAccountResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "login",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.account.delete_rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
   const parsed = deleteAccountSchema.safeParse(input);
   if (!parsed.success) {
     return err(

@@ -4,6 +4,7 @@ import {
   REGISTER_SUCCESS_MESSAGE,
 } from "@/lib/auth/actions-shared";
 import { registerAction } from "@/app/actions/auth";
+import { authRateLimitTestDeps } from "@/tests/helpers/auth-rate-limit";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -18,6 +19,7 @@ describe("registerAction verification delivery (Decision A)", () => {
         sendVerificationEmail: vi
           .fn()
           .mockRejectedValue(new Error("mail provider down")),
+        ...authRateLimitTestDeps,
       },
     );
 
@@ -31,6 +33,7 @@ describe("registerAction verification delivery (Decision A)", () => {
       {
         signUpEmail: vi.fn().mockResolvedValue({ user: { id: "u-int" } }),
         sendVerificationEmail,
+        ...authRateLimitTestDeps,
       },
     );
 

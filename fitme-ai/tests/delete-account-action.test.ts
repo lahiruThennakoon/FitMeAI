@@ -4,6 +4,7 @@ import {
   type DeleteAccountDeps,
 } from "@/lib/auth/actions-shared";
 import { deleteAccountAction } from "@/app/actions/auth";
+import { authRateLimitTestDeps } from "@/tests/helpers/auth-rate-limit";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -14,6 +15,7 @@ const deleteDeps = (
 ): DeleteAccountDeps => ({
   deleteUser: deleteUser as NonNullable<DeleteAccountDeps["deleteUser"]>,
   getHeaders: async () => new Headers(),
+  ...authRateLimitTestDeps,
 });
 
 describe("deleteAccountAction (Story 1.5 / FR-3)", () => {

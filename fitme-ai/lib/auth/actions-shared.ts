@@ -1,5 +1,8 @@
 import type { ZodError } from "zod";
 import type { FieldErrors, Result } from "@/lib/result";
+import type { AuthRateLimitBucket } from "@/lib/rate-limit/config";
+import { RATE_LIMIT_ERROR } from "@/lib/rate-limit/config";
+import type { RateLimitResult } from "@/lib/rate-limit/check";
 
 export const REGISTER_SUCCESS_MESSAGE =
   "Account created. Check your email for a verification link.";
@@ -21,6 +24,16 @@ export const RESET_PASSWORD_GENERIC_ERROR =
 
 export const DELETE_ACCOUNT_GENERIC_ERROR =
   "Could not delete your account. Check your password and try again.";
+
+export { RATE_LIMIT_ERROR };
+
+/** Optional override for Story 1.8 rate limiting (inject in tests). */
+export type AuthRateLimitFn = (
+  bucket: AuthRateLimitBucket,
+  clientKey: string,
+) => RateLimitResult;
+
+export type AuthClientKeyFn = () => Promise<string>;
 
 export type RegisterActionResult = Result<{ message: string }>;
 export type LoginActionResult = Result<{ redirectTo: string }>;
@@ -57,11 +70,15 @@ type SignInEmail = (args: {
 export type RegisterActionDeps = {
   signUpEmail?: SignUpEmail;
   sendVerificationEmail?: SendVerificationEmail;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
 };
 
 export type LoginActionDeps = {
   signInEmail?: SignInEmail;
   getHeaders?: () => Promise<Headers>;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
 };
 
 type RequestPasswordReset = (args: {
@@ -80,10 +97,14 @@ type ResetPassword = (args: {
 
 export type RequestPasswordResetDeps = {
   requestPasswordReset?: RequestPasswordReset;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
 };
 
 export type ResetPasswordDeps = {
   resetPassword?: ResetPassword;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
 };
 
 type DeleteUser = (args: {
@@ -97,6 +118,8 @@ type DeleteUser = (args: {
 export type DeleteAccountDeps = {
   deleteUser?: DeleteUser;
   getHeaders?: () => Promise<Headers>;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
 };
 
 /** Derive Better Auth `name` without collecting a separate Name field. */

@@ -4,6 +4,7 @@ import type {
   Goal,
   GoalType,
   PreferredUnits,
+  SafetyLevel,
   Sex,
   UserProfile,
 } from "@prisma/client";
@@ -44,6 +45,12 @@ function toGoalDto(row: Goal): GoalDto {
     exerciseMinutes: row.exerciseMinutes,
     weeklyWeightChangeG: row.weeklyWeightChangeG,
     overriddenFields: row.overriddenFields,
+    safetyLevel: row.safetyLevel,
+    safetyReasons: row.safetyReasons,
+    safetyConsentGiven: row.safetyConsentGiven,
+    safetyConsentAt: row.safetyConsentAt
+      ? row.safetyConsentAt.toISOString()
+      : null,
   };
 }
 
@@ -78,7 +85,24 @@ export type UpsertProfileGoalInput = {
     country: string;
     timezone: string;
   };
-  goal: Omit<GoalDto, "overriddenFields"> & { overriddenFields: string[] };
+  goal: {
+    bmrKcal: number;
+    tdeeKcal: number;
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fibreG: number;
+    waterMl: number;
+    steps: number;
+    exerciseMinutes: number;
+    weeklyWeightChangeG: number;
+    overriddenFields: string[];
+    safetyLevel: SafetyLevel;
+    safetyReasons: string[];
+    safetyConsentGiven: boolean;
+    safetyConsentAt: Date | null;
+  };
 };
 
 export async function upsertProfileAndGoal(

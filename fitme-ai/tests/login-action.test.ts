@@ -5,6 +5,7 @@ import {
   type LoginActionDeps,
 } from "@/lib/auth/actions-shared";
 import { loginAction } from "@/app/actions/auth";
+import { authRateLimitTestDeps } from "@/tests/helpers/auth-rate-limit";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -13,6 +14,7 @@ afterEach(() => {
 const loginDeps = (signInEmail: ReturnType<typeof vi.fn>): LoginActionDeps => ({
   signInEmail: signInEmail as NonNullable<LoginActionDeps["signInEmail"]>,
   getHeaders: async () => new Headers(),
+  ...authRateLimitTestDeps,
 });
 
 describe("loginAction (generic errors + session creation)", () => {
