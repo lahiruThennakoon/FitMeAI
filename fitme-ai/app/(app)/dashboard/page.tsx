@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
-import { SignOutButton } from "./sign-out-button";
+import { SignOutButton } from "../sign-out-button";
 
 /**
  * Authenticated home (Story 1.3). Route group layout enforces session (AD-1 / AD-6).
