@@ -78,6 +78,17 @@ After sign-in, open **Profile & targets** at `/goals` (Story 1.6 / FR-4).
 - Values store in canonical units (g, cm, kcal, ml); metric/imperial toggle converts at the edges.
 - Safety ladder (Story 1.7 / FR-5): green / yellow (“not recommended”) / red (consent required). Thresholds and sources are shown on `/goals`. Dangerous saves record consent; safer edits clear it.
 
+### Nutrition catalog (Story 2.1 / FR-7 data layer)
+
+Curated Food / Ingredient / FoodServing / RecipeIngredient tables with canonical grams/kcal.
+
+```bash
+npx prisma migrate deploy
+npm run db:seed
+```
+
+Seed covers Sri Lankan staples (rice, pol sambol, dhal curry, kottu, string hoppers, …) with hybrid provenance (USDA-style open data approximations + hand-curated dish proportions). Lookups return `dataSource: "database"`. Missing macros stay `null`.
+
 ### Rate limiting & logging (Story 1.8 / FR-30–31)
 
 Auth abuse protection uses an in-memory sliding window (fine for single-instance / one Edge isolate; not shared across multiple replicas — swap the store later for Redis if you scale out). AI endpoint limits land in Epic 2.
@@ -103,7 +114,9 @@ Over-limit responses use the safe copy *“Too many attempts. Please try again l
 | `npm run typecheck` | TypeScript, no emit |
 | `npm test` | Vitest unit tests |
 | `npm run db:migrate` | Prisma dev migration |
+| `npm run db:deploy` | Apply migrations |
 | `npm run db:generate` | Generate Prisma client |
+| `npm run db:seed` | Seed Sri Lankan nutrition catalog |
 | `npm run db:studio` | Prisma Studio |
 
 ## Project structure

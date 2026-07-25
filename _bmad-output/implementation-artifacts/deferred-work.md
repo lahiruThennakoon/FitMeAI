@@ -27,3 +27,7 @@ Issues triaged out of active stories during code review.
 - **Shared `ip:unknown` bucket** — clients with no forwarded IP headers throttle each other; richer fingerprint later.
 - **Non-atomic peek/record** — concurrent requests can slightly exceed the configured ceiling in one window.
 
+## Deferred from: code review of 2-1-nutrition-database-schema-seed (2026-07-26)
+
+- **Unique food/ingredient aliases** — alias collisions are slug-ordered for determinism today; enforce uniqueness (or ranked search) when the catalog grows / search story lands.
+

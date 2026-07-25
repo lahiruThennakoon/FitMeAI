@@ -164,3 +164,90 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+// ---------------------------------------------------------------------------
+// Nutrition catalog (Story 2.1 / FR-7 data layer) — AD-3, AD-11
+// Ingredient macros are per 100 g. Missing macros are null (never fabricated).
+// ---------------------------------------------------------------------------
+
+enum FoodKind {
+  simple
+  composite
+}
+
+model Ingredient {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  aliases       String[] @default([])
+  /// Provenance note (e.g. USDA FDC id + hand-curated note). Never log as health payload.
+  sourceLabel   String
+  /// Energy and macros per 100 g. Null = unknown (not zero).
+  energyKcal    Float?
+  proteinG      Float?
+  carbsG        Float?
+  fatG          Float?
+  fibreG        Float?
+  sugarG        Float?
+  sodiumMg      Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  recipeRows RecipeIngredient[]
+
+  @@index([name])
+  @@map("ingredient")
+}
+
+model Food {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  name                 String
+  aliases              String[] @default([])
+  kind                 FoodKind @default(simple)
+  /// Grams produced by the default recipe (sum of recipe ingredient grams).
+  /// DB CHECK: defaultServingG > 0 (migration 20260726020000).
+  defaultServingG      Int
+  sourceLabel          String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  servings         FoodServing[]
+  recipeIngredients RecipeIngredient[]
+
+  @@index([name])
+  @@map("food")
+}
+
+model FoodServing {
+  id        String   @id @default(cuid())
+  foodId    String
+  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  name      String
+  /// DB CHECK: grams > 0 (migration 20260726020000).
+  grams     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([foodId, name])
+  @@index([foodId])
+  @@map("food_serving")
+}
+
+model RecipeIngredient {
+  id           String     @id @default(cuid())
+  foodId       String
+  food         Food       @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  /// Grams of this ingredient in the food's defaultServingG yield.
+  /// DB CHECK: grams > 0 (migration 20260726020000).
+  grams        Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([foodId, ingredientId])
+  @@index([foodId])
+  @@index([ingredientId])
+  @@map("recipe_ingredient")
+}
