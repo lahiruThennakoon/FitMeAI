@@ -22,15 +22,18 @@ type Props = {
 /**
  * Calm loading transparency while food parse runs (UX-DR3).
  * One live step + progress + tip — no step checklist wall.
+ * Remounts when active so indices reset without setState-in-effect.
  */
 export function ParseLoading({ active = true }: Props) {
+  if (!active) return null;
+  return <ParseLoadingActive />;
+}
+
+function ParseLoadingActive() {
   const [tipIndex, setTipIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    if (!active) return;
-    setStepIndex(0);
-    setTipIndex(0);
     const tipId = window.setInterval(() => {
       setTipIndex((i) => (i + 1) % PARSE_LOADING_TIPS.length);
     }, 2800);
@@ -41,9 +44,7 @@ export function ParseLoading({ active = true }: Props) {
       window.clearInterval(tipId);
       window.clearInterval(stepId);
     };
-  }, [active]);
-
-  if (!active) return null;
+  }, []);
 
   const progress = ((stepIndex + 1) / STEPS.length) * 100;
 
