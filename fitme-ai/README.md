@@ -112,6 +112,7 @@ Signed-in users open **Log food** at `/log`.
 - A loading tip shows while parsing; failures and “Skip AI” open manual entry — never a dead end.
 - Review name, quantity, unit, meal type, and macros, then **Save log** (Story 2.6 / FR-9). Nothing persists until you confirm; **Discard** clears the draft with no DB write.
 - Edits to AI-produced values are stored as `UserCorrection` before/after rows (FR-20 / AD-8). Manual entries skip correction capture.
+- Every value cites its source: **Database** or **Estimated** (+ confidence). Estimated items use a distinct amber treatment; loading shows progress steps and tips (Story 2.7 / FR-10 / UX-DR3).
 - Composite catalog dishes (e.g. pol sambol, dhal curry) show an ingredient breakdown; totals are the sum of ingredient contributions. Editing a proportion normalizes to 100% and recomputes macros (Story 2.4 / FR-7).
 - When portion confidence is low, up to three clarifying chip groups appear (e.g. Small / Medium / Large). Tapping a chip updates nutrition immediately; confident parses show none (Story 2.5 / FR-8).
 

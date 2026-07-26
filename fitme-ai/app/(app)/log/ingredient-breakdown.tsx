@@ -1,6 +1,7 @@
 "use client";
 
 import type { IngredientBreakdownLine } from "@/lib/domain/nutrition/parse-types";
+import { SourceBadge } from "./source-badge";
 
 type Props = {
   itemId: string;
@@ -19,6 +20,7 @@ function contribKcal(line: IngredientBreakdownLine): string {
 
 /**
  * Viewable / editable ingredient breakdown for composite dishes (FR-7).
+ * Each line cites its dataSource (FR-10).
  */
 export function IngredientBreakdown({
   itemId,
@@ -32,10 +34,15 @@ export function IngredientBreakdown({
       </summary>
       <ul className="space-y-2 border-t border-neutral-200 px-3 py-3 dark:border-neutral-800">
         {lines.map((line) => (
-          <li key={line.ingredientSlug} className="space-y-1 text-sm">
+          <li
+            key={line.ingredientSlug}
+            className="space-y-1 text-sm"
+            data-source={line.dataSource}
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+              <span className="inline-flex flex-wrap items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
                 {line.name}
+                <SourceBadge dataSource={line.dataSource} size="sm" />
               </span>
               <span className="text-xs text-neutral-500">
                 {line.grams}g · {contribKcal(line)} kcal

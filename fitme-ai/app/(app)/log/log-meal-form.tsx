@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { parseMealAction, saveMealDraftAction } from "@/app/actions/log";
 import {
   applyClarifyingChip,
@@ -13,9 +13,12 @@ import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute"
 import type {
   ParsedFoodItemDraft,
 } from "@/lib/domain/nutrition/parse-types";
+import { sourceCardClassName } from "@/lib/domain/nutrition/source-citation";
 import type { NutritionMacros } from "@/lib/domain/nutrition/types";
 import { ClarifyingChips } from "./clarifying-chips";
 import { IngredientBreakdown } from "./ingredient-breakdown";
+import { ParseLoading } from "./parse-loading";
+import { SourceBadge } from "./source-badge";
 
 const MACRO_FIELDS: Array<{
   key: keyof NutritionMacros;
@@ -31,30 +34,6 @@ const MACRO_FIELDS: Array<{
   { key: "sodiumMg", label: "Na (mg)", step: "1" },
 ];
 
-const LOADING_TIPS = [
-  "Tip: “100g chickpeas” is clearer than “some chickpeas”.",
-  "Tip: Sri Lankan staples like pol sambol and dhal curry match our catalog.",
-  "Tip: You can always enter foods manually if parsing misses something.",
-  "Tip: List items with commas — “two eggs, one milk tea”.",
-];
-
-function fmtMacro(v: number | null, suffix: string): string {
-  return v === null ? `${suffix} ?` : `${suffix} ${v}`;
-}
-
-function macroLine(item: ParsedFoodItemDraft): string {
-  const n = item.nutrition;
-  return [
-    n.energyKcal === null ? "kcal ?" : `${n.energyKcal} kcal`,
-    fmtMacro(n.proteinG, "P"),
-    fmtMacro(n.carbsG, "C"),
-    fmtMacro(n.fatG, "F"),
-    fmtMacro(n.fibreG, "Fi"),
-    fmtMacro(n.sugarG, "Su"),
-    n.sodiumMg === null ? "Na ?" : `Na ${n.sodiumMg}mg`,
-  ].join(" · ");
-}
-
 export function LogMealForm() {
   const [pending, startTransition] = useTransition();
   const [saving, startSaveTransition] = useTransition();
@@ -65,15 +44,6 @@ export function LogMealForm() {
   const [showManual, setShowManual] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualQty, setManualQty] = useState("1");
-  const [tipIndex, setTipIndex] = useState(0);
-
-  useEffect(() => {
-    if (!pending) return;
-    const id = window.setInterval(() => {
-      setTipIndex((i) => (i + 1) % LOADING_TIPS.length);
-    }, 2800);
-    return () => window.clearInterval(id);
-  }, [pending]);
 
   function onParse(event: React.FormEvent) {
     event.preventDefault();
@@ -152,6 +122,7 @@ export function LogMealForm() {
               typeof patch.name === "string" &&
               patch.name.trim() !== item.name.trim()
             ) {
+              // Drop catalog provenance — do not keep DB macros under Estimated.
               next = {
                 ...next,
                 foodSlug: null,
@@ -159,6 +130,16 @@ export function LogMealForm() {
                 breakdown: null,
                 kind: "estimated",
                 dataSource: "ai_estimated",
+                confidence: Math.min(item.confidence, 0.5),
+                nutrition: {
+                  energyKcal: null,
+                  proteinG: null,
+                  carbsG: null,
+                  fatG: null,
+                  fibreG: null,
+                  sugarG: null,
+                  sodiumMg: null,
+                },
               };
             }
             if ("quantity" in patch || "unit" in patch) {
@@ -289,21 +270,7 @@ export function LogMealForm() {
         </button>
       </form>
 
-      {pending ? (
-        <div
-          className="rounded-xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Matching foods and estimating nutrition…
-          </p>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            {LOADING_TIPS[tipIndex]}
-          </p>
-        </div>
-      ) : null}
+      <ParseLoading active={pending} />
 
       {formError ? (
         <p
@@ -336,7 +303,8 @@ export function LogMealForm() {
             {items.map((item) => (
               <li
                 key={item.id}
-                className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+                className={`rounded-xl border p-4 ${sourceCardClassName(item.dataSource)}`}
+                data-source={item.dataSource}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <input
@@ -347,15 +315,10 @@ export function LogMealForm() {
                     }
                     className="min-w-0 flex-1 rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm font-medium dark:border-neutral-700"
                   />
-                  <span
-                    className={
-                      item.dataSource === "database"
-                        ? "rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                        : "rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-                    }
-                  >
-                    {item.dataSource === "database" ? "Database" : "Estimated"}
-                  </span>
+                  <SourceBadge
+                    dataSource={item.dataSource}
+                    confidence={item.confidence}
+                  />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
@@ -423,9 +386,6 @@ export function LogMealForm() {
                     ))}
                   </select>
                 </div>
-                <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
-                  {macroLine(item)}
-                </p>
                 <fieldset className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <legend className="sr-only">Macros for {item.name}</legend>
                   {MACRO_FIELDS.map(({ key, label, step }) => (
@@ -433,9 +393,16 @@ export function LogMealForm() {
                       key={key}
                       className="flex flex-col gap-0.5 text-xs text-neutral-600 dark:text-neutral-400"
                     >
-                      {label}
+                      <span className="flex items-center justify-between gap-1">
+                        {label}
+                        <SourceBadge
+                          dataSource={item.dataSource}
+                          confidence={item.confidence}
+                          size="sm"
+                        />
+                      </span>
                       <input
-                        aria-label={`${label} for ${item.name}`}
+                        aria-label={`${label} for ${item.name} (${item.dataSource === "database" ? "database" : "estimated"})`}
                         type="number"
                         step={step}
                         min={0}
@@ -449,10 +416,12 @@ export function LogMealForm() {
                     </label>
                   ))}
                 </fieldset>
-                <p className="mt-1 text-xs text-neutral-500">
-                  {new Date(item.loggedAt).toLocaleString()} · confidence{" "}
-                  {Math.round(item.confidence * 100)}%
+                <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
+                  {new Date(item.loggedAt).toLocaleString()}
                   {item.needsClarification ? " · needs clarification" : ""}
+                  {item.dataSource === "ai_estimated"
+                    ? " · estimates are not medical advice"
+                    : ""}
                 </p>
                 {item.breakdown && item.breakdown.length > 0 ? (
                   <IngredientBreakdown
