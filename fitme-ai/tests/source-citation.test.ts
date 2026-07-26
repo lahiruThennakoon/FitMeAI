@@ -9,8 +9,8 @@ import {
 } from "@/lib/domain/nutrition/source-citation";
 
 describe("source citation (FR-10)", () => {
-  it("labels database vs estimated", () => {
-    expect(sourceLabel("database")).toBe("Database");
+  it("labels database vs estimated in plain language", () => {
+    expect(sourceLabel("database")).toBe("Known food");
     expect(sourceLabel("ai_estimated")).toBe("Estimated");
     expect(isEstimatedSource("ai_estimated")).toBe(true);
     expect(isEstimatedSource("database")).toBe(false);
@@ -23,19 +23,17 @@ describe("source citation (FR-10)", () => {
   });
 
   it("builds accessible citation copy with confidence for estimates", () => {
-    expect(sourceCitationText("database")).toBe(
-      "Source: nutrition database",
-    );
+    expect(sourceCitationText("database")).toBe("From FitMe’s food list");
     expect(sourceCitationText("ai_estimated", 0.72)).toBe(
-      "Source: AI estimate · confidence 72%",
+      "AI estimate · 72% sure",
     );
   });
 
   it("uses distinct badge and card classes for estimated vs database", () => {
     expect(sourceBadgeClassName("database")).toMatch(/emerald/);
     expect(sourceBadgeClassName("ai_estimated")).toMatch(/amber/);
-    expect(sourceCardClassName("ai_estimated")).toMatch(/amber/);
-    expect(sourceCardClassName("database")).not.toMatch(/amber/);
+    expect(sourceCardClassName("ai_estimated")).toMatch(/border-l-amber/);
+    expect(sourceCardClassName("database")).not.toMatch(/border-l-amber/);
   });
 
   it("keeps AA-oriented contrast tokens (dark text on light amber/emerald)", () => {

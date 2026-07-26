@@ -11,8 +11,8 @@ describe("SourceBadge", () => {
         confidence: 0.9,
       }),
     );
-    expect(html).toContain("Database");
-    expect(html).toContain('aria-label="Source: nutrition database"');
+    expect(html).toContain("Known food");
+    expect(html).toContain('aria-label="From FitMe’s food list"');
     expect(html).not.toContain("90%");
   });
 
@@ -25,8 +25,7 @@ describe("SourceBadge", () => {
     );
     expect(html).toContain("Estimated");
     expect(html).toContain("64%");
-    expect(html).toContain(
-      'aria-label="Source: AI estimate · confidence 64%"',
-    );
+    expect(html).toContain('aria-label="AI estimate · 64% sure"');
   });
 });
+

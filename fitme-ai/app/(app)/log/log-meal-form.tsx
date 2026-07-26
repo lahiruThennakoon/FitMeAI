@@ -13,7 +13,10 @@ import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute"
 import type {
   ParsedFoodItemDraft,
 } from "@/lib/domain/nutrition/parse-types";
-import { sourceCardClassName } from "@/lib/domain/nutrition/source-citation";
+import {
+  sourceCardClassName,
+  sourceCitationText,
+} from "@/lib/domain/nutrition/source-citation";
 import type { NutritionMacros } from "@/lib/domain/nutrition/types";
 import { ClarifyingChips } from "./clarifying-chips";
 import { IngredientBreakdown } from "./ingredient-breakdown";
@@ -25,13 +28,13 @@ const MACRO_FIELDS: Array<{
   label: string;
   step: string;
 }> = [
-  { key: "energyKcal", label: "kcal", step: "1" },
-  { key: "proteinG", label: "P (g)", step: "0.1" },
-  { key: "carbsG", label: "C (g)", step: "0.1" },
-  { key: "fatG", label: "F (g)", step: "0.1" },
-  { key: "fibreG", label: "Fi (g)", step: "0.1" },
-  { key: "sugarG", label: "Su (g)", step: "0.1" },
-  { key: "sodiumMg", label: "Na (mg)", step: "1" },
+  { key: "energyKcal", label: "Calories", step: "1" },
+  { key: "proteinG", label: "Protein (g)", step: "0.1" },
+  { key: "carbsG", label: "Carbs (g)", step: "0.1" },
+  { key: "fatG", label: "Fat (g)", step: "0.1" },
+  { key: "fibreG", label: "Fibre (g)", step: "0.1" },
+  { key: "sugarG", label: "Sugar (g)", step: "0.1" },
+  { key: "sodiumMg", label: "Sodium (mg)", step: "1" },
 ];
 
 export function LogMealForm() {
@@ -373,54 +376,60 @@ export function LogMealForm() {
                   >
                     {(
                       [
-                        "breakfast",
-                        "lunch",
-                        "dinner",
-                        "snack",
-                        "unknown",
+                        ["breakfast", "Breakfast"],
+                        ["lunch", "Lunch"],
+                        ["dinner", "Dinner"],
+                        ["snack", "Snack"],
+                        ["unknown", "Not sure"],
                       ] as const
-                    ).map((m) => (
-                      <option key={m} value={m}>
-                        {m}
+                    ).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
                       </option>
                     ))}
                   </select>
                 </div>
-                <fieldset className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <legend className="sr-only">Macros for {item.name}</legend>
-                  {MACRO_FIELDS.map(({ key, label, step }) => (
-                    <label
-                      key={key}
-                      className="flex flex-col gap-0.5 text-xs text-neutral-600 dark:text-neutral-400"
-                    >
-                      <span className="flex items-center justify-between gap-1">
+                <fieldset className="mt-3 space-y-2">
+                  <legend className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Nutrition
+                  </legend>
+                  {item.dataSource === "ai_estimated" &&
+                  MACRO_FIELDS.every(
+                    ({ key }) => item.nutrition[key] === null,
+                  ) ? (
+                    <p className="rounded-lg bg-amber-100/60 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/40 dark:text-amber-50">
+                      No numbers yet — fill them in, or try parsing again with a
+                      clearer amount (e.g. “100g chicken liver”).
+                    </p>
+                  ) : null}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {MACRO_FIELDS.map(({ key, label, step }) => (
+                      <label
+                        key={key}
+                        className="flex flex-col gap-0.5 text-xs text-neutral-600 dark:text-neutral-400"
+                      >
                         {label}
-                        <SourceBadge
-                          dataSource={item.dataSource}
-                          confidence={item.confidence}
-                          size="sm"
+                        <input
+                          aria-label={`${label} for ${item.name}. ${sourceCitationText(item.dataSource, item.confidence)}`}
+                          type="number"
+                          step={step}
+                          min={0}
+                          value={item.nutrition[key] ?? ""}
+                          disabled={saving}
+                          onChange={(e) =>
+                            updateMacro(item.id, key, e.target.value)
+                          }
+                          className="rounded-lg border border-neutral-300 bg-white/80 px-2 py-1.5 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950/60 dark:text-neutral-100"
                         />
-                      </span>
-                      <input
-                        aria-label={`${label} for ${item.name} (${item.dataSource === "database" ? "database" : "estimated"})`}
-                        type="number"
-                        step={step}
-                        min={0}
-                        value={item.nutrition[key] ?? ""}
-                        disabled={saving}
-                        onChange={(e) =>
-                          updateMacro(item.id, key, e.target.value)
-                        }
-                        className="rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm text-neutral-900 dark:border-neutral-700 dark:text-neutral-100"
-                      />
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+                  </div>
                 </fieldset>
-                <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
+                <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                   {new Date(item.loggedAt).toLocaleString()}
                   {item.needsClarification ? " · needs clarification" : ""}
                   {item.dataSource === "ai_estimated"
-                    ? " · estimates are not medical advice"
+                    ? " · estimate, not medical advice"
                     : ""}
                 </p>
                 {item.breakdown && item.breakdown.length > 0 ? (

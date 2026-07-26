@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { extractJsonText, parseAndValidate } from "@/lib/ai/parse";
 import { purposeForLog } from "@/lib/ai/log-meta";
+import { foodParseAiSchema } from "@/lib/ai/schemas/food-parse";
 import { structuredEchoSchema } from "@/lib/ai/schemas/structured-echo";
 
 describe("extractJsonText", () => {
@@ -73,5 +74,34 @@ describe("purposeForLog", () => {
       "two_eggs_and_milk_tea",
     );
     expect(purposeForLog("")).toBe("unknown");
+  });
+});
+
+describe("foodParseAiSchema estimate defaults", () => {
+  it("turns null fibre/sugar into 0", () => {
+    const parsed = foodParseAiSchema.safeParse({
+      items: [
+        {
+          name: "chicken liver",
+          quantity: 100,
+          unit: "g",
+          confidence: 0.9,
+          estimate: {
+            energyKcal: 165,
+            proteinG: 24,
+            carbsG: 0.6,
+            fatG: 5.5,
+            fibreG: null,
+            sugarG: null,
+            sodiumMg: 82,
+          },
+        },
+      ],
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.items[0].estimate?.fibreG).toBe(0);
+      expect(parsed.data.items[0].estimate?.sugarG).toBe(0);
+    }
   });
 });

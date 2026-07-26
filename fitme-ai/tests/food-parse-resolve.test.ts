@@ -5,7 +5,10 @@ import {
   resolvePortionGrams,
 } from "@/lib/domain/nutrition/resolve-parse";
 import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
-import type { FoodParseAiOutput } from "@/lib/ai/schemas/food-parse";
+import type {
+  FoodParseAiInput,
+  FoodParseAiOutput,
+} from "@/lib/ai/schemas/food-parse";
 
 const eggFood: FoodDetailDto = {
   slug: "egg",
@@ -126,7 +129,8 @@ describe("resolveParsedMeal (FR-6)", () => {
   });
 
   it("marks unknown foods ai_estimated and flags low confidence", async () => {
-    const ai: FoodParseAiOutput = {
+    // Pre-Zod payload (null fibre/sugar) — resolve fills 0 for the UI.
+    const ai = {
       items: [
         {
           name: "grandma jackfruit curry",
@@ -145,7 +149,7 @@ describe("resolveParsedMeal (FR-6)", () => {
           },
         },
       ],
-    };
+    } as FoodParseAiInput;
 
     const draft = await resolveParsedMeal(ai, 20, {
       findFoodBySlugOrAlias: async () => null,
@@ -154,7 +158,8 @@ describe("resolveParsedMeal (FR-6)", () => {
 
     expect(draft.items[0].dataSource).toBe("ai_estimated");
     expect(draft.items[0].nutrition.energyKcal).toBe(320);
-    expect(draft.items[0].nutrition.fibreG).toBeNull();
+    expect(draft.items[0].nutrition.fibreG).toBe(0);
+    expect(draft.items[0].nutrition.sugarG).toBe(0);
     expect(draft.items[0].needsClarification).toBe(true);
     expect(draft.items[0].foodSlug).toBeNull();
     expect(draft.items[0].breakdown).toBeNull();

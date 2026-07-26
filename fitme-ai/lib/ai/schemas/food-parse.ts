@@ -21,6 +21,14 @@ export const foodParseUnitSchema = z.enum([
 
 const nullableMacro = z.number().finite().nonnegative().nullable();
 
+/** Null/omitted → 0 so negligible fibre/sugar aren't left blank in the UI. */
+const zeroDefaultMacro = z
+  .number()
+  .finite()
+  .nonnegative()
+  .nullish()
+  .transform((v) => (v == null ? 0 : v));
+
 /**
  * Schema-validated AI output for NL food parsing (Story 2.3 / FR-6 / FR-18).
  * Macros in `estimate` are only used when no catalog match exists.
@@ -43,8 +51,8 @@ export const foodParseAiSchema = z.object({
             proteinG: nullableMacro,
             carbsG: nullableMacro,
             fatG: nullableMacro,
-            fibreG: nullableMacro,
-            sugarG: nullableMacro,
+            fibreG: zeroDefaultMacro,
+            sugarG: zeroDefaultMacro,
             sodiumMg: nullableMacro,
           })
           .optional(),
@@ -56,6 +64,8 @@ export const foodParseAiSchema = z.object({
 });
 
 export type FoodParseAiOutput = z.infer<typeof foodParseAiSchema>;
+/** Pre-transform shape (allows null fibre/sugar from the model). */
+export type FoodParseAiInput = z.input<typeof foodParseAiSchema>;
 
 /** Gemini responseSchema hint — Zod remains the authority. */
 export const foodParseResponseSchema = {
@@ -97,9 +107,18 @@ export const foodParseResponseSchema = {
               sugarG: { type: "number", nullable: true },
               sodiumMg: { type: "number", nullable: true },
             },
+            required: [
+              "energyKcal",
+              "proteinG",
+              "carbsG",
+              "fatG",
+              "fibreG",
+              "sugarG",
+              "sodiumMg",
+            ],
           },
         },
-        required: ["name", "quantity", "unit", "confidence"],
+        required: ["name", "quantity", "unit", "confidence", "estimate"],
       },
     },
     inferredMealType: {
@@ -115,6 +134,8 @@ export const FOOD_PARSE_SYSTEM = [
   "Prefer common Sri Lankan food names when appropriate (e.g. pol sambol, dhal curry, milk tea, dhal wade).",
   "Use unit g for gram amounts; piece for countable items; cup/bowl/plate/serving when natural.",
   "Set needsClarification true when quantity/portion is ambiguous.",
-  "Include estimate macros only when the food is uncommon or likely missing from a local catalog; otherwise omit estimate.",
-  "Never give medical advice. Never invent certainty — lower confidence when unsure.",
+  "Always include an estimate object for every item with energyKcal, proteinG, carbsG, fatG, fibreG, sugarG, sodiumMg for the given quantity.",
+  "Prefer typical numeric values. Use 0 when a nutrient is negligible (e.g. fibre and sugar in meat, liver, eggs, fish) — do not leave those as null.",
+  "Use null only for calories/protein/carbs/fat/sodium when you truly cannot estimate.",
+  "Never give medical advice. Lower confidence when unsure, but still provide best-effort numbers.",
 ].join(" ");

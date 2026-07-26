@@ -20,7 +20,8 @@ type Props = {
 };
 
 /**
- * Loading transparency while food parse runs (UX-DR3 / FR-10 companion).
+ * Calm loading transparency while food parse runs (UX-DR3).
+ * One live step + progress + tip — no step checklist wall.
  */
 export function ParseLoading({ active = true }: Props) {
   const [tipIndex, setTipIndex] = useState(0);
@@ -33,7 +34,6 @@ export function ParseLoading({ active = true }: Props) {
     const tipId = window.setInterval(() => {
       setTipIndex((i) => (i + 1) % PARSE_LOADING_TIPS.length);
     }, 2800);
-    // Advance through steps once; hold on the last (no regressing bar).
     const stepId = window.setInterval(() => {
       setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
     }, 1600);
@@ -49,46 +49,38 @@ export function ParseLoading({ active = true }: Props) {
 
   return (
     <div
-      className="rounded-xl border border-brand-blue/25 bg-brand-blue/5 px-4 py-3"
+      className="rounded-xl border border-brand-blue/20 bg-brand-blue/[0.04] px-4 py-3"
       role="status"
       aria-live="polite"
       aria-busy="true"
       data-testid="parse-loading"
     >
-      <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        Matching foods and estimating nutrition…
-      </p>
-      <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
-        {STEPS[stepIndex]}
-      </p>
-      <div
-        className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
-        aria-hidden="true"
-      >
-        <div
-          className="h-full rounded-full bg-brand-blue transition-[width] duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+      <div className="flex items-start gap-3">
+        <span
+          className="mt-1 inline-block size-2.5 shrink-0 animate-pulse rounded-full bg-brand-blue"
+          aria-hidden="true"
         />
-      </div>
-      <ol className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-600 dark:text-neutral-400">
-        {STEPS.map((step, i) => (
-          <li
-            key={step}
-            className={
-              i === stepIndex
-                ? "font-medium text-neutral-900 dark:text-neutral-100"
-                : i < stepIndex
-                  ? "text-brand-blue"
-                  : undefined
-            }
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Matching foods and estimating nutrition…
+          </p>
+          <p className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
+            {STEPS[stepIndex]}
+          </p>
+          <div
+            className="mt-3 h-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
+            aria-hidden="true"
           >
-            {i + 1}. {step}
-          </li>
-        ))}
-      </ol>
-      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-        {PARSE_LOADING_TIPS[tipIndex]}
-      </p>
+            <div
+              className="h-full rounded-full bg-brand-blue transition-[width] duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+            {PARSE_LOADING_TIPS[tipIndex]}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

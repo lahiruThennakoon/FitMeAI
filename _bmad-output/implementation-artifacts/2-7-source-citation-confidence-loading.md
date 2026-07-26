@@ -66,3 +66,4 @@ Cursor Grok 4.5 (Amelia)
 
 - [x] [Review][Patch] Loading progress holds on last step (no loop regress) [`parse-loading.tsx`]
 - [x] [Review][Patch] Identity rename clears macros so Estimated is not false-labeled DB data [`log-meal-form.tsx`]
+- [x] [Review][Patch] UX polish — one source cue per item (not per macro), calmer loading, softer Estimated chrome

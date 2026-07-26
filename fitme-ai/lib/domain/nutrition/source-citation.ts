@@ -1,8 +1,8 @@
 import type { NutritionDataSource } from "@/lib/domain/nutrition/types";
 
-/** User-facing source labels (FR-10 / UX-DR3). */
+/** User-facing source labels (FR-10 / UX-DR3) — plain language, not tech jargon. */
 export function sourceLabel(dataSource: NutritionDataSource): string {
-  return dataSource === "database" ? "Database" : "Estimated";
+  return dataSource === "database" ? "Known food" : "Estimated";
 }
 
 /** Confidence as a whole-number percent for badges. */
@@ -24,13 +24,13 @@ export function sourceCitationText(
   confidence?: number | null,
 ): string {
   if (dataSource === "database") {
-    return "Source: nutrition database";
+    return "From FitMe’s food list";
   }
   const conf =
     typeof confidence === "number"
-      ? ` · confidence ${formatConfidencePercent(confidence)}`
+      ? ` · ${formatConfidencePercent(confidence)} sure`
       : "";
-  return `Source: AI estimate${conf}`;
+  return `AI estimate${conf}`;
 }
 
 /** Tailwind classes for AA-friendly source badges (light + dark). */
@@ -41,10 +41,13 @@ export function sourceBadgeClassName(dataSource: NutritionDataSource): string {
   return "bg-amber-100 text-amber-950 ring-1 ring-inset ring-amber-800/30 dark:bg-amber-950 dark:text-amber-50 dark:ring-amber-300/35";
 }
 
-/** Card chrome that keeps estimated items visually distinct from DB items. */
+/**
+ * Item chrome: estimated gets a warm left accent + soft wash (distinct, not loud).
+ * Database stays neutral so mixed lists don't look like a warning wall.
+ */
 export function sourceCardClassName(dataSource: NutritionDataSource): string {
   if (dataSource === "database") {
     return "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950";
   }
-  return "border-amber-400/70 bg-amber-50/70 dark:border-amber-500/50 dark:bg-amber-950/30";
+  return "border-neutral-200 border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:border-neutral-800 dark:border-l-amber-400 dark:bg-amber-950/20";
 }

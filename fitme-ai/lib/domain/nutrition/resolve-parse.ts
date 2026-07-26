@@ -1,4 +1,4 @@
-import type { FoodParseAiOutput } from "@/lib/ai/schemas/food-parse";
+import type { FoodParseAiInput } from "@/lib/ai/schemas/food-parse";
 import { CLARIFYING_CONFIDENCE_THRESHOLD } from "@/lib/domain/nutrition/clarifying-chips";
 import { snapshotFromDraft } from "@/lib/domain/nutrition/corrections";
 import { decomposeFoodPortion } from "@/lib/domain/nutrition/decompose";
@@ -89,7 +89,7 @@ async function lookupFood(
  * Matched foods → dataSource database; unmatched → ai_estimated (estimate or nulls).
  */
 export async function resolveParsedMeal(
-  ai: FoodParseAiOutput,
+  ai: FoodParseAiInput,
   sourceTextLength: number,
   deps: ResolveParseDeps,
 ): Promise<ParsedMealDraft> {
@@ -161,8 +161,9 @@ export async function resolveParsedMeal(
             proteinG: raw.estimate.proteinG,
             carbsG: raw.estimate.carbsG,
             fatG: raw.estimate.fatG,
-            fibreG: raw.estimate.fibreG,
-            sugarG: raw.estimate.sugarG,
+            // Prefer 0 over blank for negligible fibre/sugar (meat, liver, eggs).
+            fibreG: raw.estimate.fibreG ?? 0,
+            sugarG: raw.estimate.sugarG ?? 0,
             sodiumMg: raw.estimate.sodiumMg,
           }
         : { ...EMPTY_MACROS },
