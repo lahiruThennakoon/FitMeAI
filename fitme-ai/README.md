@@ -102,6 +102,15 @@ Provider-agnostic port at `lib/ai` (`AiProvider`). Call sites use `getAiProvider
 
 Every response is validated with Zod before use. Validation / timeout / provider failures return a safe `AiResult` error (retry or enter manually) — nothing is persisted from invalid AI output. Prompts and raw model text are never logged.
 
+### Log food (Story 2.3 / FR-6)
+
+Signed-in users open **Log food** at `/log`.
+
+- Describe a meal in plain language (e.g. “two eggs, one milk tea, 100g chickpeas, one dhal wade”).
+- The AI parse is schema-validated, then each item is matched to the nutrition catalog when possible (`dataSource: database`) or marked `ai_estimated`.
+- A loading tip shows while parsing; failures and “Skip AI” open manual entry — never a dead end.
+- Drafts are editable in the UI; persisting confirmed entries is a later story (2.6).
+
 ### Rate limiting & logging (Story 1.8 / FR-30–31)
 
 Auth abuse protection uses an in-memory sliding window (fine for single-instance / one Edge isolate; not shared across multiple replicas — swap the store later for Redis if you scale out). AI endpoint limits land in Epic 2.
@@ -114,6 +123,7 @@ Auth abuse protection uses an in-memory sliding window (fine for single-instance
 | Password-reset request (Action + forget-password HTTP) | 5 | 1 hour |
 | Password-reset submit (Action + reset-password HTTP) | 10 | 1 hour |
 | Account delete (Server Action; password-gated) | 10 | 15 minutes (login bucket) |
+| Food parse (Server Action `/log`) | 30 | 1 hour |
 
 Over-limit responses use the safe copy *“Too many attempts. Please try again later.”* (HTTP `429` + `Retry-After` on the API). Client keys prefer platform IP headers (`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`) over raw `x-forwarded-for`. Logs go through `lib/logging` redaction — no email/password/health keys or raw `Error.message` values.
 

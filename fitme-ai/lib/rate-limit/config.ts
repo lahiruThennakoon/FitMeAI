@@ -16,3 +16,10 @@ export const AUTH_RATE_LIMITS = {
 } as const;
 
 export type AuthRateLimitBucket = keyof typeof AUTH_RATE_LIMITS;
+
+/** AI Server Action buckets (Story 2.3 / FR-30). */
+export const AI_RATE_LIMITS = {
+  foodParse: { limit: 30, windowMs: 60 * 60_000 },
+} as const;
+
+export type AiRateLimitBucket = keyof typeof AI_RATE_LIMITS;

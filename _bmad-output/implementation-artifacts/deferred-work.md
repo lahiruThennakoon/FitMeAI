@@ -36,3 +36,8 @@ Issues triaged out of active stories during code review.
 - **`getAiProvider` process singleton** — env changes after first call are ignored until process restart; fine for Next server lifetime.
 - **Brace-balanced JSON extraction** — trailing prose after a JSON object fails Zod/parse today (fail safe); smarter extract optional later.
 
+## Deferred from: code review of 2-3-natural-language-food-parsing (2026-07-26)
+
+- **Meal-type inference uses server clock** — should use profile timezone (FR-12 / AD-10); needs timezone on the parse action path.
+- **Full macro field editors in draft UI** — quantity/unit/name/meal type editable now; rich macro editors land with confirm/save (Story 2.6).
+

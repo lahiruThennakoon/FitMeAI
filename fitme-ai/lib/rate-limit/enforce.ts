@@ -1,6 +1,8 @@
 import {
+  AI_RATE_LIMITS,
   AUTH_RATE_LIMITS,
   RATE_LIMIT_ERROR,
+  type AiRateLimitBucket,
   type AuthRateLimitBucket,
 } from "@/lib/rate-limit/config";
 import { checkRateLimit, type RateLimitResult } from "@/lib/rate-limit/check";
@@ -21,6 +23,26 @@ export function enforceAuthRateLimit(
   const { limit, windowMs } = AUTH_RATE_LIMITS[input.bucket];
   return checkRateLimit({
     key: `${input.bucket}:${input.clientKey}`,
+    limit,
+    windowMs,
+    store: input.store ?? memoryStore,
+    now: input.now,
+  });
+}
+
+export type EnforceAiRateLimitInput = {
+  bucket: AiRateLimitBucket;
+  clientKey: string;
+  store?: RateLimitStore;
+  now?: number;
+};
+
+export function enforceAiRateLimit(
+  input: EnforceAiRateLimitInput,
+): RateLimitResult {
+  const { limit, windowMs } = AI_RATE_LIMITS[input.bucket];
+  return checkRateLimit({
+    key: `ai:${input.bucket}:${input.clientKey}`,
     limit,
     windowMs,
     store: input.store ?? memoryStore,

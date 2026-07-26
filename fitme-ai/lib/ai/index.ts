@@ -23,3 +23,9 @@ export {
   structuredEchoResponseSchema,
   type StructuredEcho,
 } from "@/lib/ai/schemas/structured-echo";
+export {
+  foodParseAiSchema,
+  foodParseResponseSchema,
+  FOOD_PARSE_SYSTEM,
+  type FoodParseAiOutput,
+} from "@/lib/ai/schemas/food-parse";

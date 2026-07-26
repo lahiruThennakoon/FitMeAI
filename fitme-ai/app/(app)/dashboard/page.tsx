@@ -16,8 +16,8 @@ export default async function DashboardPage() {
           Hi{user?.name ? `, ${user.name}` : ""}
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          You&apos;re signed in. Set your profile to get personalized daily
-          targets — food logging lands in later stories.
+          You&apos;re signed in. Log a meal in plain language, or set your
+          profile for personalized daily targets.
         </p>
       </header>
 
@@ -32,8 +32,14 @@ export default async function DashboardPage() {
 
       <div className="flex flex-col gap-3">
         <Link
-          href="/goals"
+          href="/log"
           className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
+        >
+          Log food
+        </Link>
+        <Link
+          href="/goals"
+          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/30 transition hover:bg-brand-blue/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           Profile & targets
         </Link>
