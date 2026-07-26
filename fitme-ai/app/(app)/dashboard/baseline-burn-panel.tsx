@@ -3,6 +3,7 @@ import type { BaselineBurnResult } from "@/lib/domain/burn/baseline";
 type Props = {
   burn: BaselineBurnResult;
   intakeKcal: number;
+  exerciseKcal?: number;
   netKcal: number;
 };
 
@@ -13,7 +14,12 @@ function fmt(v: number): string {
 /**
  * Baseline Burn + net with formula transparency (FR-13).
  */
-export function BaselineBurnPanel({ burn, intakeKcal, netKcal }: Props) {
+export function BaselineBurnPanel({
+  burn,
+  intakeKcal,
+  exerciseKcal = 0,
+  netKcal,
+}: Props) {
   const activityLabel = burn.activityLevel.replaceAll("_", " ");
 
   return (
@@ -51,7 +57,10 @@ export function BaselineBurnPanel({ burn, intakeKcal, netKcal }: Props) {
       </dl>
 
       <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
-        Today&apos;s food: {fmt(intakeKcal)} · Exercise: 0 kcal (none logged)
+        Today&apos;s food: {fmt(intakeKcal)} · Exercise:{" "}
+        {exerciseKcal > 0
+          ? `${fmt(exerciseKcal)} (estimate)`
+          : "0 kcal (none logged)"}
       </p>
 
       {burn.usedDefaultActivity ? (

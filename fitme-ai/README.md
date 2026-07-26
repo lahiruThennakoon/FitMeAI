@@ -80,7 +80,12 @@ After sign-in, open **Profile & targets** at `/goals` (Story 1.6 / FR-4).
 
 ### Baseline Burn (Story 3.1 / FR-13)
 
-The dashboard shows **Baseline Burn** (TDEE from BMR × activity) recomputed from the live profile each visit, plus **Net calories** = food in − (baseline + exercise). Exercise defaults to 0 until Story 3.2. Formula and “estimates, not medical advice” are in an expandable details panel; missing activity defaults to sedentary with a note.
+The dashboard shows **Baseline Burn** (TDEE from BMR × activity) recomputed from the live profile each visit, plus **Net calories** = food in − (baseline + exercise). Formula and “estimates, not medical advice” are in an expandable details panel; missing activity defaults to sedentary with a note.
+
+### Exercise logging (Story 3.2 / FR-14)
+
+**Log exercise** at `/exercise`. Choose type (walking, running, treadmill, cycling, strength, swimming, sports, or custom), duration, and intensity; optional distance/sets/reps/load/notes. Burn uses `MET × weight × hours` and is always labeled as an estimate. Today’s exercise totals roll into dashboard net calories.
+
 
 ### Nutrition catalog (Story 2.1 / FR-7 data layer)
 

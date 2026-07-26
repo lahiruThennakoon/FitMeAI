@@ -17,6 +17,7 @@ describe("BaselineBurnPanel", () => {
       createElement(BaselineBurnPanel, {
         burn,
         intakeKcal: 1800,
+        exerciseKcal: 0,
         netKcal: 1800 - burn.baselineBurnKcal,
       }),
     );
@@ -25,6 +26,8 @@ describe("BaselineBurnPanel", () => {
     expect(html).toContain("How Baseline Burn is calculated");
     expect(html).toContain("Mifflin");
     expect(html).toContain("not medical advice");
-    expect(html).toContain("Exercise: 0 kcal");
+    expect(html).toContain("Exercise:");
+    expect(html).toContain("0 kcal (none logged)");
   });
 });
+

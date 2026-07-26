@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
+import { sumExerciseKcalForUserBetween } from "@/lib/dal/exercise-entry";
 import { listActiveFoodEntriesForUser } from "@/lib/dal/food-entry";
 import { getGoalForUser, getProfileForUser } from "@/lib/dal/profile";
 import {
@@ -11,6 +12,12 @@ import { SignOutButton } from "../sign-out-button";
 
 function startOfLocalDay(d = new Date()): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function startOfNextLocalDay(d = new Date()): Date {
+  const next = startOfLocalDay(d);
+  next.setDate(next.getDate() + 1);
+  return next;
 }
 
 function fmtKcal(v: number | null | undefined): string {
@@ -26,15 +33,18 @@ export default async function DashboardPage() {
   const user = await getSession();
   const userId = user?.id;
 
-  const [goal, profile, entries] = userId
+  const dayStart = startOfLocalDay();
+  const dayEnd = startOfNextLocalDay();
+
+  const [goal, profile, entries, todayExerciseKcal] = userId
     ? await Promise.all([
         getGoalForUser(userId),
         getProfileForUser(userId),
         listActiveFoodEntriesForUser(userId),
+        sumExerciseKcalForUserBetween(userId, dayStart, dayEnd),
       ])
-    : [null, null, []];
+    : [null, null, [], 0];
 
-  const dayStart = startOfLocalDay();
   const todayEntries = entries.filter((e) => e.loggedAt >= dayStart);
   const todayKcal = todayEntries.reduce(
     (sum, e) => sum + (e.energyKcal ?? 0),
@@ -58,7 +68,7 @@ export default async function DashboardPage() {
       ? computeNetCalories({
           intakeKcal: todayKcal,
           baselineBurnKcal: baseline.baselineBurnKcal,
-          exerciseKcal: 0,
+          exerciseKcal: todayExerciseKcal,
         })
       : null;
 
@@ -136,6 +146,7 @@ export default async function DashboardPage() {
         <BaselineBurnPanel
           burn={baseline}
           intakeKcal={todayKcal}
+          exerciseKcal={todayExerciseKcal}
           netKcal={netKcal}
         />
       ) : (
@@ -165,6 +176,12 @@ export default async function DashboardPage() {
           className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           Log food
+        </Link>
+        <Link
+          href="/exercise"
+          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-neutral-900 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-white dark:ring-neutral-500 dark:hover:bg-neutral-900"
+        >
+          Log exercise
         </Link>
         <Link
           href="/goals"

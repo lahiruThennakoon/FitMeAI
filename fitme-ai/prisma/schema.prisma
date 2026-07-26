@@ -29,7 +29,8 @@ model User {
   accounts      Account[]
   profile       UserProfile?
   goal          Goal?
-  foodEntries   FoodEntry[]
+  foodEntries    FoodEntry[]
+  exerciseEntries ExerciseEntry[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
 
@@ -386,4 +387,54 @@ model UserCorrection {
   @@index([foodEntryId])
   @@index([aiInteractionId])
   @@map("user_correction")
+}
+
+// ---------------------------------------------------------------------------
+// Exercise entries (Story 3.2 / FR-14) — soft-delete; estimates labeled
+// ---------------------------------------------------------------------------
+
+enum ExerciseType {
+  walking
+  running
+  treadmill
+  cycling
+  strength
+  swimming
+  sports
+  custom
+}
+
+enum ExerciseIntensity {
+  low
+  moderate
+  high
+}
+
+model ExerciseEntry {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            ExerciseType
+  /// Required when type = custom; optional display override otherwise.
+  customLabel     String?
+  durationMin     Int
+  intensity       ExerciseIntensity
+  distanceM       Int?
+  sets            Int?
+  reps            Int?
+  /// Equipment / load mass in grams (canonical AD-11).
+  weightG         Int?
+  notes           String?
+  estimatedKcal   Int
+  metUsed         Float
+  weightKgUsed    Float
+  performedAt     DateTime
+  /// Soft-delete (AD-8). Null = active.
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId, performedAt])
+  @@index([userId, deletedAt])
+  @@map("exercise_entry")
 }
