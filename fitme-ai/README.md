@@ -105,6 +105,8 @@ Every response is validated with Zod before use. Validation / timeout / provider
 
 **Safety guardrails (Story 2.9 / FR-17 / AD-5):** `createAiProvider()` wraps adapters in `GuardedAiProvider`. Outputs are checked for medical advice, supplement/medication recommendations, shaming language, and false database/lab precision claims. Violations trigger one regeneration, then a safe `guardrail_blocked` error (retry or enter manually).
 
+**AI audit (Story 2.10 / FR-19):** Each parse writes an `AIInteraction` row (success or failure) with provider/model, redacted request meta (`promptCharLength` only — never meal text), and a structured response summary. Saved food entries link to that interaction. Application logs stay redacted (FR-31); AI parse is rate-limited (FR-30).
+
 ### Log food (Story 2.3 / FR-6)
 
 Signed-in users open **Log food** at `/log`.

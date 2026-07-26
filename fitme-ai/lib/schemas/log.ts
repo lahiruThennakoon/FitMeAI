@@ -90,6 +90,8 @@ export const saveMealDraftSchema = z
   .object({
     confirmed: z.literal(true),
     items: z.array(saveMealDraftItemSchema).min(1).max(20),
+    /** Links saved entries to the parse AIInteraction (FR-19). */
+    aiInteractionId: z.string().min(1).nullable().optional(),
   })
   .superRefine((data, ctx) => {
     const ids = data.items.map((i) => i.id);

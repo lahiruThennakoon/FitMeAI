@@ -25,6 +25,15 @@ import type {
   ParsedMealDraft,
 } from "@/lib/domain/nutrition/parse-types";
 import {
+  averageConfidence,
+  buildAiRequestMeta,
+  buildFoodParseResponseSummary,
+} from "@/lib/ai/audit";
+import {
+  recordAiInteraction,
+  type RecordAiInteractionInput,
+} from "@/lib/dal/ai-interaction";
+import {
   saveConfirmedFoodEntries,
   type SavedFoodEntryDto,
 } from "@/lib/dal/food-entry";
@@ -53,6 +62,9 @@ export type ParseMealActionDeps = {
     bucket: "foodParse",
     clientKey: string,
   ) => ReturnType<typeof enforceAiRateLimit>;
+  recordAiInteraction?: (
+    input: RecordAiInteractionInput,
+  ) => Promise<{ id: string }>;
 };
 
 const MANUAL_FALLBACK =
@@ -75,9 +87,12 @@ export async function parseMealAction(
   const rateLimit =
     deps.rateLimit ??
     ((bucket, clientKey) => enforceAiRateLimit({ bucket, clientKey }));
+  const recordInteraction = deps.recordAiInteraction ?? recordAiInteraction;
 
+  let userId: string;
   try {
-    await requireSessionFn();
+    const user = await requireSessionFn();
+    userId = user.id;
   } catch {
     return err("Please sign in to log food.");
   }
@@ -101,6 +116,8 @@ export async function parseMealAction(
 
   const { text } = parsed.data;
   const provider = createProvider();
+  const aiCfg = readAiRuntimeConfig();
+  const requestMeta = buildAiRequestMeta("food_parse", text.length);
 
   const aiResult = await provider.generateStructured(
     {
@@ -113,12 +130,28 @@ export async function parseMealAction(
   );
 
   if (!aiResult.ok) {
-    logger.info("log.parse.failed", {
+    try {
+      await recordInteraction({
+        userId,
+        providerId: provider.id,
+        model: aiCfg.model,
+        purpose: "food_parse",
+        status: "failed",
+        errorCode: aiResult.code,
+        confidence: null,
+        requestMeta,
+        responseSummary: null,
+      });
+    } catch {
+      // Audit write must not block the user-facing fail-safe.
+    }
+    const failMeta = {
       event: "food_parse_failed",
       purpose: "food_parse",
       code: aiResult.code,
       providerId: provider.id,
-    });
+    };
+    logger.info("log.parse.failed", failMeta);
     return err(MANUAL_FALLBACK);
   }
 
@@ -126,14 +159,51 @@ export async function parseMealAction(
     const draft = await resolveParsedMeal(aiResult.data, text.length, {
       findFoodBySlugOrAlias: findFood,
     });
-    logger.info("log.parse.ok", {
+    const summary = buildFoodParseResponseSummary(aiResult.data);
+    const confidence = averageConfidence(
+      aiResult.data.items.map((i) => i.confidence),
+    );
+    let aiInteractionId: string | null = null;
+    try {
+      const interaction = await recordInteraction({
+        userId,
+        providerId: provider.id,
+        model: aiResult.meta.model || aiCfg.model,
+        purpose: "food_parse",
+        status: "succeeded",
+        errorCode: null,
+        confidence,
+        requestMeta,
+        responseSummary: summary,
+      });
+      aiInteractionId = interaction.id;
+    } catch {
+      // Save can still create a stub interaction later.
+    }
+    const okMeta = {
       event: "food_parse_ok",
       purpose: "food_parse",
       providerId: provider.id,
       itemCount: draft.items.length,
-    });
-    return ok(draft);
+    };
+    logger.info("log.parse.ok", okMeta);
+    return ok({ ...draft, aiInteractionId });
   } catch {
+    try {
+      await recordInteraction({
+        userId,
+        providerId: provider.id,
+        model: aiCfg.model,
+        purpose: "food_parse",
+        status: "failed",
+        errorCode: "provider_error",
+        confidence: null,
+        requestMeta,
+        responseSummary: null,
+      });
+    } catch {
+      // ignore
+    }
     logger.error("log.parse.resolve_failed", {
       event: "food_parse_resolve_failed",
       purpose: "food_parse",
@@ -219,6 +289,7 @@ export async function saveMealDraftAction(
       {
         userId,
         items: items as ParsedMealDraft["items"],
+        aiInteractionId: parsed.data.aiInteractionId ?? null,
         providerId: aiCfg.provider,
         model: aiCfg.model,
       },

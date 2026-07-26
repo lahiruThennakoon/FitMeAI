@@ -17,6 +17,14 @@ export {
   checkAiOutputText,
   collectUserFacingStrings,
 } from "@/lib/ai/guardrails";
+export {
+  buildAiRequestMeta,
+  buildFoodParseResponseSummary,
+  averageConfidence,
+  assertSafeAiLogMeta,
+  AI_LOG_FORBIDDEN_KEYS,
+} from "@/lib/ai/audit";
+export type { AiRequestMeta, AiResponseSummary } from "@/lib/ai/audit";
 export type { GuardrailCheck, GuardrailReason } from "@/lib/ai/guardrails";
 export { GuardedAiProvider } from "@/lib/ai/guarded-provider";
 export {

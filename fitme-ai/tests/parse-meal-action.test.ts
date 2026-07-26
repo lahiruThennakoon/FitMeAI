@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parseMealAction } from "@/app/actions/log";
 import { FakeAiProvider } from "@/lib/ai/fake";
 import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
+
+const recordAiInteraction = vi.fn(async () => ({ id: "ai-parse-1" }));
 
 const milkTea: FoodDetailDto = {
   slug: "milk-tea",
@@ -124,6 +126,7 @@ describe("parseMealAction", () => {
         findFoodBySlugOrAlias: async (q) => foods[q.toLowerCase()] ?? null,
         getClientKey: async () => "ip:test",
         rateLimit: () => ({ ok: true, remaining: 29 }),
+        recordAiInteraction,
       },
     );
 
@@ -133,10 +136,19 @@ describe("parseMealAction", () => {
       expect(result.data.items.every((i) => i.dataSource === "database")).toBe(
         true,
       );
+      expect(result.data.aiInteractionId).toBe("ai-parse-1");
     }
+    expect(recordAiInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "succeeded",
+        purpose: "food_parse",
+        requestMeta: expect.objectContaining({ promptCharLength: expect.any(Number) }),
+      }),
+    );
   });
 
   it("fails safe to manual fallback when AI validation fails", async () => {
+    recordAiInteraction.mockClear();
     const provider = new FakeAiProvider(() => JSON.stringify({ items: [] }));
     const result = await parseMealAction(
       { text: "something odd" },
@@ -150,12 +162,19 @@ describe("parseMealAction", () => {
         findFoodBySlugOrAlias: async () => null,
         getClientKey: async () => "ip:test",
         rateLimit: () => ({ ok: true, remaining: 29 }),
+        recordAiInteraction,
       },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toMatch(/manually/i);
     }
+    expect(recordAiInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "failed",
+        errorCode: "validation_failed",
+      }),
+    );
   });
 
   it("rejects empty text", async () => {
@@ -169,12 +188,14 @@ describe("parseMealAction", () => {
         }),
         getClientKey: async () => "ip:test",
         rateLimit: () => ({ ok: true, remaining: 29 }),
+        recordAiInteraction,
       },
     );
     expect(result.ok).toBe(false);
   });
 
   it("rate-limits food parse attempts", async () => {
+    recordAiInteraction.mockClear();
     const result = await parseMealAction(
       { text: "two eggs" },
       {
@@ -185,9 +206,11 @@ describe("parseMealAction", () => {
         }),
         getClientKey: async () => "ip:test",
         rateLimit: () => ({ ok: false, retryAfterSec: 60 }),
+        recordAiInteraction,
       },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toMatch(/too many/i);
+    expect(recordAiInteraction).not.toHaveBeenCalled();
   });
 });

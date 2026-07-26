@@ -127,5 +127,5 @@ export async function resolveParsedMeal(
     );
   }
 
-  return { items, sourceTextLength };
+  return { items, sourceTextLength, aiInteractionId: null };
 }

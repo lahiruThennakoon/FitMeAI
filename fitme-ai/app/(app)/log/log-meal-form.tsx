@@ -48,6 +48,7 @@ export function LogMealForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [items, setItems] = useState<ParsedFoodItemDraft[] | null>(null);
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualQty, setManualQty] = useState("1");
@@ -57,6 +58,7 @@ export function LogMealForm() {
     setFormError(null);
     setSaveMessage(null);
     setItems(null);
+    setAiInteractionId(null);
     setShowManual(false);
 
     startTransition(async () => {
@@ -64,6 +66,7 @@ export function LogMealForm() {
         const result = await parseMealAction({ text });
         if (result.ok) {
           setItems(result.data.items);
+          setAiInteractionId(result.data.aiInteractionId);
           return;
         }
         setFormError(result.error);
@@ -225,6 +228,7 @@ export function LogMealForm() {
         const result = await saveMealDraftAction({
           confirmed: true,
           items,
+          aiInteractionId,
         });
         if (result.ok) {
           const n = result.data.entries.length;
@@ -235,6 +239,7 @@ export function LogMealForm() {
               : `Saved ${n} item${n === 1 ? "" : "s"}.`,
           );
           setItems(null);
+          setAiInteractionId(null);
           setText("");
           return;
         }
@@ -247,6 +252,7 @@ export function LogMealForm() {
 
   function onDiscard() {
     setItems(null);
+    setAiInteractionId(null);
     setFormError(null);
     setSaveMessage(null);
     setShowManual(false);

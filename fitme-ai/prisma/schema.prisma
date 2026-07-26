@@ -335,22 +335,35 @@ model FoodEntryItem {
   @@map("food_entry_item")
 }
 
-/// Minimal AI provenance row (Story 2.6); richer audit fields in Story 2.10.
+enum AiInteractionStatus {
+  succeeded
+  failed
+}
+
+/// AI audit row (Story 2.10 / FR-19 / AD-8). No free-text meal prompts stored.
 model AIInteraction {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  providerId String
-  model      String?
-  purpose    String
-  confidence Float?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId      String
+  model           String?
+  purpose         String
+  status          AiInteractionStatus @default(succeeded)
+  /// Safe failure code (e.g. validation_failed) — never a provider payload.
+  errorCode       String?
+  confidence      Float?
+  /// Redacted request context: { purpose, promptCharLength } — never meal text.
+  requestMeta     Json?
+  /// Structured response summary for audit (item names/confidence) — DB only, never logged.
+  responseSummary Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   foodEntries FoodEntry[]
   corrections UserCorrection[]
 
   @@index([userId, createdAt])
+  @@index([userId, status])
   @@map("ai_interaction")
 }
 

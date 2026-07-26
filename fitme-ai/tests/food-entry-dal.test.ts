@@ -87,6 +87,7 @@ describe("saveConfirmedFoodEntries", () => {
     const draft = item();
     draft.origin = "manual";
     draft.aiSnapshot = null;
+    draft.dataSource = "database";
     const diffs = new Map([[draft.id, []]]);
 
     await saveConfirmedFoodEntries(
@@ -97,5 +98,30 @@ describe("saveConfirmedFoodEntries", () => {
     expect(aiCreate).not.toHaveBeenCalled();
     expect(entryCreate).toHaveBeenCalledOnce();
     expect(correctionCreate).not.toHaveBeenCalled();
+  });
+
+  it("links FoodEntry to an existing parse AIInteraction (FR-19)", async () => {
+    const draft = item();
+    draft.dataSource = "ai_estimated";
+    const diffs = new Map([[draft.id, []]]);
+
+    await saveConfirmedFoodEntries(
+      {
+        userId: "u1",
+        items: [draft],
+        aiInteractionId: "ai-parse-99",
+      },
+      diffs,
+    );
+
+    expect(aiCreate).not.toHaveBeenCalled();
+    expect(entryCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aiInteractionId: "ai-parse-99",
+          dataSource: "ai_estimated",
+        }),
+      }),
+    );
   });
 });

@@ -10,7 +10,9 @@ import type {
 export type SaveFoodEntriesInput = {
   userId: string;
   items: ParsedFoodItemDraft[];
-  /** Provider id for AIInteraction stub (ai_parse items). */
+  /** Existing audit row from parse (Story 2.10); preferred over creating a stub. */
+  aiInteractionId?: string | null;
+  /** Provider id when creating a fallback AIInteraction stub. */
   providerId?: string;
   model?: string;
 };
@@ -52,6 +54,8 @@ export async function saveConfirmedFoodEntries(
   const saved: SavedFoodEntryDto[] = [];
 
   await prisma.$transaction(async (tx) => {
+    let sharedInteractionId: string | null = input.aiInteractionId ?? null;
+
     for (const item of input.items) {
       let foodId: string | null = null;
       if (item.foodSlug) {
@@ -63,19 +67,30 @@ export async function saveConfirmedFoodEntries(
       }
 
       const isAi = item.origin === "ai_parse";
+      const needsAudit =
+        isAi || item.dataSource === "ai_estimated";
 
       let aiInteractionId: string | null = null;
-      if (isAi) {
-        const interaction = await tx.aIInteraction.create({
-          data: {
-            userId: input.userId,
-            providerId: input.providerId ?? "unknown",
-            model: input.model ?? null,
-            purpose: "food_parse",
-            confidence: item.confidence,
-          },
-        });
-        aiInteractionId = interaction.id;
+      if (needsAudit) {
+        if (!sharedInteractionId) {
+          // Fallback stub when client omitted parse audit id.
+          const interaction = await tx.aIInteraction.create({
+            data: {
+              userId: input.userId,
+              providerId: input.providerId ?? "unknown",
+              model: input.model ?? null,
+              purpose: "food_parse",
+              status: "succeeded",
+              confidence: item.confidence,
+              requestMeta: {
+                purpose: "food_parse",
+                promptCharLength: 0,
+              },
+            },
+          });
+          sharedInteractionId = interaction.id;
+        }
+        aiInteractionId = sharedInteractionId;
       }
 
       const entry = await tx.foodEntry.create({

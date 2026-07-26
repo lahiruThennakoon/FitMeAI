@@ -71,4 +71,6 @@ export type ParsedFoodItemDraft = {
 export type ParsedMealDraft = {
   items: ParsedFoodItemDraft[];
   sourceTextLength: number;
+  /** Audit row from the parse call (Story 2.10 / FR-19). */
+  aiInteractionId: string | null;
 };
