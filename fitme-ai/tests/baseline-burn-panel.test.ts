@@ -5,7 +5,7 @@ import { BaselineBurnPanel } from "@/app/(app)/dashboard/baseline-burn-panel";
 import { computeBaselineBurn } from "@/lib/domain/burn/baseline";
 
 describe("BaselineBurnPanel", () => {
-  it("shows baseline, net, and formula transparency", () => {
+  it("shows energy hero, meters, and formula transparency", () => {
     const burn = computeBaselineBurn({
       weightG: 70_000,
       heightCm: 175,
@@ -21,13 +21,14 @@ describe("BaselineBurnPanel", () => {
         netKcal: 1800 - burn.baselineBurnKcal,
       }),
     );
-    expect(html).toContain("Baseline Burn");
-    expect(html).toContain("Net calories");
+    expect(html).toContain("Today");
+    expect(html).toContain('data-testid="energy-balance-chart"');
+    expect(html).toContain("Food");
+    expect(html).toContain("Burn");
     expect(html).toContain("How Baseline Burn is calculated");
     expect(html).toContain("Mifflin");
     expect(html).toContain("not medical advice");
-    expect(html).toContain("Exercise:");
-    expect(html).toContain("0 kcal (none logged)");
+    expect(html).not.toContain("Net calories");
+    expect(html).not.toMatch(/deficit/i);
   });
 });
-

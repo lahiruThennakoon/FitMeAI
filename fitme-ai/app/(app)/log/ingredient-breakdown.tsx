@@ -28,15 +28,23 @@ export function IngredientBreakdown({
   onProportionChange,
 }: Props) {
   return (
-    <details className="mt-3 rounded-lg border border-neutral-200 open:bg-neutral-50 dark:border-neutral-800 dark:open:bg-neutral-900/40">
-      <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-        Ingredient breakdown ({lines.length})
+    <details className="group mt-3 rounded-lg border border-neutral-200 open:bg-neutral-50 dark:border-neutral-800 dark:open:bg-neutral-900/40">
+      <summary className="cursor-pointer list-none select-none px-3 py-2 text-[11px] font-normal italic tracking-wide text-neutral-400 marker:content-none transition-colors hover:text-neutral-500 dark:text-neutral-500 dark:hover:text-neutral-400 [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="text-[9px] not-italic text-neutral-400/80 transition-transform group-open:rotate-90 dark:text-neutral-600"
+            aria-hidden="true"
+          >
+            ▸
+          </span>
+          Ingredient breakdown ({lines.length})
+        </span>
       </summary>
-      <ul className="space-y-2 border-t border-neutral-200 px-3 py-3 dark:border-neutral-800">
+      <ul className="space-y-2 border-t border-neutral-200 px-3 py-2.5 dark:border-neutral-800">
         {lines.map((line) => (
           <li
             key={line.ingredientSlug}
-            className="space-y-1 text-sm"
+            className="space-y-1 text-[11px]"
             data-source={line.dataSource}
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">

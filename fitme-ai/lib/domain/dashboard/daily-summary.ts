@@ -30,6 +30,17 @@ export type MacroProgress = {
   unit: string;
 };
 
+/** Plain-language energy balance for the dashboard (not a signed net alone). */
+export type EnergyBalanceStatus = {
+  kind: "under" | "over" | "even";
+  /** Absolute gap in kcal (0 when even). */
+  gapKcal: number;
+  /** Short status chip, e.g. "Under today". */
+  statusLabel: string;
+  /** One supportive sentence — no guilt. */
+  explanation: string;
+};
+
 export type DailySummary = {
   dayKey: string;
   intakeKcal: number;
@@ -45,6 +56,47 @@ export type DailySummary = {
   supportiveMessage: string;
   hasGoal: boolean;
 };
+
+/**
+ * WHO-style soft sugar aim: ~10% of daily calorie target as free sugars (g).
+ * kcal × 0.10 ÷ 4 kcal/g.
+ */
+export function sugarLimitFromCalories(caloriesKcal: number | null): number | null {
+  if (caloriesKcal == null || !Number.isFinite(caloriesKcal) || caloriesKcal <= 0) {
+    return null;
+  }
+  return Math.round((caloriesKcal * 0.1) / 4);
+}
+
+/**
+ * Translate signed net into plain status language.
+ * Negative net = food below burn (room left) — not a failure.
+ */
+export function describeEnergyBalance(netKcal: number): EnergyBalanceStatus {
+  const gap = Math.abs(Math.round(netKcal));
+  if (gap < 50) {
+    return {
+      kind: "even",
+      gapKcal: gap,
+      statusLabel: "On track",
+      explanation: "Food and burn are about even.",
+    };
+  }
+  if (netKcal < 0) {
+    return {
+      kind: "under",
+      gapKcal: gap,
+      statusLabel: "Room left",
+      explanation: `You still have ${gap} kcal to eat.`,
+    };
+  }
+  return {
+    kind: "over",
+    gapKcal: gap,
+    statusLabel: "Above burn",
+    explanation: `You've logged ${gap} kcal more than burn.`,
+  };
+}
 
 export type FoodEntryLike = {
   energyKcal: number | null;
@@ -141,6 +193,8 @@ export function buildDailySummary(input: {
   const targetKcal = input.goal?.caloriesKcal ?? null;
   const remainingKcal =
     targetKcal != null ? Math.round(targetKcal - intakeKcal) : null;
+  /** Soft daily sugar aim from calorie target (WHO ~10% energy as free sugars). */
+  const sugarLimitG = sugarLimitFromCalories(targetKcal);
 
   const progress: MacroProgress[] = [
     {
@@ -187,8 +241,8 @@ export function buildDailySummary(input: {
       key: "sugarG",
       label: "Sugar",
       consumed: Math.round(macros.sugarG),
-      target: null,
-      ratio: null,
+      target: sugarLimitG,
+      ratio: ratio(macros.sugarG, sugarLimitG),
       unit: "g",
     },
   ];

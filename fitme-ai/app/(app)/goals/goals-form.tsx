@@ -29,6 +29,11 @@ import {
   type PreferredUnits,
 } from "@/lib/domain/targets/units";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+import {
+  FormulaDisclosure,
+  FormulaNote,
+  FormulaRow,
+} from "@/components/formula-disclosure";
 
 type Props = {
   initialProfile: ProfileDto | null;
@@ -473,33 +478,42 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
 
       <section
         aria-labelledby="formula-heading"
-        className="space-y-3 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
+        className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
       >
-        <h2 id="formula-heading" className="text-base font-semibold">
+        <h2
+          id="formula-heading"
+          className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+        >
           How we estimate your targets
         </h2>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          These are estimates, not medical advice. Talk to a professional for
-          personal health guidance.
-        </p>
-        <ul className="space-y-1 text-sm text-neutral-700 dark:text-neutral-300">
-          <li>
-            {sex === "male"
-              ? MIFFLIN_ST_JEOR_FORMULA.male
-              : MIFFLIN_ST_JEOR_FORMULA.female}
-          </li>
-          <li>{MIFFLIN_ST_JEOR_FORMULA.tdee}</li>
-          <li>
-            Activity multiplier for {activityLevel.replaceAll("_", " ")}:{" "}
-            {ACTIVITY_MULTIPLIERS[activityLevel]}
-          </li>
+        <div className="mt-2 space-y-2">
+          <FormulaRow
+            label="BMR formula"
+            value={sex === "male" ? "Male" : "Female"}
+            formula={
+              sex === "male"
+                ? MIFFLIN_ST_JEOR_FORMULA.male
+                : MIFFLIN_ST_JEOR_FORMULA.female
+            }
+          />
+          <FormulaRow
+            label="TDEE"
+            value={`${ACTIVITY_MULTIPLIERS[activityLevel]}×`}
+            meta={`Activity · ${activityLevel.replaceAll("_", " ")}`}
+            formula={MIFFLIN_ST_JEOR_FORMULA.tdee}
+          />
           {live ? (
-            <li>
-              Inputs: {live.weightKg.toFixed(1)} kg · {Number(height)}{" "}
-              {heightUnit} · age {ageYears} · {sex}
-            </li>
+            <FormulaRow
+              label="Inputs"
+              value={`${live.weightKg.toFixed(1)} kg`}
+              meta={`${Number(height)} ${heightUnit} · age ${ageYears} · ${sex}`}
+            />
           ) : null}
-        </ul>
+          <FormulaNote>
+            These are estimates, not medical advice. Talk to a professional for
+            personal health guidance.
+          </FormulaNote>
+        </div>
       </section>
 
       <section
@@ -655,19 +669,14 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
                   Your suggested targets are within the usual planning ranges.
                 </p>
               )}
-              <p className="text-sm text-neutral-700 dark:text-neutral-300">
-                {NO_MEDICAL_ADVICE}
-              </p>
-              <details className="text-sm text-neutral-600 dark:text-neutral-400">
-                <summary className="cursor-pointer font-medium">
-                  Sources cited in-app
-                </summary>
-                <ul className="mt-2 list-disc space-y-1 pl-5">
+              <FormulaNote>{NO_MEDICAL_ADVICE}</FormulaNote>
+              <FormulaDisclosure title="Sources cited in-app" className="mt-2">
+                <ul className="list-disc space-y-1 pl-4 text-[10px] leading-snug text-neutral-500 dark:text-neutral-400">
                   {live.safety.citations.map((c) => (
                     <li key={c}>{c}</li>
                   ))}
                 </ul>
-              </details>
+              </FormulaDisclosure>
               {live.safety.requiresConsent ? (
                 <div className="space-y-2">
                   <label className="flex items-start gap-3 text-sm">

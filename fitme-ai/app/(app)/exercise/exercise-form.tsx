@@ -269,17 +269,22 @@ export function ExerciseForm({ weightKg }: Props) {
 
       {liveEstimate ? (
         <div
-          className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30"
+          className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 dark:border-amber-900/50 dark:bg-amber-950/30"
           role="status"
           aria-live="polite"
         >
-          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Estimated burn: ~{liveEstimate.estimatedKcal} kcal
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300">
+              Estimated burn
+            </p>
+            <p className="text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+              ~{liveEstimate.estimatedKcal} kcal
+            </p>
+          </div>
+          <p className="mt-1.5 font-mono text-[10px] leading-snug break-words text-neutral-500 dark:text-neutral-400">
             {liveEstimate.formula}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+          <p className="mt-1.5 text-[10px] leading-snug text-neutral-500 dark:text-neutral-400">
             {EXERCISE_ESTIMATE_LIMITATION}
             {liveEstimate.usedDefaultWeight
               ? " Using 70 kg until you set your weight in Profile."

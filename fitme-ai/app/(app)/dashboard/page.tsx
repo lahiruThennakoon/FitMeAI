@@ -8,7 +8,6 @@ import {
   isWithinDay,
   zonedDayBounds,
 } from "@/lib/domain/dashboard/day-bounds";
-import { BaselineBurnPanel } from "./baseline-burn-panel";
 import { DailySummaryPanel } from "./daily-summary-panel";
 import { SignOutButton } from "../sign-out-button";
 
@@ -111,54 +110,59 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {summary.baseline && summary.netKcal != null ? (
-        <BaselineBurnPanel
-          burn={summary.baseline}
-          intakeKcal={summary.intakeKcal}
-          exerciseKcal={summary.exerciseKcal}
-          netKcal={summary.netKcal}
-        />
-      ) : null}
-
       <nav className="flex flex-col gap-3" aria-label="Main actions">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Next actions
+        </p>
         <Link
           href="/log"
-          className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
+          className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           Log food
         </Link>
         <Link
           href="/exercise"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-neutral-900 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-white dark:ring-neutral-500 dark:hover:bg-neutral-900"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm shadow-brand-teal/15 transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:ring-brand-teal/50"
         >
           Log exercise
         </Link>
-        <Link
-          href="/goals"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-neutral-900 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-white dark:ring-neutral-500 dark:hover:bg-neutral-900"
-        >
-          Profile & targets
-        </Link>
-        <Link
-          href="/settings"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-neutral-900 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-white dark:ring-neutral-500 dark:hover:bg-neutral-900"
-        >
-          Settings
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1">
+          <Link
+            href="/goals"
+            className="text-sm font-medium text-neutral-600 underline-offset-2 transition hover:text-neutral-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-neutral-400 dark:hover:text-neutral-100"
+          >
+            <span aria-hidden="true">👤</span> Profile & targets
+          </Link>
+          <span
+            className="text-neutral-300 dark:text-neutral-600"
+            aria-hidden="true"
+          >
+            ·
+          </span>
+          <Link
+            href="/settings"
+            className="text-sm font-medium text-neutral-600 underline-offset-2 transition hover:text-neutral-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-neutral-400 dark:hover:text-neutral-100"
+          >
+            <span aria-hidden="true">⚙️</span> Settings
+          </Link>
+        </div>
       </nav>
 
-      <footer className="flex flex-col items-start gap-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+      <footer className="mt-2 flex flex-col items-start gap-1.5 border-t border-neutral-200/80 pt-5 dark:border-neutral-800">
+        <p className="text-[11px] leading-snug text-neutral-400 dark:text-neutral-500">
           Signed in as{" "}
-          <span className="font-medium text-neutral-900 dark:text-neutral-100">
+          <span className="text-neutral-500 dark:text-neutral-400">
             {user?.email}
           </span>
         </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <SignOutButton variant="link" />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <SignOutButton
+            variant="link"
+            className="text-[11px] font-medium text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+          />
           <Link
             href="/"
-            className="text-sm font-medium text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline dark:text-neutral-300 dark:hover:text-white"
+            className="text-[11px] font-medium text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline dark:text-neutral-500 dark:hover:text-neutral-300"
           >
             Marketing home
           </Link>

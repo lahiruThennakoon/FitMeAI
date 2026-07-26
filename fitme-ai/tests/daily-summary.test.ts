@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   buildDailySummary,
+  describeEnergyBalance,
+  sugarLimitFromCalories,
   sumMacros,
   supportiveDashboardMessage,
 } from "@/lib/domain/dashboard/daily-summary";
@@ -127,4 +129,50 @@ describe("daily summary (FR-15)", () => {
     expect(msg.toLowerCase()).not.toMatch(/fail|lazy|shame|should have/);
     expect(msg).toMatch(/ready|clearly|whenever/i);
   });
+
+  it("describes negative net as room left — not a signed puzzle", () => {
+    const under = describeEnergyBalance(-900);
+    expect(under.kind).toBe("under");
+    expect(under.gapKcal).toBe(900);
+    expect(under.statusLabel).toBe("Room left");
+    expect(under.explanation).toBe("You still have 900 kcal to eat.");
+    expect(under.explanation.toLowerCase()).not.toMatch(/fail|bad|wrong|deficit/);
+
+    const over = describeEnergyBalance(400);
+    expect(over.kind).toBe("over");
+    expect(over.statusLabel).toBe("Above burn");
+    expect(over.explanation).toBe("You've logged 400 kcal more than burn.");
+
+    const even = describeEnergyBalance(10);
+    expect(even.kind).toBe("even");
+    expect(even.statusLabel).toBe("On track");
+    expect(even.explanation).toBe("Food and burn are about even.");
+  });
+
+  it("derives a soft sugar aim from calorie target", () => {
+    expect(sugarLimitFromCalories(2000)).toBe(50);
+    expect(sugarLimitFromCalories(null)).toBeNull();
+
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [
+        {
+          energyKcal: 500,
+          proteinG: 20,
+          carbsG: 40,
+          fatG: 10,
+          fibreG: 4,
+          sugarG: 12,
+          sodiumMg: 100,
+        },
+      ],
+      exerciseKcal: 0,
+      profile,
+      goal,
+    });
+    const sugar = summary.progress.find((p) => p.key === "sugarG");
+    expect(sugar?.target).toBe(Math.round((2556 * 0.1) / 4));
+    expect(sugar?.ratio).not.toBeNull();
+  });
 });
+
