@@ -94,6 +94,10 @@ Home shows consumed / target / remaining, exercise kcal, net calories, macro pro
 
 Home's Water card lets you quick-add 250 ml / 500 ml or a custom amount, then shows `consumed of target` with a progress bar. With no Goal set, a soft default aim (2000 ml) is used and clearly labeled as a default — logging is never blocked. Over-target shows a red ↑, no shame copy. Totals use the profile-timezone day boundary (AD-10), same as food and exercise.
 
+### Edit / delete today's meals (Story 5.2 / FR-9)
+
+Each meal in Home's "Meals today" list has inline `Edit` / `Delete` actions. Edit expands a compact form for name, quantity, and macros (calories/protein/carbs/fat/fibre/sugar); delete expands a calm two-step confirm bar (`Keep` / `Remove`) instead of a jarring native confirm dialog. Edits to AI-origin entries are logged as `UserCorrection` rows (FR-20 audit trail) when a field actually changes. Only the entry's owner can edit/delete it — cross-user and missing-entry attempts both surface the same generic message (no enumeration).
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

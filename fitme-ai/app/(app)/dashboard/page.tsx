@@ -10,12 +10,8 @@ import {
   zonedDayBounds,
 } from "@/lib/domain/dashboard/day-bounds";
 import { DailySummaryPanel } from "./daily-summary-panel";
+import { TodayMealsList } from "./today-meals-list";
 import { SignOutButton } from "../sign-out-button";
-
-function fmtKcal(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "—";
-  return `${Math.round(v)} kcal`;
-}
 
 /**
  * Home dashboard (FR-15 / Stories 3.1–3.3). Day bounds use profile timezone (AD-10).
@@ -53,7 +49,21 @@ export default async function DashboardPage() {
     goal,
   });
 
-  const recent = todayEntries.slice(0, 4);
+  const recent = todayEntries.slice(0, 4).map((e) => ({
+    id: e.id,
+    name: e.name,
+    quantity: e.quantity,
+    unit: e.unit,
+    mealType: e.mealType,
+    loggedAt: e.loggedAt.toISOString(),
+    energyKcal: e.energyKcal,
+    proteinG: e.proteinG,
+    carbsG: e.carbsG,
+    fatG: e.fatG,
+    fibreG: e.fibreG,
+    sugarG: e.sugarG,
+    isAiOrigin: e.aiInteractionId != null,
+  }));
   const displayName = user?.name?.trim() || "there";
 
   return (
@@ -92,27 +102,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {recent.length > 0 ? (
-          <ul className="mt-4 space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-700">
-            {recent.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-baseline justify-between gap-3 text-sm"
-              >
-                <span className="truncate font-medium text-neutral-900 dark:text-neutral-100">
-                  {e.name}
-                </span>
-                <span className="shrink-0 tabular-nums text-neutral-500 dark:text-neutral-400">
-                  {fmtKcal(e.energyKcal)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-            No meals yet today — a short description is enough to get started.
-          </p>
-        )}
+        <TodayMealsList entries={recent} />
       </section>
 
       <nav className="flex flex-col gap-3" aria-label="Main actions">

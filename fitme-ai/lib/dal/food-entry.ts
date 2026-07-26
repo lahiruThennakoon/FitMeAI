@@ -1,6 +1,7 @@
 import "server-only";
 import type { MealType, NutritionDataSource, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { requireOwnedResource } from "@/lib/dal/guards";
 import type { CorrectionDiff } from "@/lib/domain/nutrition/corrections";
 import type {
   IngredientBreakdownLine,
@@ -151,5 +152,205 @@ export async function listActiveFoodEntriesForUser(userId: string) {
       corrections: true,
       food: { select: { slug: true } },
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Edit / soft-delete today's meals (Story 5.2 / FR-9 correction path).
+// Scope is deliberately name/quantity/macros only — the ingredient
+// `items` breakdown (composite dishes) is not editable here.
+// ---------------------------------------------------------------------------
+
+export type FoodEntryEditableDto = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  mealType: MealType;
+  loggedAt: string;
+  energyKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fibreG: number | null;
+  sugarG: number | null;
+  /** True when this entry has an AI audit trail (edits get logged as UserCorrection). */
+  isAiOrigin: boolean;
+};
+
+export type UpdateFoodEntryInput = {
+  name: string;
+  quantity: number;
+  energyKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fibreG: number | null;
+  sugarG: number | null;
+};
+
+type EditableFoodEntryRow = {
+  id: string;
+  userId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  mealType: MealType;
+  loggedAt: Date;
+  energyKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fibreG: number | null;
+  sugarG: number | null;
+  aiInteractionId: string | null;
+};
+
+function toEditableDto(row: EditableFoodEntryRow): FoodEntryEditableDto {
+  return {
+    id: row.id,
+    name: row.name,
+    quantity: row.quantity,
+    unit: row.unit,
+    mealType: row.mealType,
+    loggedAt: row.loggedAt.toISOString(),
+    energyKcal: row.energyKcal,
+    proteinG: row.proteinG,
+    carbsG: row.carbsG,
+    fatG: row.fatG,
+    fibreG: row.fibreG,
+    sugarG: row.sugarG,
+    isAiOrigin: row.aiInteractionId != null,
+  };
+}
+
+function editableValuesEqual(
+  a: string | number | null,
+  b: string | number | null,
+): boolean {
+  if (a === b) return true;
+  if (typeof a === "number" && typeof b === "number") {
+    return Math.abs(a - b) < 1e-9;
+  }
+  return false;
+}
+
+/** Diff editable fields for the FR-20 UserCorrection audit trail. */
+function diffEditableFields(
+  before: EditableFoodEntryRow,
+  after: UpdateFoodEntryInput,
+): CorrectionDiff[] {
+  const pairs: Array<{
+    field: string;
+    before: string | number | null;
+    after: string | number | null;
+  }> = [
+    { field: "name", before: before.name, after: after.name },
+    { field: "quantity", before: before.quantity, after: after.quantity },
+    { field: "energyKcal", before: before.energyKcal, after: after.energyKcal },
+    { field: "proteinG", before: before.proteinG, after: after.proteinG },
+    { field: "carbsG", before: before.carbsG, after: after.carbsG },
+    { field: "fatG", before: before.fatG, after: after.fatG },
+    { field: "fibreG", before: before.fibreG, after: after.fibreG },
+    { field: "sugarG", before: before.sugarG, after: after.sugarG },
+  ];
+  return pairs
+    .filter((p) => !editableValuesEqual(p.before, p.after))
+    .map((p) => ({ field: p.field, beforeValue: p.before, afterValue: p.after }));
+}
+
+async function findOwnedFoodEntry(
+  userId: string,
+  id: string,
+): Promise<EditableFoodEntryRow> {
+  const row = await prisma.foodEntry.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      quantity: true,
+      unit: true,
+      mealType: true,
+      loggedAt: true,
+      energyKcal: true,
+      proteinG: true,
+      carbsG: true,
+      fatG: true,
+      fibreG: true,
+      sugarG: true,
+      aiInteractionId: true,
+    },
+  });
+  return requireOwnedResource(row, userId);
+}
+
+/** Fetch a single owned, active entry for populating an edit form. */
+export async function getEditableFoodEntry(
+  userId: string,
+  id: string,
+): Promise<FoodEntryEditableDto> {
+  const row = await findOwnedFoodEntry(userId, id);
+  return toEditableDto(row);
+}
+
+/**
+ * Edit name/quantity/macros on an owned, active entry (Story 5.2 AC1).
+ * Logs UserCorrection rows for AI-origin entries when fields actually change
+ * (FR-20 audit trail) — same shape as the save-time correction diff.
+ */
+export async function updateFoodEntry(
+  userId: string,
+  id: string,
+  patch: UpdateFoodEntryInput,
+): Promise<FoodEntryEditableDto> {
+  const existing = await findOwnedFoodEntry(userId, id);
+  const diffs = diffEditableFields(existing, patch);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.foodEntry.update({
+      where: { id },
+      data: {
+        name: patch.name,
+        quantity: patch.quantity,
+        energyKcal: patch.energyKcal,
+        proteinG: patch.proteinG,
+        carbsG: patch.carbsG,
+        fatG: patch.fatG,
+        fibreG: patch.fibreG,
+        sugarG: patch.sugarG,
+      },
+    });
+
+    if (existing.aiInteractionId && diffs.length > 0) {
+      for (const diff of diffs) {
+        await tx.userCorrection.create({
+          data: {
+            userId,
+            foodEntryId: id,
+            aiInteractionId: existing.aiInteractionId,
+            field: diff.field,
+            beforeValue: diff.beforeValue as Prisma.InputJsonValue,
+            afterValue: diff.afterValue as Prisma.InputJsonValue,
+          },
+        });
+      }
+    }
+
+    return row;
+  });
+
+  return toEditableDto({ ...updated, aiInteractionId: existing.aiInteractionId });
+}
+
+/** Soft-delete an owned, active entry (Story 5.2 AC2). */
+export async function softDeleteFoodEntry(
+  userId: string,
+  id: string,
+): Promise<void> {
+  const existing = await findOwnedFoodEntry(userId, id);
+  await prisma.foodEntry.update({
+    where: { id: existing.id },
+    data: { deletedAt: new Date() } satisfies Prisma.FoodEntryUpdateInput,
   });
 }
