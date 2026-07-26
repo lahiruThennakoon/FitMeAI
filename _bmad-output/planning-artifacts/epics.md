@@ -123,6 +123,11 @@ Users see calories in vs. out and their daily standing at a glance, with baselin
 Users can install FitMe AI and keep logging common foods instantly even on weak or no network, with entries reconciled when back online.
 **FRs covered:** FR-16
 
+### Epic 5: Daily Habit Loop
+Users can finish incomplete Home loops (water), fix mistakes on today’s logs, look at yesterday, and re-log recent meals quickly — so the app is habit-ready every day.
+**FRs covered:** FR-15 (water progress completion), habit/trust extensions beyond v1 epic list
+**Status:** Planned (2026-07-26) — see `epic-5-daily-habit-loop.md`
+
 ---
 
 ## Epic 1: Secure Account & Personalized Setup
@@ -607,3 +612,108 @@ So that nothing is lost or duplicated and the app feels native.
 - **Dependencies:** 4.1.
 - **Test scenarios:** reconcile no-dup; install flow; resume queued parses.
 - **Definition of done:** FR-16 (reconcile) met; idempotency tests; installable PWA verified.
+
+---
+
+## Epic 5: Daily Habit Loop
+
+Close the gaps that keep Home from feeling finished: water logging, fix/delete today’s entries, day navigation, and faster re-logging. After this epic a user can live in FitMe day after day without friction or shame.
+
+**UX invariants (from Home polish):** calm copy (no guilt / no “deficit” framing); red ↑ only when over a limit; soft cards + brand CTAs; timezone day bounds (AD-10).
+
+### Story 5.1: Water logging
+
+As a user,
+I want to log water against my daily aim,
+So that Home shows real progress, not a placeholder.
+
+**Acceptance Criteria:**
+
+**Given** I have a water target (or a sensible default)
+**When** I add water (quick amounts + custom ml)
+**Then** Home shows consumed of target with a progress indicator (completes FR-15 water)
+**And** totals use my profile timezone day bounds
+**And** copy stays supportive (UX-DR2).
+
+- **Edge cases:** no goal → still log with a soft default aim labelled as estimate; overshoot shows red ↑ beside the number, not shame copy.
+- **Dependencies:** 1.6, 3.3.
+- **Test scenarios:** add/remove same day; day rollover; overshoot UI.
+- **Definition of done:** water entries persist per user; dashboard live; unit + panel tests; a11y.
+
+### Story 5.2: Edit / delete today’s meals
+
+As a user,
+I want to fix or remove a meal I logged today,
+So that a mistake never traps bad numbers on Home.
+
+**Acceptance Criteria:**
+
+**Given** I have active Food Entries for today
+**When** I edit quantity/macros/name (or soft-delete)
+**Then** Home macros and energy update immediately
+**And** delete is soft-delete (`deletedAt`) with a calm confirm
+**And** I can only mutate my own entries (isolation).
+
+- **Edge cases:** deleted items leave audit/provenance intact; offline edit deferred or blocked with clear copy.
+- **Dependencies:** 2.6, 3.3.
+- **Test scenarios:** edit macros; soft-delete; forbidden cross-user.
+- **Definition of done:** DAL + actions + UI on Home/Log; tests; a11y.
+
+### Story 5.3: Edit / delete today’s exercise
+
+As a user,
+I want to fix or remove a workout I logged today,
+So that burn and energy balance stay honest.
+
+**Acceptance Criteria:**
+
+**Given** I have Exercise Entries for today
+**When** I edit fields or soft-delete
+**Then** exercise kcal and energy balance update immediately
+**And** estimates remain labelled as estimates
+**And** I can only mutate my own entries.
+
+- **Edge cases:** zero duration rejected; soft-delete confirm calm.
+- **Dependencies:** 3.2, 3.3, 5.2 (shared patterns OK).
+- **Test scenarios:** edit duration; soft-delete; isolation.
+- **Definition of done:** parity with 5.2; tests; a11y.
+
+### Story 5.4: Day switcher on Home
+
+As a user,
+I want to view yesterday (and return to today),
+So that one day is a chapter, not the whole book.
+
+**Acceptance Criteria:**
+
+**Given** I am on Home
+**When** I switch to another local calendar day (profile timezone)
+**Then** meals, exercise, water, and energy reflect that day only
+**And** “today” is clearly labelled vs past days
+**And** logging CTAs still prefer logging to *today* (or make the selected day explicit).
+
+- **Edge cases:** no data empty-state is encouraging; future days disabled or not offered in v1.
+- **Dependencies:** 3.3, 5.1.
+- **Test scenarios:** timezone boundary; empty yesterday; return to today.
+- **Definition of done:** day key in URL or state; summary rebuild per day; tests.
+
+### Story 5.5: Recent & favorites on Log
+
+As a user,
+I want one-tap re-log of recent meals,
+So that everyday foods don’t need a full AI parse every time.
+
+**Acceptance Criteria:**
+
+**Given** I have previously saved meals
+**When** I open Log
+**Then** I see recent items (and can favorite) for instant re-log
+**And** re-log creates a new entry for today with clear source (recent/favorite — not inventing new AI numbers)
+**And** works with the offline catalog path where the food is cacheable (FR-16 synergy).
+
+- **Edge cases:** empty recent state points to NL parse / Quick log; favoriting is per-user.
+- **Dependencies:** 2.6, 4.1, 5.2 helpful but not required.
+- **Test scenarios:** re-log creates new row; favorite persists; offline when cached.
+- **Definition of done:** UI on Log; DAL; tests; a11y.
+
+---

@@ -9,6 +9,7 @@ import {
   type BaselineBurnResult,
 } from "@/lib/domain/burn/baseline";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+import type { PreferredUnits } from "@/lib/domain/targets/units";
 
 export type MacroTotals = {
   energyKcal: number;
@@ -50,12 +51,23 @@ export type DailySummary = {
   targetKcal: number | null;
   remainingKcal: number | null;
   macros: MacroTotals;
-  waterMlTarget: number | null;
+  waterMlConsumed: number;
+  waterMlTarget: number;
+  /** True when waterMlTarget falls back to DEFAULT_WATER_ML_TARGET (no Goal set). */
+  waterMlTargetIsDefault: boolean;
+  /** Canonical storage stays ml (AD-11); this is display-only (Story 5.1 / AC7). */
+  preferredUnits: PreferredUnits;
   progress: MacroProgress[];
   mealCount: number;
   supportiveMessage: string;
   hasGoal: boolean;
 };
+
+/**
+ * Soft default daily water aim (ml) used when the user has no Goal yet
+ * (Story 5.1 / FR-15). Labelled as a default in the UI — never blocks logging.
+ */
+export const DEFAULT_WATER_ML_TARGET = 2000;
 
 /**
  * WHO-style soft sugar aim: ~10% of daily calorie target as free sugars (g).
@@ -166,6 +178,7 @@ export function buildDailySummary(input: {
   dayKey: string;
   entries: FoodEntryLike[];
   exerciseKcal: number;
+  waterMlConsumed?: number;
   profile: ProfileDto | null;
   goal: GoalDto | null;
 }): DailySummary {
@@ -249,6 +262,8 @@ export function buildDailySummary(input: {
 
   const hasGoal = input.goal != null;
   const mealCount = input.entries.length;
+  const waterMlTargetIsDefault = input.goal?.waterMl == null;
+  const waterMlTarget = input.goal?.waterMl ?? DEFAULT_WATER_ML_TARGET;
 
   return {
     dayKey: input.dayKey,
@@ -268,7 +283,10 @@ export function buildDailySummary(input: {
       sugarG: Math.round(macros.sugarG * 10) / 10,
       sodiumMg: Math.round(macros.sodiumMg),
     },
-    waterMlTarget: input.goal?.waterMl ?? null,
+    waterMlConsumed: Math.round(input.waterMlConsumed ?? 0),
+    waterMlTarget,
+    waterMlTargetIsDefault,
+    preferredUnits: input.profile?.preferredUnits ?? "metric",
     progress,
     mealCount,
     supportiveMessage: supportiveDashboardMessage({

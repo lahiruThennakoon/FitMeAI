@@ -1,9 +1,20 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { DailySummaryPanel } from "@/app/(app)/dashboard/daily-summary-panel";
 import { buildDailySummary } from "@/lib/domain/dashboard/daily-summary";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+
+// WaterLogControl is a client component that calls next/navigation's
+// useRouter(), which requires an App Router context unavailable under plain
+// renderToStaticMarkup. Its own behavior is covered by
+// save-water-action.test.ts; here we only assert the panel's static markup.
+vi.mock("@/app/(app)/dashboard/water-log-control", () => ({
+  WaterLogControl: () => null,
+}));
+
+const { DailySummaryPanel } = await import(
+  "@/app/(app)/dashboard/daily-summary-panel"
+);
 
 const profile: ProfileDto = {
   displayName: "Alex",
@@ -55,6 +66,7 @@ describe("DailySummaryPanel", () => {
         },
       ],
       exerciseKcal: 150,
+      waterMlConsumed: 1000,
       profile,
       goal,
     });
@@ -75,7 +87,61 @@ describe("DailySummaryPanel", () => {
     expect(html).toContain("of ");
     expect(html).toContain("Protein");
     expect(html).toContain("Water");
+    expect(html).toContain('data-testid="water-card"');
+    expect(html).toContain("1000");
+    expect(html).toContain("of 2450 ml");
     expect(html).toContain("progressbar");
     expect(html).toMatch(/bg-brand-teal|bg-brand-green|bg-sky-500/);
+  });
+
+  it("shows a red alert mark when water goes over the daily aim", () => {
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      waterMlConsumed: 3000,
+      profile,
+      goal,
+    });
+    const html = renderToStaticMarkup(
+      createElement(DailySummaryPanel, { summary }),
+    );
+    expect(html).toContain("Water over daily aim");
+    expect(html).toContain('data-deviation="alert-over"');
+  });
+
+  it("labels the water target as a default when there is no goal", () => {
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      waterMlConsumed: 500,
+      profile,
+      goal: null,
+    });
+    const html = renderToStaticMarkup(
+      createElement(DailySummaryPanel, { summary }),
+    );
+    expect(html).toContain("of 2000 ml");
+    expect(html).toContain("Using a default aim of 2000 ml");
+  });
+
+  it("displays water in fl oz for imperial preference, storing canonical ml (AC7)", () => {
+    const imperialProfile: ProfileDto = { ...profile, preferredUnits: "imperial" };
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      waterMlConsumed: 500,
+      profile: imperialProfile,
+      goal,
+    });
+    const html = renderToStaticMarkup(
+      createElement(DailySummaryPanel, { summary }),
+    );
+    // 500 ml ≈ 17 fl oz, 2450 ml target ≈ 83 fl oz (displayWater rounds to whole units).
+    expect(html).toContain("fl oz");
+    expect(html).not.toContain("of 2450 ml");
+    expect(summary.waterMlTarget).toBe(2450);
   });
 });

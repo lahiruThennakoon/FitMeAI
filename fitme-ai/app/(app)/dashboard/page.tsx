@@ -3,6 +3,7 @@ import { getSession } from "@/lib/dal";
 import { sumExerciseKcalForUserBetween } from "@/lib/dal/exercise-entry";
 import { listActiveFoodEntriesForUser } from "@/lib/dal/food-entry";
 import { getGoalForUser, getProfileForUser } from "@/lib/dal/profile";
+import { sumWaterMlForUserBetween } from "@/lib/dal/water-entry";
 import { buildDailySummary } from "@/lib/domain/dashboard/daily-summary";
 import {
   isWithinDay,
@@ -32,9 +33,12 @@ export default async function DashboardPage() {
     : [null, null, []];
 
   const bounds = zonedDayBounds(new Date(), profile?.timezone ?? "UTC");
-  const todayExerciseKcal = userId
-    ? await sumExerciseKcalForUserBetween(userId, bounds.start, bounds.end)
-    : 0;
+  const [todayExerciseKcal, todayWaterMl] = userId
+    ? await Promise.all([
+        sumExerciseKcalForUserBetween(userId, bounds.start, bounds.end),
+        sumWaterMlForUserBetween(userId, bounds.start, bounds.end),
+      ])
+    : [0, 0];
 
   const todayEntries = entries.filter((e) =>
     isWithinDay(e.loggedAt, bounds),
@@ -44,6 +48,7 @@ export default async function DashboardPage() {
     dayKey: bounds.dayKey,
     entries: todayEntries,
     exerciseKcal: todayExerciseKcal,
+    waterMlConsumed: todayWaterMl,
     profile,
     goal,
   });

@@ -5,8 +5,10 @@ import {
   type MacroProgress,
 } from "@/lib/domain/dashboard/daily-summary";
 import { BaselineBurnCalcDetails } from "@/components/formula-disclosure";
+import { displayWater } from "@/lib/domain/targets/units";
 import { DeviationMark, deviationKind } from "./deviation-mark";
 import { EnergyBalanceChart } from "./energy-balance-chart";
+import { WaterLogControl } from "./water-log-control";
 
 type Props = {
   summary: DailySummary;
@@ -239,6 +241,24 @@ export function DailySummaryPanel({ summary }: Props) {
       ? deviationKind(summary.intakeKcal, summary.targetKcal, 50)
       : null;
 
+  const isOverWater = summary.waterMlConsumed > summary.waterMlTarget * 1.02;
+  const waterBarPct = Math.min(
+    100,
+    summary.waterMlTarget > 0
+      ? Math.round((summary.waterMlConsumed / summary.waterMlTarget) * 100)
+      : 0,
+  );
+  /** Display-only unit conversion; storage/progress math stays canonical ml (AD-11). */
+  const waterUnit = summary.preferredUnits === "imperial" ? "fl oz" : "ml";
+  const waterConsumedDisplay = displayWater(
+    summary.waterMlConsumed,
+    summary.preferredUnits,
+  );
+  const waterTargetDisplay = displayWater(
+    summary.waterMlTarget,
+    summary.preferredUnits,
+  );
+
   const remainingTone =
     remaining == null
       ? "border-neutral-200/80 bg-neutral-50/80 dark:border-neutral-700 dark:bg-neutral-950/40"
@@ -369,15 +389,55 @@ export function DailySummaryPanel({ summary }: Props) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-sky-200/60 bg-sky-50/70 px-3 py-3 dark:border-sky-900/50 dark:bg-sky-950/25">
-        <p className="text-sm font-medium text-sky-900 dark:text-sky-100">
-          Water
-        </p>
-        <p className="mt-1 text-sm text-sky-900/80 dark:text-sky-200/80">
-          {summary.waterMlTarget != null
-            ? `Target ${summary.waterMlTarget} ml · logging water lands next — this is your daily aim.`
-            : "Set a water target in Profile when you like."}
-        </p>
+      <div
+        className="rounded-xl border border-sky-200/60 bg-sky-50/70 px-3 py-3 dark:border-sky-900/50 dark:bg-sky-950/25"
+        data-testid="water-card"
+      >
+        <div className="flex items-baseline justify-between gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 font-medium text-sky-900 dark:text-sky-100">
+            <span aria-hidden="true">💧</span> Water
+          </span>
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-sky-900/80 dark:text-sky-200/80">
+            {isOverWater ? (
+              <DeviationMark
+                kind="up"
+                label="Water over daily aim"
+                size="sm"
+                alert
+              />
+            ) : null}
+            <span className="font-medium text-sky-950 dark:text-sky-50">
+              {waterConsumedDisplay}
+            </span>
+            <span className="text-sky-700/70 dark:text-sky-300/70">
+              of {waterTargetDisplay} {waterUnit}
+            </span>
+          </span>
+        </div>
+        <div
+          className="mt-2 h-2.5 overflow-hidden rounded-full bg-sky-200/60 dark:bg-sky-900/40"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={waterBarPct}
+          aria-label="Water progress"
+        >
+          <div
+            className={`h-full rounded-full transition-[width] duration-500 ease-out ${
+              isOverWater
+                ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                : "bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.3)]"
+            }`}
+            style={{ width: `${waterBarPct}%` }}
+          />
+        </div>
+        {summary.waterMlTargetIsDefault ? (
+          <p className="mt-2 text-[11px] leading-snug text-sky-800/70 dark:text-sky-300/70">
+            Using a default aim of {waterTargetDisplay} {waterUnit} — set your
+            own anytime in Profile.
+          </p>
+        ) : null}
+        <WaterLogControl preferredUnits={summary.preferredUnits} />
       </div>
     </section>
   );

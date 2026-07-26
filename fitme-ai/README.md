@@ -90,6 +90,10 @@ Home shows consumed / target / remaining, exercise kcal, net calories, macro pro
 
 **Log exercise** at `/exercise`. Choose type (walking, running, treadmill, cycling, strength, swimming, sports, or custom), duration, and intensity; optional distance/sets/reps/load/notes. Burn uses `MET × weight × hours` and is always labeled as an estimate. Today’s exercise totals roll into dashboard net calories.
 
+### Water logging (Story 5.1 / FR-15)
+
+Home's Water card lets you quick-add 250 ml / 500 ml or a custom amount, then shows `consumed of target` with a progress bar. With no Goal set, a soft default aim (2000 ml) is used and clearly labeled as a default — logging is never blocked. Over-target shows a red ↑, no shame copy. Totals use the profile-timezone day boundary (AD-10), same as food and exercise.
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

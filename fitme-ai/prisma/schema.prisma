@@ -31,6 +31,7 @@ model User {
   goal          Goal?
   foodEntries    FoodEntry[]
   exerciseEntries ExerciseEntry[]
+  waterEntries   WaterEntry[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
 
@@ -440,4 +441,24 @@ model ExerciseEntry {
   @@index([userId, performedAt])
   @@index([userId, deletedAt])
   @@map("exercise_entry")
+}
+
+// ---------------------------------------------------------------------------
+// Water entries (Story 5.1 / FR-15 water) — soft-delete, canonical ml (AD-11)
+// ---------------------------------------------------------------------------
+
+model WaterEntry {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountMl  Int
+  loggedAt  DateTime
+  /// Soft-delete (AD-8). Null = active.
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, loggedAt])
+  @@index([userId, deletedAt])
+  @@map("water_entry")
 }

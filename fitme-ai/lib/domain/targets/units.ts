@@ -68,3 +68,7 @@ export function parseMassToG(value: number, units: PreferredUnits): number {
 export function parseHeightToCm(value: number, units: PreferredUnits): number {
   return units === "imperial" ? inToCm(value) : value;
 }
+
+export function parseWaterToMl(value: number, units: PreferredUnits): number {
+  return units === "imperial" ? Math.round(flOzToMl(value)) : Math.round(value);
+}

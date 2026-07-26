@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildDailySummary,
   describeEnergyBalance,
+  DEFAULT_WATER_ML_TARGET,
   sugarLimitFromCalories,
   sumMacros,
   supportiveDashboardMessage,
@@ -83,6 +84,7 @@ describe("daily summary (FR-15)", () => {
         },
       ],
       exerciseKcal: 200,
+      waterMlConsumed: 1200,
       profile,
       goal,
     });
@@ -91,8 +93,38 @@ describe("daily summary (FR-15)", () => {
     expect(summary.exerciseKcal).toBe(200);
     expect(summary.netKcal).not.toBeNull();
     expect(summary.progress.some((p) => p.key === "proteinG")).toBe(true);
+    expect(summary.waterMlConsumed).toBe(1200);
     expect(summary.waterMlTarget).toBe(2450);
+    expect(summary.waterMlTargetIsDefault).toBe(false);
+    expect(summary.preferredUnits).toBe("metric");
     expect(summary.supportiveMessage.length).toBeGreaterThan(10);
+  });
+
+  it("falls back to a soft default water aim when there is no goal", () => {
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      profile,
+      goal: null,
+    });
+    expect(summary.waterMlConsumed).toBe(0);
+    expect(summary.waterMlTarget).toBe(DEFAULT_WATER_ML_TARGET);
+    expect(summary.waterMlTargetIsDefault).toBe(true);
+  });
+
+  it("carries preferredUnits through for display-only conversion (AC7)", () => {
+    const imperialProfile: ProfileDto = { ...profile, preferredUnits: "imperial" };
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      profile: imperialProfile,
+      goal: null,
+    });
+    expect(summary.preferredUnits).toBe("imperial");
+    // Canonical storage stays ml regardless of display units (AD-11).
+    expect(summary.waterMlTarget).toBe(DEFAULT_WATER_ML_TARGET);
   });
 
   it("works without a goal (intake vs burn still meaningful)", () => {
