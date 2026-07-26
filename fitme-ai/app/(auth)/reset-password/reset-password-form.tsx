@@ -107,7 +107,7 @@ export function ResetPasswordForm() {
       <button
         type="submit"
         disabled={pending || !token}
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm disabled:opacity-60"
+        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Updating password…" : "Update password"}
       </button>
