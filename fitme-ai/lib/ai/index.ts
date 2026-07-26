@@ -11,6 +11,15 @@ export { AI_SAFE_ERRORS } from "@/lib/ai/types";
 export { extractJsonText, parseAndValidate } from "@/lib/ai/parse";
 export { purposeForLog } from "@/lib/ai/log-meta";
 export {
+  SAFETY_SYSTEM_INSTRUCTION,
+  GUARDRAIL_REGEN_HINT,
+  checkAiOutput,
+  checkAiOutputText,
+  collectUserFacingStrings,
+} from "@/lib/ai/guardrails";
+export type { GuardrailCheck, GuardrailReason } from "@/lib/ai/guardrails";
+export { GuardedAiProvider } from "@/lib/ai/guarded-provider";
+export {
   createAiProvider,
   getAiProvider,
   readAiRuntimeConfig,

@@ -9,6 +9,7 @@ import {
   OPENAI_DEFAULT_MODEL,
 } from "@/lib/ai/openai";
 import { FakeAiProvider } from "@/lib/ai/fake";
+import { GuardedAiProvider } from "@/lib/ai/guarded-provider";
 import type { AiProvider } from "@/lib/ai/types";
 
 export type AiProviderName = "gemini" | "openai" | "fake";
@@ -49,6 +50,10 @@ export function readAiRuntimeConfig(
   };
 }
 
+function wrapWithGuardrails(inner: AiProvider): AiProvider {
+  return new GuardedAiProvider(inner);
+}
+
 /** Build the configured AiProvider (call-site swap = change env only). */
 export function createAiProvider(
   env: Record<string, string | undefined> = process.env,
@@ -56,25 +61,31 @@ export function createAiProvider(
 ): AiProvider {
   const cfg = readAiRuntimeConfig(env);
   if (cfg.provider === "fake") {
-    return new FakeAiProvider(
-      () => JSON.stringify({ ok: true, echo: "fake" }),
-      cfg.model,
+    return wrapWithGuardrails(
+      new FakeAiProvider(
+        () => JSON.stringify({ ok: true, echo: "fake" }),
+        cfg.model,
+      ),
     );
   }
   if (cfg.provider === "openai") {
-    return new OpenAiProvider({
-      apiKey: cfg.openaiApiKey,
+    return wrapWithGuardrails(
+      new OpenAiProvider({
+        apiKey: cfg.openaiApiKey,
+        model: cfg.model,
+        timeoutMs: cfg.timeoutMs,
+        fetchImpl: deps?.fetchImpl,
+      }),
+    );
+  }
+  return wrapWithGuardrails(
+    new GeminiAiProvider({
+      apiKey: cfg.geminiApiKey,
       model: cfg.model,
       timeoutMs: cfg.timeoutMs,
       fetchImpl: deps?.fetchImpl,
-    });
-  }
-  return new GeminiAiProvider({
-    apiKey: cfg.geminiApiKey,
-    model: cfg.model,
-    timeoutMs: cfg.timeoutMs,
-    fetchImpl: deps?.fetchImpl,
-  });
+    }),
+  );
 }
 
 let cached: AiProvider | null = null;

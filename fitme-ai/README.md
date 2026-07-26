@@ -103,6 +103,8 @@ Provider-agnostic port at `lib/ai` (`AiProvider`). Call sites use `getAiProvider
 
 Every response is validated with Zod before use. Validation / timeout / provider failures return a safe `AiResult` error (retry or enter manually) — nothing is persisted from invalid AI output. Prompts and raw model text are never logged.
 
+**Safety guardrails (Story 2.9 / FR-17 / AD-5):** `createAiProvider()` wraps adapters in `GuardedAiProvider`. Outputs are checked for medical advice, supplement/medication recommendations, shaming language, and false database/lab precision claims. Violations trigger one regeneration, then a safe `guardrail_blocked` error (retry or enter manually).
+
 ### Log food (Story 2.3 / FR-6)
 
 Signed-in users open **Log food** at `/log`.

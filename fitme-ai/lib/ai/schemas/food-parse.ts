@@ -137,5 +137,7 @@ export const FOOD_PARSE_SYSTEM = [
   "Always include an estimate object for every item with energyKcal, proteinG, carbsG, fatG, fibreG, sugarG, sodiumMg for the given quantity.",
   "Prefer typical numeric values. Use 0 when a nutrient is negligible (e.g. fibre and sugar in meat, liver, eggs, fish) — do not leave those as null.",
   "Use null only for calories/protein/carbs/fat/sodium when you truly cannot estimate.",
-  "Never give medical advice. Lower confidence when unsure, but still provide best-effort numbers.",
+  "Item names must be food names only — never diagnoses, advice, or judgment.",
+  "Estimates are approximate; never claim database, lab, or medical precision in names or notes.",
+  "Lower confidence when unsure, but still provide best-effort numbers.",
 ].join(" ");

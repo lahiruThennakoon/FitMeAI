@@ -10,7 +10,8 @@ export type AiFailureCode =
   | "timeout"
   | "provider_error"
   | "not_configured"
-  | "aborted";
+  | "aborted"
+  | "guardrail_blocked";
 
 /** Safe user-facing copy — never include raw provider payloads. */
 export const AI_SAFE_ERRORS: Record<AiFailureCode, string> = {
@@ -22,6 +23,8 @@ export const AI_SAFE_ERRORS: Record<AiFailureCode, string> = {
   not_configured:
     "AI is not configured. Please enter manually or set up the AI provider.",
   aborted: "The AI request was cancelled. Please retry or enter manually.",
+  guardrail_blocked:
+    "We couldn't safely use that AI response. Please retry or enter manually.",
 };
 
 export type AiSuccess<T> = {
