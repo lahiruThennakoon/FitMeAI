@@ -8,6 +8,11 @@ import {
   saveMealDraftAction,
 } from "@/app/actions/log";
 import {
+  appendParseQueue,
+  isBrowserOffline,
+} from "@/lib/offline/browser-store";
+import { newClientKey } from "@/lib/offline/food-cache";
+import {
   applyClarifyingChip,
   selectClarifyingChipGroups,
   type ClarifyingChipOption,
@@ -62,6 +67,19 @@ export function LogMealForm() {
     setShowManual(false);
 
     startTransition(async () => {
+      if (isBrowserOffline()) {
+        appendParseQueue({
+          clientKey: newClientKey(),
+          kind: "smart_parse",
+          text,
+          queuedAt: new Date().toISOString(),
+        });
+        setFormError(
+          "You're offline — we queued this for smart parse when you're back. Use Quick log for cached foods now.",
+        );
+        setShowManual(true);
+        return;
+      }
       try {
         const result = await parseMealAction({ text });
         if (result.ok) {

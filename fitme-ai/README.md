@@ -90,6 +90,13 @@ Home shows consumed / target / remaining, exercise kcal, net calories, macro pro
 
 **Log exercise** at `/exercise`. Choose type (walking, running, treadmill, cycling, strength, swimming, sports, or custom), duration, and intensity; optional distance/sets/reps/load/notes. Burn uses `MET × weight × hours` and is always labeled as an estimate. Today’s exercise totals roll into dashboard net calories.
 
+### Offline PWA (Stories 4.1–4.2 / FR-16)
+
+- **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.
+- Offline writes queue with a `clientKey` and reconcile via idempotent upsert when back online.
+- Smart-parse prompts queue offline and resume on reconnect.
+- Installable PWA: `manifest.webmanifest` + service worker (`/sw.js`) with shell + catalog caching.
+
 
 ### Nutrition catalog (Story 2.1 / FR-7 data layer)
 

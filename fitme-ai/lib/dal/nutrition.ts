@@ -124,3 +124,34 @@ export async function listFoodSlugs(): Promise<string[]> {
   });
   return rows.map((r) => r.slug);
 }
+
+/** Compact catalog rows for offline / instant-path cache (Story 4.1). */
+export type OfflineFoodCacheItem = {
+  slug: string;
+  name: string;
+  aliases: string[];
+  defaultServingG: number;
+  nutrition: FoodDetailDto["nutrition"];
+  dataSource: "database";
+};
+
+export async function listFoodsForOfflineCache(
+  limit = 40,
+): Promise<OfflineFoodCacheItem[]> {
+  const rows = await prisma.food.findMany({
+    take: Math.min(100, Math.max(1, limit)),
+    orderBy: { slug: "asc" },
+    include: foodInclude,
+  });
+  return rows.map((row) => {
+    const detail = toFoodDetail(row);
+    return {
+      slug: detail.slug,
+      name: detail.name,
+      aliases: detail.aliases,
+      defaultServingG: detail.defaultServingG,
+      nutrition: detail.nutrition,
+      dataSource: "database" as const,
+    };
+  });
+}

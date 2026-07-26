@@ -149,6 +149,7 @@ export async function listActiveFoodEntriesForUser(userId: string) {
     include: {
       items: true,
       corrections: true,
+      food: { select: { slug: true } },
     },
   });
 }

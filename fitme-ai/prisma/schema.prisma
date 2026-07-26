@@ -295,6 +295,8 @@ model FoodEntry {
   fibreG      Float?
   sugarG      Float?
   sodiumMg    Float?
+  /// Client idempotency key for offline reconcile (Story 4.2 / AD-12).
+  clientKey   String?
   /// Soft-delete (AD-8). Null = active.
   deletedAt   DateTime?
   createdAt   DateTime            @default(now())
@@ -306,6 +308,7 @@ model FoodEntry {
   items       FoodEntryItem[]
   corrections UserCorrection[]
 
+  @@unique([userId, clientKey])
   @@index([userId, loggedAt])
   @@index([userId, deletedAt])
   @@index([foodId])

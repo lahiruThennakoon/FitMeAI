@@ -2,22 +2,23 @@
   "name": "FitMe AI",
   "short_name": "FitMe",
   "description": "Accuracy-first calorie & nutrition tracker with Sri Lankan food support.",
-  "start_url": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2f57e3",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/brand/app-icon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/brand/app-icon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "maskable"
     }
   ]

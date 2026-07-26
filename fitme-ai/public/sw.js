@@ -1,30 +1,65 @@
-// FitMe AI service worker — baseline (Story 1.1).
-// The offline instant-path cache + reconcile logic lands in Epic 4 (AD-12).
-// For now this establishes an installable, controllable SW with a passthrough
-// fetch handler and lifecycle hooks ready to extend.
+// FitMe AI service worker — Epic 4 offline instant-path (AD-12 / FR-16).
 
-const CACHE = "fitme-shell-v1";
-const SHELL = ["/"];
+const SHELL_CACHE = "fitme-shell-v2";
+const DATA_CACHE = "fitme-data-v2";
+const SHELL = ["/", "/dashboard", "/log", "/exercise", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).catch(() => undefined),
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(SHELL))
+      .catch(() => undefined),
   );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k !== SHELL_CACHE && k !== DATA_CACHE)
+          .map((k) => caches.delete(k)),
       ),
+    ),
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  // Passthrough for now; Epic 4 adds cache-first for the food instant-path.
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+
+  // Cache-first for offline catalog (instant-path).
+  if (url.pathname === "/api/offline/catalog") {
+    event.respondWith(
+      caches.open(DATA_CACHE).then(async (cache) => {
+        try {
+          const network = await fetch(event.request);
+          if (network.ok) {
+            cache.put(event.request, network.clone());
+          }
+          return network;
+        } catch {
+          const hit = await cache.match(event.request);
+          if (hit) return hit;
+          return new Response(JSON.stringify({ foods: [], recentSlugs: [] }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }),
+    );
+    return;
+  }
+
+  // Navigations: network, fall back to cached shell.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match("/log").then((r) => r || caches.match("/")),
+      ),
+    );
+  }
 });

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { OfflineReconciler } from "@/components/offline-reconciler";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 const geistSans = Geist({
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
   applicationName: "FitMe AI",
   appleWebApp: { capable: true, title: "FitMe AI", statusBarStyle: "default" },
   icons: {
-    icon: "/brand/app-icon.png",
-    apple: "/brand/app-icon.png",
+    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
+    apple: "/icons/icon.svg",
   },
 };
 
@@ -45,6 +46,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ServiceWorkerRegister />
+        <OfflineReconciler />
         {children}
       </body>
     </html>

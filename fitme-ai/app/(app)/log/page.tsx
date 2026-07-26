@@ -1,7 +1,8 @@
+import { InstantLog } from "./instant-log";
 import { LogMealForm } from "./log-meal-form";
 
 /**
- * Natural-language food logging (Story 2.3 / FR-6).
+ * Natural-language food logging (Story 2.3 / FR-6) + instant-path (4.1).
  * Auth enforced by (app) layout.
  */
 export default function LogPage() {
@@ -13,10 +14,11 @@ export default function LogPage() {
           What did you eat?
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          Describe your meal in plain language. We&apos;ll structure it for
-          review — nothing is saved until you confirm later.
+          Describe your meal in plain language, or tap a cached food for an
+          instant log — nothing AI-parsed is saved until you confirm.
         </p>
       </header>
+      <InstantLog />
       <LogMealForm />
     </main>
   );
