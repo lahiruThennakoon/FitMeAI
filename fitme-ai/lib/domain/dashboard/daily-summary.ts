@@ -1,0 +1,228 @@
+/**
+ * Daily nutrition summary for the Home dashboard (Story 3.3 / FR-15).
+ * Supportive, non-judgmental copy (UX-DR2).
+ */
+
+import {
+  computeBaselineBurn,
+  computeNetCalories,
+  type BaselineBurnResult,
+} from "@/lib/domain/burn/baseline";
+import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+
+export type MacroTotals = {
+  energyKcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  fibreG: number;
+  sugarG: number;
+  sodiumMg: number;
+};
+
+export type MacroProgress = {
+  key: keyof Omit<MacroTotals, "energyKcal" | "sodiumMg"> | "calories";
+  label: string;
+  consumed: number;
+  target: number | null;
+  /** 0–1 when target known; null otherwise. */
+  ratio: number | null;
+  unit: string;
+};
+
+export type DailySummary = {
+  dayKey: string;
+  intakeKcal: number;
+  exerciseKcal: number;
+  baseline: BaselineBurnResult | null;
+  netKcal: number | null;
+  targetKcal: number | null;
+  remainingKcal: number | null;
+  macros: MacroTotals;
+  waterMlTarget: number | null;
+  progress: MacroProgress[];
+  mealCount: number;
+  supportiveMessage: string;
+  hasGoal: boolean;
+};
+
+export type FoodEntryLike = {
+  energyKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fibreG: number | null;
+  sugarG: number | null;
+  sodiumMg: number | null;
+};
+
+const EMPTY_MACROS: MacroTotals = {
+  energyKcal: 0,
+  proteinG: 0,
+  carbsG: 0,
+  fatG: 0,
+  fibreG: 0,
+  sugarG: 0,
+  sodiumMg: 0,
+};
+
+export function sumMacros(entries: FoodEntryLike[]): MacroTotals {
+  return entries.reduce<MacroTotals>(
+    (acc, e) => ({
+      energyKcal: acc.energyKcal + (e.energyKcal ?? 0),
+      proteinG: acc.proteinG + (e.proteinG ?? 0),
+      carbsG: acc.carbsG + (e.carbsG ?? 0),
+      fatG: acc.fatG + (e.fatG ?? 0),
+      fibreG: acc.fibreG + (e.fibreG ?? 0),
+      sugarG: acc.sugarG + (e.sugarG ?? 0),
+      sodiumMg: acc.sodiumMg + (e.sodiumMg ?? 0),
+    }),
+    { ...EMPTY_MACROS },
+  );
+}
+
+function ratio(consumed: number, target: number | null): number | null {
+  if (target == null || target <= 0) return null;
+  return Math.min(1, Math.max(0, consumed / target));
+}
+
+export function supportiveDashboardMessage(input: {
+  mealCount: number;
+  remainingKcal: number | null;
+  hasGoal: boolean;
+  hasProfile: boolean;
+}): string {
+  if (!input.hasProfile) {
+    return "Set up your profile when you're ready — you can still log meals anytime.";
+  }
+  if (input.mealCount === 0) {
+    return "Whenever you're ready, a quick meal log helps you see the day clearly.";
+  }
+  if (!input.hasGoal) {
+    return "Nice logging. Intake vs. burn is below — add targets anytime for more guidance.";
+  }
+  if (input.remainingKcal != null && input.remainingKcal > 200) {
+    return "You've got room left today if you want it — no pressure either way.";
+  }
+  if (input.remainingKcal != null && input.remainingKcal < -200) {
+    return "Today's numbers are just information. Tomorrow is a fresh page.";
+  }
+  return "Solid reflection point — use this snapshot to decide your next move.";
+}
+
+export function buildDailySummary(input: {
+  dayKey: string;
+  entries: FoodEntryLike[];
+  exerciseKcal: number;
+  profile: ProfileDto | null;
+  goal: GoalDto | null;
+}): DailySummary {
+  const macros = sumMacros(input.entries);
+  const intakeKcal = Math.round(macros.energyKcal);
+  const baseline = input.profile
+    ? computeBaselineBurn({
+        weightG: input.profile.currentWeightG,
+        heightCm: input.profile.heightCm,
+        ageYears: input.profile.ageYears,
+        sex: input.profile.sex,
+        activityLevel: input.profile.activityLevel,
+      })
+    : null;
+
+  const netKcal =
+    baseline != null
+      ? computeNetCalories({
+          intakeKcal,
+          baselineBurnKcal: baseline.baselineBurnKcal,
+          exerciseKcal: input.exerciseKcal,
+        })
+      : null;
+
+  const targetKcal = input.goal?.caloriesKcal ?? null;
+  const remainingKcal =
+    targetKcal != null ? Math.round(targetKcal - intakeKcal) : null;
+
+  const progress: MacroProgress[] = [
+    {
+      key: "calories",
+      label: "Calories",
+      consumed: intakeKcal,
+      target: targetKcal,
+      ratio: ratio(intakeKcal, targetKcal),
+      unit: "kcal",
+    },
+    {
+      key: "proteinG",
+      label: "Protein",
+      consumed: Math.round(macros.proteinG),
+      target: input.goal?.proteinG ?? null,
+      ratio: ratio(macros.proteinG, input.goal?.proteinG ?? null),
+      unit: "g",
+    },
+    {
+      key: "carbsG",
+      label: "Carbs",
+      consumed: Math.round(macros.carbsG),
+      target: input.goal?.carbsG ?? null,
+      ratio: ratio(macros.carbsG, input.goal?.carbsG ?? null),
+      unit: "g",
+    },
+    {
+      key: "fatG",
+      label: "Fat",
+      consumed: Math.round(macros.fatG),
+      target: input.goal?.fatG ?? null,
+      ratio: ratio(macros.fatG, input.goal?.fatG ?? null),
+      unit: "g",
+    },
+    {
+      key: "fibreG",
+      label: "Fibre",
+      consumed: Math.round(macros.fibreG),
+      target: input.goal?.fibreG ?? null,
+      ratio: ratio(macros.fibreG, input.goal?.fibreG ?? null),
+      unit: "g",
+    },
+    {
+      key: "sugarG",
+      label: "Sugar",
+      consumed: Math.round(macros.sugarG),
+      target: null,
+      ratio: null,
+      unit: "g",
+    },
+  ];
+
+  const hasGoal = input.goal != null;
+  const mealCount = input.entries.length;
+
+  return {
+    dayKey: input.dayKey,
+    intakeKcal,
+    exerciseKcal: input.exerciseKcal,
+    baseline,
+    netKcal,
+    targetKcal,
+    remainingKcal,
+    macros: {
+      ...macros,
+      energyKcal: intakeKcal,
+      proteinG: Math.round(macros.proteinG * 10) / 10,
+      carbsG: Math.round(macros.carbsG * 10) / 10,
+      fatG: Math.round(macros.fatG * 10) / 10,
+      fibreG: Math.round(macros.fibreG * 10) / 10,
+      sugarG: Math.round(macros.sugarG * 10) / 10,
+      sodiumMg: Math.round(macros.sodiumMg),
+    },
+    waterMlTarget: input.goal?.waterMl ?? null,
+    progress,
+    mealCount,
+    supportiveMessage: supportiveDashboardMessage({
+      mealCount,
+      remainingKcal,
+      hasGoal,
+      hasProfile: input.profile != null,
+    }),
+    hasGoal,
+  };
+}
