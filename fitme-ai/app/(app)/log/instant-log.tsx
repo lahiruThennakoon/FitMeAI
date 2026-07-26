@@ -13,28 +13,44 @@ import {
 import { newClientKey, sortCachedFoods } from "@/lib/offline/food-cache";
 import type { CachedFood } from "@/lib/offline/types";
 
+/** One-time synchronous read of the local cache — feeds lazy state initializers below. */
+function readInitialCache(): {
+  foods: CachedFood[];
+  message: string | null;
+} {
+  const cached = loadOfflineCatalog();
+  if (cached) {
+    return {
+      foods: sortCachedFoods(cached.foods, cached.recentSlugs),
+      message: null,
+    };
+  }
+  return {
+    foods: [],
+    message: isBrowserOffline()
+      ? "You're offline and no foods are cached yet. Connect once to download the catalog."
+      : null,
+  };
+}
+
 /**
  * Instant-path logging from cached catalog foods (Story 4.1 / FR-16).
  * Works offline; queues writes for reconcile when needed.
  */
 export function InstantLog() {
   const router = useRouter();
-  const [foods, setFoods] = useState<CachedFood[]>([]);
-  const [online, setOnline] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
+  /** Lazy initializers read cache/connectivity once on mount — no setState-in-effect. */
+  const [initialCache] = useState(readInitialCache);
+  const [foods, setFoods] = useState<CachedFood[]>(initialCache.foods);
+  const [online, setOnline] = useState(() => !isBrowserOffline());
+  const [message, setMessage] = useState<string | null>(initialCache.message);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    setOnline(!isBrowserOffline());
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-
-    const cached = loadOfflineCatalog();
-    if (cached) {
-      setFoods(sortCachedFoods(cached.foods, cached.recentSlugs));
-    }
 
     if (!isBrowserOffline()) {
       void fetch("/api/offline/catalog")
@@ -47,10 +63,6 @@ export function InstantLog() {
         .catch(() => {
           // Keep local cache on fetch failure.
         });
-    } else if (!cached) {
-      setMessage(
-        "You're offline and no foods are cached yet. Connect once to download the catalog.",
-      );
     }
 
     return () => {
