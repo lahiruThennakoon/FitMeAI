@@ -112,3 +112,19 @@ export const saveMealDraftSchema = z
   });
 
 export type SaveMealDraftInput = z.infer<typeof saveMealDraftSchema>;
+
+/** Rematch a draft name against the catalog (FR-11 — prefer DB when found). */
+export const rematchFoodDraftSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(1).max(120),
+  quantity: z.number().positive().max(10_000),
+  unit: unitSchema,
+  mealType: mealTypeSchema,
+  loggedAt: z.string().datetime(),
+  confidence: z.number().min(0).max(1),
+  origin: z.enum(["ai_parse", "manual"]),
+  aiSnapshot: aiSnapshotSchema.nullable(),
+  nutrition: nutritionSchema,
+});
+
+export type RematchFoodDraftInput = z.infer<typeof rematchFoodDraftSchema>;

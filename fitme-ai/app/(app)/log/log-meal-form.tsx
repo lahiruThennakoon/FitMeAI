@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { parseMealAction, saveMealDraftAction } from "@/app/actions/log";
+import {
+  parseMealAction,
+  rematchFoodDraftAction,
+  saveMealDraftAction,
+} from "@/app/actions/log";
 import {
   applyClarifyingChip,
   selectClarifyingChipGroups,
@@ -119,13 +123,12 @@ export function LogMealForm() {
         ? prev.map((item) => {
             if (item.id !== id) return item;
             let next = { ...item, ...patch };
-            // Identity edit must not keep the old catalog FK / breakdown.
+            // Identity edit drops catalog FK + DB macros until rematch (FR-11).
             if (
               "name" in patch &&
               typeof patch.name === "string" &&
               patch.name.trim() !== item.name.trim()
             ) {
-              // Drop catalog provenance — do not keep DB macros under Estimated.
               next = {
                 ...next,
                 foodSlug: null,
@@ -133,16 +136,19 @@ export function LogMealForm() {
                 breakdown: null,
                 kind: "estimated",
                 dataSource: "ai_estimated",
-                confidence: Math.min(item.confidence, 0.5),
-                nutrition: {
-                  energyKcal: null,
-                  proteinG: null,
-                  carbsG: null,
-                  fatG: null,
-                  fibreG: null,
-                  sugarG: null,
-                  sodiumMg: null,
-                },
+                ...(item.dataSource === "database"
+                  ? {
+                      nutrition: {
+                        energyKcal: null,
+                        proteinG: null,
+                        carbsG: null,
+                        fatG: null,
+                        fibreG: null,
+                        sugarG: null,
+                        sodiumMg: null,
+                      },
+                    }
+                  : {}),
               };
             }
             if ("quantity" in patch || "unit" in patch) {
@@ -152,6 +158,40 @@ export function LogMealForm() {
           })
         : prev,
     );
+  }
+
+  /** Prefer catalog match when the name changes (FR-11). */
+  function onNameBlur(id: string, rawName: string) {
+    const name = rawName.trim();
+    if (!name) return;
+    const current = items?.find((row) => row.id === id);
+    if (!current) return;
+    // Skip no-op blur; rematch only when the name actually changed.
+    if (name === current.name.trim() && current.foodSlug) return;
+    startTransition(async () => {
+      try {
+        const result = await rematchFoodDraftAction({
+          id: current.id,
+          name,
+          quantity: current.quantity,
+          unit: current.unit,
+          mealType: current.mealType,
+          loggedAt: current.loggedAt,
+          confidence: current.confidence,
+          origin: current.origin,
+          aiSnapshot: current.aiSnapshot,
+          nutrition: current.nutrition,
+        });
+        if (!result.ok) return;
+        setItems((prev) =>
+          prev
+            ? prev.map((row) => (row.id === id ? result.data : row))
+            : prev,
+        );
+      } catch {
+        // Keep local draft if rematch fails.
+      }
+    });
   }
 
   function updateMacro(
@@ -316,6 +356,7 @@ export function LogMealForm() {
                     onChange={(e) =>
                       updateItem(item.id, { name: e.target.value })
                     }
+                    onBlur={(e) => onNameBlur(item.id, e.target.value)}
                     className="min-w-0 flex-1 rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm font-medium dark:border-neutral-700"
                   />
                   <SourceBadge
@@ -323,6 +364,12 @@ export function LogMealForm() {
                     confidence={item.confidence}
                   />
                 </div>
+                {item.dataSource === "ai_estimated" ? (
+                  <p className="mt-1 text-xs text-amber-900/90 dark:text-amber-100/90">
+                    Not in FitMe’s food list — these numbers are estimates you
+                    can edit. Rename to a known food to match the list.
+                  </p>
+                ) : null}
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
                     aria-label={`Quantity for ${item.name}`}

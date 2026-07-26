@@ -11,8 +11,19 @@ import {
 } from "@/lib/ai/schemas/food-parse";
 import { diffAiCorrections } from "@/lib/domain/nutrition/corrections";
 import { readAiRuntimeConfig } from "@/lib/ai/config";
-import { resolveParsedMeal } from "@/lib/domain/nutrition/resolve-parse";
-import type { ParsedMealDraft } from "@/lib/domain/nutrition/parse-types";
+import { CLARIFYING_CONFIDENCE_THRESHOLD } from "@/lib/domain/nutrition/clarifying-chips";
+import {
+  buildCatalogDraft,
+  buildEstimatedDraft,
+} from "@/lib/domain/nutrition/estimate-fallback";
+import {
+  lookupFoodByName,
+  resolveParsedMeal,
+} from "@/lib/domain/nutrition/resolve-parse";
+import type {
+  ParsedFoodItemDraft,
+  ParsedMealDraft,
+} from "@/lib/domain/nutrition/parse-types";
 import {
   saveConfirmedFoodEntries,
   type SavedFoodEntryDto,
@@ -27,6 +38,7 @@ import {
 import { err, ok, type Result } from "@/lib/result";
 import {
   parseMealInputSchema,
+  rematchFoodDraftSchema,
   saveMealDraftSchema,
 } from "@/lib/schemas/log";
 
@@ -221,6 +233,63 @@ export async function saveMealDraftAction(
   } catch {
     logger.error("log.save.failed", { event: "food_save_failed" });
     return err("Could not save your log. Please try again.");
+  }
+}
+
+export type RematchFoodDraftResult = Result<ParsedFoodItemDraft>;
+
+export type RematchFoodDraftActionDeps = {
+  requireSession?: typeof requireSession;
+  findFoodBySlugOrAlias?: typeof findFoodBySlugOrAlias;
+};
+
+/**
+ * Prefer catalog match when the user edits a food name (FR-11).
+ * No match → keep estimate provenance with current nutrition.
+ */
+export async function rematchFoodDraftAction(
+  input: unknown,
+  deps: RematchFoodDraftActionDeps = {},
+): Promise<RematchFoodDraftResult> {
+  const requireSessionFn = deps.requireSession ?? requireSession;
+  const findFood = deps.findFoodBySlugOrAlias ?? findFoodBySlugOrAlias;
+
+  try {
+    await requireSessionFn();
+  } catch {
+    return err("Please sign in to update food.");
+  }
+
+  const parsed = rematchFoodDraftSchema.safeParse(input);
+  if (!parsed.success) {
+    return err("Check the highlighted fields.", fieldErrorsFromZod(parsed.error));
+  }
+
+  const data = parsed.data;
+  const identity = {
+    id: data.id,
+    quantity: data.quantity,
+    unit: data.unit,
+    mealType: data.mealType,
+    loggedAt: data.loggedAt,
+    confidence: data.confidence,
+    origin: data.origin,
+    aiSnapshot: data.aiSnapshot,
+  };
+
+  try {
+    const food = await lookupFoodByName(data.name, findFood);
+    if (food) {
+      return ok(buildCatalogDraft(food, identity));
+    }
+    return ok(
+      buildEstimatedDraft(data.name, identity, data.nutrition, {
+        needsClarification:
+          data.confidence < CLARIFYING_CONFIDENCE_THRESHOLD,
+      }),
+    );
+  } catch {
+    return err("Could not look up that food. Please try again.");
   }
 }
 

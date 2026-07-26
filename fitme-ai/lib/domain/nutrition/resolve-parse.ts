@@ -1,9 +1,10 @@
 import type { FoodParseAiInput } from "@/lib/ai/schemas/food-parse";
 import { CLARIFYING_CONFIDENCE_THRESHOLD } from "@/lib/domain/nutrition/clarifying-chips";
-import { snapshotFromDraft } from "@/lib/domain/nutrition/corrections";
-import { decomposeFoodPortion } from "@/lib/domain/nutrition/decompose";
+import {
+  buildCatalogDraft,
+  buildEstimatedDraft,
+} from "@/lib/domain/nutrition/estimate-fallback";
 import { portionGramsFromCatalog } from "@/lib/domain/nutrition/draft-recompute";
-import { scaleMacros } from "@/lib/domain/nutrition/scale";
 import type {
   FoodParseUnit,
   MealType,
@@ -11,16 +12,6 @@ import type {
   ParsedMealDraft,
 } from "@/lib/domain/nutrition/parse-types";
 import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
-
-const EMPTY_MACROS = {
-  energyKcal: null,
-  proteinG: null,
-  carbsG: null,
-  fatG: null,
-  fibreG: null,
-  sugarG: null,
-  sodiumMg: null,
-};
 
 export type ResolveParseDeps = {
   findFoodBySlugOrAlias: (query: string) => Promise<FoodDetailDto | null>;
@@ -73,7 +64,7 @@ export function foodLookupQueries(name: string): string[] {
   return [...new Set([trimmed, withoutCount, singular].filter(Boolean))];
 }
 
-async function lookupFood(
+export async function lookupFoodByName(
   name: string,
   findFood: ResolveParseDeps["findFoodBySlugOrAlias"],
 ): Promise<FoodDetailDto | null> {
@@ -85,8 +76,9 @@ async function lookupFood(
 }
 
 /**
- * Merge AI parse items with nutrition catalog lookups (FR-6).
- * Matched foods → dataSource database; unmatched → ai_estimated (estimate or nulls).
+ * Merge AI parse items with nutrition catalog lookups (FR-6 / FR-11).
+ * Matched foods → dataSource database; unmatched → ai_estimated.
+ * Catalog match is always preferred over estimate when found.
  */
 export async function resolveParsedMeal(
   ai: FoodParseAiInput,
@@ -103,79 +95,36 @@ export async function resolveParsedMeal(
   const items: ParsedFoodItemDraft[] = [];
 
   for (const raw of ai.items) {
-    const food = await lookupFood(raw.name, deps.findFoodBySlugOrAlias);
+    const food = await lookupFoodByName(raw.name, deps.findFoodBySlugOrAlias);
     const mealType = raw.mealType ?? fallbackMeal;
-    let needsClarification =
-      raw.needsClarification === true ||
-      raw.confidence < CLARIFYING_CONFIDENCE_THRESHOLD;
-
-    if (food) {
-      if (!unitSupportedByFood(raw.unit, food)) {
-        needsClarification = true;
-      }
-      const grams = resolvePortionGrams(raw.quantity, raw.unit, food);
-      const factor = grams / food.defaultServingG;
-      const decomposed = decomposeFoodPortion(food, grams);
-      const nutrition =
-        decomposed?.nutrition ?? scaleMacros(food.nutrition, factor);
-      const matched: ParsedFoodItemDraft = {
-        id: idFactory(),
-        name: food.name,
-        quantity: raw.quantity,
-        unit: raw.unit,
-        mealType,
-        loggedAt,
-        dataSource: "database",
-        confidence: raw.confidence,
-        needsClarification,
-        nutrition,
-        foodSlug: food.slug,
-        catalog: {
-          defaultServingG: food.defaultServingG,
-          nutritionAtDefault: food.nutrition,
-          servings: food.servings,
-        },
-        breakdown: decomposed?.breakdown ?? null,
-        kind: food.kind,
-        origin: "ai_parse",
-        aiSnapshot: null,
-      };
-      matched.aiSnapshot = snapshotFromDraft(matched);
-      items.push(matched);
-      continue;
-    }
-
-    const estimated: ParsedFoodItemDraft = {
+    const identity = {
       id: idFactory(),
-      name: raw.name,
       quantity: raw.quantity,
       unit: raw.unit,
       mealType,
       loggedAt,
-      dataSource: "ai_estimated",
       confidence: raw.confidence,
-      needsClarification,
-      nutrition: raw.estimate
-        ? {
-            energyKcal: raw.estimate.energyKcal,
-            proteinG: raw.estimate.proteinG,
-            carbsG: raw.estimate.carbsG,
-            fatG: raw.estimate.fatG,
-            // Prefer 0 over blank for negligible fibre/sugar (meat, liver, eggs).
-            fibreG: raw.estimate.fibreG ?? 0,
-            sugarG: raw.estimate.sugarG ?? 0,
-            sodiumMg: raw.estimate.sodiumMg,
-          }
-        : { ...EMPTY_MACROS },
-      foodSlug: null,
-      catalog: null,
-      breakdown: null,
-      kind: "estimated",
-      origin: "ai_parse",
+      origin: "ai_parse" as const,
       aiSnapshot: null,
     };
-    estimated.aiSnapshot = snapshotFromDraft(estimated);
-    items.push(estimated);
+
+    if (food) {
+      items.push(
+        buildCatalogDraft(food, identity, {
+          needsClarification:
+            raw.needsClarification === true ||
+            raw.confidence < CLARIFYING_CONFIDENCE_THRESHOLD ||
+            !unitSupportedByFood(raw.unit, food),
+        }),
+      );
+      continue;
+    }
+
+    items.push(
+      buildEstimatedDraft(raw.name, identity, raw.estimate, {
+        needsClarification: raw.needsClarification,
+      }),
+    );
   }
 
   return { items, sourceTextLength };
