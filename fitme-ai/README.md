@@ -89,6 +89,19 @@ npm run db:seed
 
 Seed covers Sri Lankan staples (rice, pol sambol, dhal curry, kottu, string hoppers, …) with hybrid provenance (USDA-style open data approximations + hand-curated dish proportions). Lookups return `dataSource: "database"`. Missing macros stay `null`.
 
+### AI layer (Story 2.2 / FR-18 / AD-4)
+
+Provider-agnostic port at `lib/ai` (`AiProvider`). Call sites use `getAiProvider()` / `createAiProvider()` — swap adapters via env, not call-site changes.
+
+| Variable | Purpose |
+| --- | --- |
+| `AI_PROVIDER` | `gemini` (default) or `fake` (tests / offline) |
+| `GEMINI_API_KEY` | Google AI Studio key for the Gemini adapter |
+| `AI_MODEL` | Model id (default `gemini-2.0-flash`) |
+| `AI_TIMEOUT_MS` | Request timeout in ms (default `20000`) |
+
+Every response is validated with Zod before use. Validation / timeout / provider failures return a safe `AiResult` error (retry or enter manually) — nothing is persisted from invalid AI output. Prompts and raw model text are never logged.
+
 ### Rate limiting & logging (Story 1.8 / FR-30–31)
 
 Auth abuse protection uses an in-memory sliding window (fine for single-instance / one Edge isolate; not shared across multiple replicas — swap the store later for Redis if you scale out). AI endpoint limits land in Epic 2.
@@ -127,6 +140,7 @@ app/            # App Router: pages, server actions, api routes
   api/health/   # Health probe
 lib/
   dal/          # server-only Data Access Layer (auth + ownership choke point)
+  ai/           # AiProvider port + Gemini/fake adapters + Zod parse (AD-4)
   domain/       # pure business logic (nutrition, targets, safety) — added per story
   ai/           # provider-agnostic AI port + adapters — added in Epic 2
   schemas/      # shared Zod schemas

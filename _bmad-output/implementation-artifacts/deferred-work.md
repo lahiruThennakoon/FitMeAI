@@ -31,3 +31,8 @@ Issues triaged out of active stories during code review.
 
 - **Unique food/ingredient aliases** — alias collisions are slug-ordered for determinism today; enforce uniqueness (or ranked search) when the catalog grows / search story lands.
 
+## Deferred from: code review of 2-2-provider-agnostic-ai-layer (2026-07-26)
+
+- **`getAiProvider` process singleton** — env changes after first call are ignored until process restart; fine for Next server lifetime.
+- **Brace-balanced JSON extraction** — trailing prose after a JSON object fails Zod/parse today (fail safe); smarter extract optional later.
+
