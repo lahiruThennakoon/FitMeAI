@@ -43,6 +43,15 @@ describe("scalePer100g / sumNutrition", () => {
     expect(total.fibreG).toBeNull();
     expect(total.energyKcal).not.toBeNull();
   });
+
+  it("treats 0 g as zero contribution for known macros", () => {
+    const n = scalePer100g(rice.per100g, 0);
+    expect(n.energyKcal).toBe(0);
+    expect(n.fibreG).toBe(0);
+    const unknown = scalePer100g({ ...rice.per100g, fibreG: null }, 0);
+    expect(unknown.fibreG).toBeNull();
+    expect(unknown.energyKcal).toBe(0);
+  });
 });
 
 describe("buildFoodDetail (AD-3 provenance)", () => {

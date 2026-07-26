@@ -1,5 +1,5 @@
 import type { FoodParseAiOutput } from "@/lib/ai/schemas/food-parse";
-import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
+import { decomposeFoodPortion } from "@/lib/domain/nutrition/decompose";
 import { portionGramsFromCatalog } from "@/lib/domain/nutrition/draft-recompute";
 import { scaleMacros } from "@/lib/domain/nutrition/scale";
 import type {
@@ -8,6 +8,7 @@ import type {
   ParsedFoodItemDraft,
   ParsedMealDraft,
 } from "@/lib/domain/nutrition/parse-types";
+import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
 
 const EMPTY_MACROS = {
   energyKcal: null,
@@ -111,6 +112,9 @@ export async function resolveParsedMeal(
       }
       const grams = resolvePortionGrams(raw.quantity, raw.unit, food);
       const factor = grams / food.defaultServingG;
+      const decomposed = decomposeFoodPortion(food, grams);
+      const nutrition =
+        decomposed?.nutrition ?? scaleMacros(food.nutrition, factor);
       items.push({
         id: idFactory(),
         name: food.name,
@@ -121,13 +125,15 @@ export async function resolveParsedMeal(
         dataSource: "database",
         confidence: raw.confidence,
         needsClarification,
-        nutrition: scaleMacros(food.nutrition, factor),
+        nutrition,
         foodSlug: food.slug,
         catalog: {
           defaultServingG: food.defaultServingG,
           nutritionAtDefault: food.nutrition,
           servings: food.servings,
         },
+        breakdown: decomposed?.breakdown ?? null,
+        kind: food.kind,
       });
       continue;
     }
@@ -155,6 +161,8 @@ export async function resolveParsedMeal(
         : { ...EMPTY_MACROS },
       foodSlug: null,
       catalog: null,
+      breakdown: null,
+      kind: "estimated",
     });
   }
 

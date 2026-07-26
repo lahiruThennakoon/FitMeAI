@@ -1,3 +1,4 @@
+import { recomputeFromBreakdown } from "@/lib/domain/nutrition/decompose";
 import { scaleMacros } from "@/lib/domain/nutrition/scale";
 import type {
   FoodParseUnit,
@@ -34,10 +35,18 @@ export function recomputeDraftNutrition(
     item.unit,
     item.catalog,
   );
+  const withFlags = {
+    ...item,
+    needsClarification: item.needsClarification || !unitMatched,
+  };
+
+  if (withFlags.breakdown && withFlags.breakdown.length > 0) {
+    return recomputeFromBreakdown(withFlags, grams);
+  }
+
   const factor = grams / item.catalog.defaultServingG;
   return {
-    ...item,
+    ...withFlags,
     nutrition: scaleMacros(item.catalog.nutritionAtDefault, factor),
-    needsClarification: item.needsClarification || !unitMatched,
   };
 }

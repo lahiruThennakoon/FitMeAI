@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { parseMealAction } from "@/app/actions/log";
+import { applyProportionEdit } from "@/lib/domain/nutrition/decompose";
 import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute";
 import type { ParsedFoodItemDraft } from "@/lib/domain/nutrition/parse-types";
+import { IngredientBreakdown } from "./ingredient-breakdown";
 
 const LOADING_TIPS = [
   "Tip: “100g chickpeas” is clearer than “some chickpeas”.",
@@ -99,6 +101,8 @@ export function LogMealForm() {
       },
       foodSlug: null,
       catalog: null,
+      breakdown: null,
+      kind: "estimated",
     };
     setItems((prev) => [...(prev ?? []), draft]);
     setManualName("");
@@ -118,6 +122,22 @@ export function LogMealForm() {
             }
             return next;
           })
+        : prev,
+    );
+  }
+
+  function updateProportion(
+    itemId: string,
+    ingredientSlug: string,
+    newPct: number,
+  ) {
+    setItems((prev) =>
+      prev
+        ? prev.map((item) =>
+            item.id === itemId
+              ? applyProportionEdit(item, ingredientSlug, newPct)
+              : item,
+          )
         : prev,
     );
   }
@@ -284,6 +304,13 @@ export function LogMealForm() {
                   {Math.round(item.confidence * 100)}%
                   {item.needsClarification ? " · needs clarification" : ""}
                 </p>
+                {item.breakdown && item.breakdown.length > 0 ? (
+                  <IngredientBreakdown
+                    itemId={item.id}
+                    lines={item.breakdown}
+                    onProportionChange={updateProportion}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

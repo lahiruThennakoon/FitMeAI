@@ -5,7 +5,7 @@ export function scalePer100g(
   per100g: NutritionMacros,
   grams: number,
 ): NutritionMacros {
-  if (grams <= 0) {
+  if (!Number.isFinite(grams) || grams < 0) {
     return {
       energyKcal: null,
       proteinG: null,
@@ -14,6 +14,20 @@ export function scalePer100g(
       fibreG: null,
       sugarG: null,
       sodiumMg: null,
+    };
+  }
+  // 0 g of a known macro contributes 0; unknown macros stay null.
+  if (grams === 0) {
+    const zeroOrNull = (v: number | null) =>
+      v === null || v === undefined ? null : 0;
+    return {
+      energyKcal: zeroOrNull(per100g.energyKcal),
+      proteinG: zeroOrNull(per100g.proteinG),
+      carbsG: zeroOrNull(per100g.carbsG),
+      fatG: zeroOrNull(per100g.fatG),
+      fibreG: zeroOrNull(per100g.fibreG),
+      sugarG: zeroOrNull(per100g.sugarG),
+      sodiumMg: zeroOrNull(per100g.sodiumMg),
     };
   }
   const f = grams / 100;

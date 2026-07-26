@@ -35,6 +35,8 @@ const base: ParsedFoodItemDraft = {
     },
     servings: [{ name: "piece", grams: 50 }],
   },
+  breakdown: null,
+  kind: "simple",
 };
 
 describe("recomputeDraftNutrition", () => {

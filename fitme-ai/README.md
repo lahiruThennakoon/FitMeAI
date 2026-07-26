@@ -110,6 +110,7 @@ Signed-in users open **Log food** at `/log`.
 - The AI parse is schema-validated, then each item is matched to the nutrition catalog when possible (`dataSource: database`) or marked `ai_estimated`.
 - A loading tip shows while parsing; failures and “Skip AI” open manual entry — never a dead end.
 - Drafts are editable in the UI; persisting confirmed entries is a later story (2.6).
+- Composite catalog dishes (e.g. pol sambol, dhal curry) show an ingredient breakdown; totals are the sum of ingredient contributions. Editing a proportion normalizes to 100% and recomputes macros (Story 2.4 / FR-7).
 
 ### Rate limiting & logging (Story 1.8 / FR-30–31)
 

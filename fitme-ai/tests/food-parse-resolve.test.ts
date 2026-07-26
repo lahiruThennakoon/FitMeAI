@@ -157,5 +157,7 @@ describe("resolveParsedMeal (FR-6)", () => {
     expect(draft.items[0].nutrition.fibreG).toBeNull();
     expect(draft.items[0].needsClarification).toBe(true);
     expect(draft.items[0].foodSlug).toBeNull();
+    expect(draft.items[0].breakdown).toBeNull();
+    expect(draft.items[0].kind).toBe("estimated");
   });
 });
