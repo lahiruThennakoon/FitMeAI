@@ -13,6 +13,50 @@ function fmtKcal(v: number | null): string {
   return `${Math.round(v)} kcal`;
 }
 
+/** Compact stroke icons for row actions — label lives in aria-label/title. */
+function PencilIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className="h-4 w-4"
+    >
+      <path
+        d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.25 8.25a1 1 0 0 1-.414.242l-3 0.75a.5.5 0 0 1-.606-.606l.75-3a1 1 0 0 1 .242-.414l8.25-8.25Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 5l3 3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className="h-4 w-4"
+    >
+      <path
+        d="M4.5 6h11M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m2.5 0v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 6.5 15V6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function numOrNull(raw: string): number | null {
   const t = raw.trim();
   if (!t) return null;
@@ -63,8 +107,9 @@ export function TodayMealsList({ entries }: Props) {
 
   return (
     <ul
-      className="mt-4 space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-700"
+      className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
       data-testid="today-meals-list"
+      aria-label="Today's meals, scrollable"
     >
       {entries.map((entry) => (
         <MealRow key={entry.id} entry={entry} />
@@ -341,28 +386,35 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
 
   return (
     <li className="text-sm" data-testid="meal-row">
+      {/* Same two-side rhythm as macro/energy rows: label left, value+actions right. */}
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0 flex-1 truncate font-medium text-neutral-900 dark:text-neutral-100">
           {entry.name}
         </span>
-        <span className="shrink-0 tabular-nums text-neutral-500 dark:text-neutral-400">
-          {fmtKcal(entry.energyKcal)}
-        </span>
-        <span className="flex shrink-0 items-center gap-2.5">
-          <button
-            type="button"
-            onClick={startEdit}
-            className="text-xs font-medium text-neutral-500 underline-offset-2 hover:text-brand-blue hover:underline dark:text-neutral-400"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("confirmingDelete")}
-            className="text-xs font-medium text-neutral-500 underline-offset-2 hover:text-red-600 hover:underline dark:text-neutral-400"
-          >
-            Delete
-          </button>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="tabular-nums text-neutral-500 dark:text-neutral-400">
+            {fmtKcal(entry.energyKcal)}
+          </span>
+          <span className="flex items-center -mr-1">
+            <button
+              type="button"
+              onClick={startEdit}
+              aria-label={`Edit ${entry.name}`}
+              title="Edit"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-brand-blue transition hover:bg-brand-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-blue-400 dark:hover:bg-brand-blue/20"
+            >
+              <PencilIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("confirmingDelete")}
+              aria-label={`Remove ${entry.name}`}
+              title="Remove"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-500 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+            >
+              <TrashIcon />
+            </button>
+          </span>
         </span>
       </div>
       {error ? (

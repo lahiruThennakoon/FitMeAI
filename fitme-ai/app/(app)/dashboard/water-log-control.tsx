@@ -42,15 +42,17 @@ export function WaterLogControl({ preferredUnits }: Props) {
     });
   }
 
+  const customValue = Number(customAmount);
+  const canAddCustom =
+    customAmount.trim() !== "" &&
+    Number.isFinite(customValue) &&
+    customValue > 0;
+
   function handleCustomSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const enteredAmount = Number(customAmount);
-    if (!Number.isFinite(enteredAmount) || enteredAmount <= 0) {
-      setMessage("Enter an amount greater than zero.");
-      return;
-    }
-    const amountMl = parseWaterToMl(enteredAmount, preferredUnits);
-    logAmountMl(amountMl, `${Math.round(enteredAmount)} ${unit} of water`);
+    if (!canAddCustom) return;
+    const amountMl = parseWaterToMl(customValue, preferredUnits);
+    logAmountMl(amountMl, `${Math.round(customValue)} ${unit} of water`);
   }
 
   return (
@@ -77,7 +79,7 @@ export function WaterLogControl({ preferredUnits }: Props) {
           className="flex items-center gap-1.5"
         >
           <label htmlFor="custom-water-amount" className="sr-only">
-            Custom water amount in {unit}
+            Other amount in {unit}
           </label>
           <input
             id="custom-water-amount"
@@ -85,16 +87,22 @@ export function WaterLogControl({ preferredUnits }: Props) {
             inputMode="numeric"
             min={1}
             max={preferredUnits === "imperial" ? 169 : 5000}
-            placeholder={`Custom ${unit}`}
+            placeholder="Amount"
             value={customAmount}
             onChange={(e) => setCustomAmount(e.target.value)}
             disabled={pending}
-            className="w-24 rounded-xl border border-sky-300/70 bg-white/80 px-2.5 py-1.5 text-sm text-sky-900 shadow-sm focus:border-sky-400 focus:outline-none disabled:opacity-50 dark:border-sky-700/70 dark:bg-sky-950/40 dark:text-sky-100"
+            className="w-24 rounded-xl border border-sky-300/70 bg-white/80 px-2.5 py-1.5 text-sm text-sky-900 shadow-sm placeholder:text-sky-700/50 focus:border-sky-400 focus:outline-none disabled:opacity-50 dark:border-sky-700/70 dark:bg-sky-950/40 dark:text-sky-100 dark:placeholder:text-sky-300/40"
           />
+          <span
+            className="text-xs font-medium text-sky-700/70 dark:text-sky-300/70"
+            aria-hidden="true"
+          >
+            {unit}
+          </span>
           <button
             type="submit"
-            disabled={pending}
-            className="rounded-xl bg-sky-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-50"
+            disabled={pending || !canAddCustom}
+            className="rounded-xl bg-sky-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Add
           </button>

@@ -401,9 +401,9 @@ export function DailySummaryPanel({ summary }: Props) {
             {isOverWater ? (
               <DeviationMark
                 kind="up"
-                label="Water over daily aim"
+                label="Past daily water aim — that's fine"
                 size="sm"
-                alert
+                className="text-brand-green dark:text-emerald-400"
               />
             ) : null}
             <span className="font-medium text-sky-950 dark:text-sky-50">
@@ -425,7 +425,7 @@ export function DailySummaryPanel({ summary }: Props) {
           <div
             className={`h-full rounded-full transition-[width] duration-500 ease-out ${
               isOverWater
-                ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                ? "bg-brand-green shadow-[0_0_10px_rgba(34,179,107,0.35)]"
                 : "bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.3)]"
             }`}
             style={{ width: `${waterBarPct}%` }}

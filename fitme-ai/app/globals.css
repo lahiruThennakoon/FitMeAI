@@ -39,6 +39,18 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Hide browser stepper arrows on number fields — they clash with calm UI. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Reusable brand theme helpers */
 .brand-gradient {
   background-image: var(--brand-gradient);
@@ -137,4 +149,34 @@ body {
     color-mix(in srgb, var(--brand-teal) 10%, transparent)
   );
   box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-blue) 12%, transparent);
+}
+
+/* Soft scrollbar — calm, thin, no system chrome (Home meal list, etc.) */
+.soft-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 22%, transparent)
+    transparent;
+}
+
+.soft-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.soft-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.soft-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+
+.soft-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 38%, transparent);
+}
+
+.soft-scroll::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
 }

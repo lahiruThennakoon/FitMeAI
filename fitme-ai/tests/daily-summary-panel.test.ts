@@ -94,7 +94,7 @@ describe("DailySummaryPanel", () => {
     expect(html).toMatch(/bg-brand-teal|bg-brand-green|bg-sky-500/);
   });
 
-  it("shows a red alert mark when water goes over the daily aim", () => {
+  it("shows a green ↑ (not red alert) when water goes past the daily aim", () => {
     const summary = buildDailySummary({
       dayKey: "2026-07-26",
       entries: [],
@@ -106,8 +106,11 @@ describe("DailySummaryPanel", () => {
     const html = renderToStaticMarkup(
       createElement(DailySummaryPanel, { summary }),
     );
-    expect(html).toContain("Water over daily aim");
-    expect(html).toContain('data-deviation="alert-over"');
+    // Extra water is fine — celebrate with green, never red shame.
+    expect(html).toContain("Past daily water aim");
+    expect(html).toContain("text-brand-green");
+    expect(html).toContain("bg-brand-green");
+    expect(html).not.toContain('data-deviation="alert-over"');
   });
 
   it("labels the water target as a default when there is no goal", () => {

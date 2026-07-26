@@ -92,7 +92,7 @@ Home shows consumed / target / remaining, exercise kcal, net calories, macro pro
 
 ### Water logging (Story 5.1 / FR-15)
 
-Home's Water card lets you quick-add 250 ml / 500 ml or a custom amount, then shows `consumed of target` with a progress bar. With no Goal set, a soft default aim (2000 ml) is used and clearly labeled as a default — logging is never blocked. Over-target shows a red ↑, no shame copy. Totals use the profile-timezone day boundary (AD-10), same as food and exercise.
+Home's Water card lets you quick-add 250 ml / 500 ml or a custom amount, then shows `consumed of target` with a progress bar. With no Goal set, a soft default aim (2000 ml) is used and clearly labeled as a default — logging is never blocked. Past the aim shows a green ↑ (extra water is fine — never a red alert). Totals use the profile-timezone day boundary (AD-10), same as food and exercise.
 
 ### Edit / delete today's meals (Story 5.2 / FR-9)
 

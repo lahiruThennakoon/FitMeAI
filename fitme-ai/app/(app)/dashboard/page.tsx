@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     goal,
   });
 
-  const recent = todayEntries.slice(0, 4).map((e) => ({
+  const todayMealRows = todayEntries.map((e) => ({
     id: e.id,
     name: e.name,
     quantity: e.quantity,
@@ -102,8 +102,9 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <TodayMealsList entries={recent} />
+        <TodayMealsList entries={todayMealRows} />
       </section>
+
 
       <nav className="flex flex-col gap-3" aria-label="Main actions">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
