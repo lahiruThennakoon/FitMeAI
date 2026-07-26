@@ -1,4 +1,5 @@
 import type { FoodParseAiOutput } from "@/lib/ai/schemas/food-parse";
+import { CLARIFYING_CONFIDENCE_THRESHOLD } from "@/lib/domain/nutrition/clarifying-chips";
 import { decomposeFoodPortion } from "@/lib/domain/nutrition/decompose";
 import { portionGramsFromCatalog } from "@/lib/domain/nutrition/draft-recompute";
 import { scaleMacros } from "@/lib/domain/nutrition/scale";
@@ -104,7 +105,8 @@ export async function resolveParsedMeal(
     const food = await lookupFood(raw.name, deps.findFoodBySlugOrAlias);
     const mealType = raw.mealType ?? fallbackMeal;
     let needsClarification =
-      raw.needsClarification === true || raw.confidence < 0.7;
+      raw.needsClarification === true ||
+      raw.confidence < CLARIFYING_CONFIDENCE_THRESHOLD;
 
     if (food) {
       if (!unitSupportedByFood(raw.unit, food)) {

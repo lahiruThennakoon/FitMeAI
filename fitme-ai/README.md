@@ -111,6 +111,7 @@ Signed-in users open **Log food** at `/log`.
 - A loading tip shows while parsing; failures and “Skip AI” open manual entry — never a dead end.
 - Drafts are editable in the UI; persisting confirmed entries is a later story (2.6).
 - Composite catalog dishes (e.g. pol sambol, dhal curry) show an ingredient breakdown; totals are the sum of ingredient contributions. Editing a proportion normalizes to 100% and recomputes macros (Story 2.4 / FR-7).
+- When portion confidence is low, up to three clarifying chip groups appear (e.g. Small / Medium / Large). Tapping a chip updates nutrition immediately; confident parses show none (Story 2.5 / FR-8).
 
 ### Rate limiting & logging (Story 1.8 / FR-30–31)
 

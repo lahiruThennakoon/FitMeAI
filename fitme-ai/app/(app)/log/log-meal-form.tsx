@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { parseMealAction } from "@/app/actions/log";
+import {
+  applyClarifyingChip,
+  selectClarifyingChipGroups,
+  type ClarifyingChipOption,
+} from "@/lib/domain/nutrition/clarifying-chips";
 import { applyProportionEdit } from "@/lib/domain/nutrition/decompose";
 import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute";
 import type { ParsedFoodItemDraft } from "@/lib/domain/nutrition/parse-types";
+import { ClarifyingChips } from "./clarifying-chips";
 import { IngredientBreakdown } from "./ingredient-breakdown";
 
 const LOADING_TIPS = [
@@ -142,6 +148,18 @@ export function LogMealForm() {
     );
   }
 
+  function onChipSelect(itemId: string, option: ClarifyingChipOption) {
+    setItems((prev) =>
+      prev
+        ? prev.map((item) =>
+            item.id === itemId ? applyClarifyingChip(item, option) : item,
+          )
+        : prev,
+    );
+  }
+
+  const chipGroups = items ? selectClarifyingChipGroups(items) : [];
+
   return (
     <div className="space-y-6">
       <form onSubmit={onParse} className="space-y-4">
@@ -198,6 +216,10 @@ export function LogMealForm() {
         >
           {formError}
         </p>
+      ) : null}
+
+      {chipGroups.length > 0 ? (
+        <ClarifyingChips groups={chipGroups} onSelect={onChipSelect} />
       ) : null}
 
       {items && items.length > 0 ? (
