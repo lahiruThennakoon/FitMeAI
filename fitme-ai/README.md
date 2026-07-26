@@ -95,9 +95,10 @@ Provider-agnostic port at `lib/ai` (`AiProvider`). Call sites use `getAiProvider
 
 | Variable | Purpose |
 | --- | --- |
-| `AI_PROVIDER` | `gemini` (default) or `fake` (tests / offline) |
+| `AI_PROVIDER` | `gemini` (default), `openai`, or `fake` (tests / offline) |
 | `GEMINI_API_KEY` | Google AI Studio key for the Gemini adapter |
-| `AI_MODEL` | Model id (default `gemini-2.0-flash`) |
+| `OPENAI_API_KEY` | OpenAI key for the OpenAI adapter |
+| `AI_MODEL` | Model id (default `gemini-2.0-flash` or `gpt-4o-mini`) |
 | `AI_TIMEOUT_MS` | Request timeout in ms (default `20000`) |
 
 Every response is validated with Zod before use. Validation / timeout / provider failures return a safe `AiResult` error (retry or enter manually) — nothing is persisted from invalid AI output. Prompts and raw model text are never logged.
@@ -109,7 +110,8 @@ Signed-in users open **Log food** at `/log`.
 - Describe a meal in plain language (e.g. “two eggs, one milk tea, 100g chickpeas, one dhal wade”).
 - The AI parse is schema-validated, then each item is matched to the nutrition catalog when possible (`dataSource: database`) or marked `ai_estimated`.
 - A loading tip shows while parsing; failures and “Skip AI” open manual entry — never a dead end.
-- Drafts are editable in the UI; persisting confirmed entries is a later story (2.6).
+- Review name, quantity, unit, meal type, and macros, then **Save log** (Story 2.6 / FR-9). Nothing persists until you confirm; **Discard** clears the draft with no DB write.
+- Edits to AI-produced values are stored as `UserCorrection` before/after rows (FR-20 / AD-8). Manual entries skip correction capture.
 - Composite catalog dishes (e.g. pol sambol, dhal curry) show an ingredient breakdown; totals are the sum of ingredient contributions. Editing a proportion normalizes to 100% and recomputes macros (Story 2.4 / FR-7).
 - When portion confidence is low, up to three clarifying chip groups appear (e.g. Small / Medium / Large). Tapping a chip updates nutrition immediately; confident parses show none (Story 2.5 / FR-8).
 

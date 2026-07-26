@@ -1,13 +1,22 @@
 import "server-only";
-import { GeminiAiProvider, GEMINI_DEFAULT_MODEL, GEMINI_DEFAULT_TIMEOUT_MS } from "@/lib/ai/gemini";
+import {
+  GeminiAiProvider,
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_DEFAULT_TIMEOUT_MS,
+} from "@/lib/ai/gemini";
+import {
+  OpenAiProvider,
+  OPENAI_DEFAULT_MODEL,
+} from "@/lib/ai/openai";
 import { FakeAiProvider } from "@/lib/ai/fake";
 import type { AiProvider } from "@/lib/ai/types";
 
-export type AiProviderName = "gemini" | "fake";
+export type AiProviderName = "gemini" | "openai" | "fake";
 
 export type AiRuntimeConfig = {
   provider: AiProviderName;
   geminiApiKey: string;
+  openaiApiKey: string;
   model: string;
   timeoutMs: number;
 };
@@ -15,23 +24,27 @@ export type AiRuntimeConfig = {
 /**
  * Read AI config from env. Secrets are never logged.
  * `AI_PROVIDER=fake` forces the fake adapter (tests / offline).
- * Default `gemini` — without GEMINI_API_KEY the adapter returns not_configured.
+ * Default `gemini` — without the matching key the adapter returns not_configured.
  */
 export function readAiRuntimeConfig(
   env: Record<string, string | undefined> = process.env,
 ): AiRuntimeConfig {
   const raw = (env.AI_PROVIDER ?? "gemini").trim().toLowerCase();
-  const provider: AiProviderName = raw === "fake" ? "fake" : "gemini";
+  const provider: AiProviderName =
+    raw === "fake" ? "fake" : raw === "openai" ? "openai" : "gemini";
   const timeoutRaw = Number(env.AI_TIMEOUT_MS);
   const timeoutMs =
     Number.isFinite(timeoutRaw) && timeoutRaw > 0
       ? timeoutRaw
       : GEMINI_DEFAULT_TIMEOUT_MS;
+  const defaultModel =
+    provider === "openai" ? OPENAI_DEFAULT_MODEL : GEMINI_DEFAULT_MODEL;
 
   return {
     provider,
     geminiApiKey: env.GEMINI_API_KEY?.trim() ?? "",
-    model: env.AI_MODEL?.trim() || GEMINI_DEFAULT_MODEL,
+    openaiApiKey: env.OPENAI_API_KEY?.trim() ?? "",
+    model: env.AI_MODEL?.trim() || defaultModel,
     timeoutMs,
   };
 }
@@ -47,6 +60,14 @@ export function createAiProvider(
       () => JSON.stringify({ ok: true, echo: "fake" }),
       cfg.model,
     );
+  }
+  if (cfg.provider === "openai") {
+    return new OpenAiProvider({
+      apiKey: cfg.openaiApiKey,
+      model: cfg.model,
+      timeoutMs: cfg.timeoutMs,
+      fetchImpl: deps?.fetchImpl,
+    });
   }
   return new GeminiAiProvider({
     apiKey: cfg.geminiApiKey,

@@ -39,5 +39,11 @@ Issues triaged out of active stories during code review.
 ## Deferred from: code review of 2-3-natural-language-food-parsing (2026-07-26)
 
 - **Meal-type inference uses server clock** — should use profile timezone (FR-12 / AD-10); needs timezone on the parse action path.
-- **Full macro field editors in draft UI** — quantity/unit/name/meal type editable now; rich macro editors land with confirm/save (Story 2.6).
+- **Full macro field editors in draft UI** — done in Story 2.6 (confirm/save + macro editors).
+
+## Deferred from: code review of 2-6-review-edit-before-save (2026-07-26)
+
+- **Server-held AI snapshots** — `origin` / `aiSnapshot` are still client-supplied; require snapshot for `ai_parse` today, but a full fix needs a server draft store before save.
+- **Idempotent save** — double-click / retry can create duplicate FoodEntry rows; add request key or soft draft id later.
+- **Breakdown proportion corrections** — proportion edits recompute macros (captured), but ingredient-line diffs are not stored as separate UserCorrection fields.
 

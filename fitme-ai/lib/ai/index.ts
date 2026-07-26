@@ -17,6 +17,7 @@ export {
   resetAiProviderCache,
 } from "@/lib/ai/config";
 export { GeminiAiProvider, GEMINI_DEFAULT_MODEL, GEMINI_DEFAULT_TIMEOUT_MS } from "@/lib/ai/gemini";
+export { OpenAiProvider, OPENAI_DEFAULT_MODEL, OPENAI_DEFAULT_TIMEOUT_MS } from "@/lib/ai/openai";
 export { FakeAiProvider } from "@/lib/ai/fake";
 export {
   structuredEchoSchema,

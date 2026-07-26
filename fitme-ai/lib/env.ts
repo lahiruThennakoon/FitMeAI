@@ -14,9 +14,10 @@ const serverEnvSchema = z.object({
   // Optional mail (Story 1.2). Console/dev adapter used when RESEND_API_KEY is unset.
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
-  // Optional AI (Story 2.2 / AD-4). Gemini adapter returns not_configured without key.
+  // Optional AI (Story 2.2 / AD-4). Adapter returns not_configured without its key.
   GEMINI_API_KEY: z.string().min(1).optional(),
-  AI_PROVIDER: z.enum(["gemini", "fake"]).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  AI_PROVIDER: z.enum(["gemini", "openai", "fake"]).optional(),
   AI_MODEL: z.string().min(1).optional(),
   AI_TIMEOUT_MS: z.string().min(1).optional(),
 });

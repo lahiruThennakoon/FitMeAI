@@ -1,5 +1,6 @@
 import type { FoodParseAiOutput } from "@/lib/ai/schemas/food-parse";
 import { CLARIFYING_CONFIDENCE_THRESHOLD } from "@/lib/domain/nutrition/clarifying-chips";
+import { snapshotFromDraft } from "@/lib/domain/nutrition/corrections";
 import { decomposeFoodPortion } from "@/lib/domain/nutrition/decompose";
 import { portionGramsFromCatalog } from "@/lib/domain/nutrition/draft-recompute";
 import { scaleMacros } from "@/lib/domain/nutrition/scale";
@@ -117,7 +118,7 @@ export async function resolveParsedMeal(
       const decomposed = decomposeFoodPortion(food, grams);
       const nutrition =
         decomposed?.nutrition ?? scaleMacros(food.nutrition, factor);
-      items.push({
+      const matched: ParsedFoodItemDraft = {
         id: idFactory(),
         name: food.name,
         quantity: raw.quantity,
@@ -136,11 +137,15 @@ export async function resolveParsedMeal(
         },
         breakdown: decomposed?.breakdown ?? null,
         kind: food.kind,
-      });
+        origin: "ai_parse",
+        aiSnapshot: null,
+      };
+      matched.aiSnapshot = snapshotFromDraft(matched);
+      items.push(matched);
       continue;
     }
 
-    items.push({
+    const estimated: ParsedFoodItemDraft = {
       id: idFactory(),
       name: raw.name,
       quantity: raw.quantity,
@@ -165,7 +170,11 @@ export async function resolveParsedMeal(
       catalog: null,
       breakdown: null,
       kind: "estimated",
-    });
+      origin: "ai_parse",
+      aiSnapshot: null,
+    };
+    estimated.aiSnapshot = snapshotFromDraft(estimated);
+    items.push(estimated);
   }
 
   return { items, sourceTextLength };

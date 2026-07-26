@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { FakeAiProvider } from "@/lib/ai/fake";
 import { GeminiAiProvider } from "@/lib/ai/gemini";
+import { OpenAiProvider } from "@/lib/ai/openai";
 import {
   createAiProvider,
   readAiRuntimeConfig,
@@ -52,6 +53,22 @@ describe("createAiProvider adapter swap (NFR-AIIndependence)", () => {
     expect(provider.id).toBe("gemini");
   });
 
+  it("selects openai via AI_PROVIDER", () => {
+    const provider = createAiProvider({
+      AI_PROVIDER: "openai",
+      OPENAI_API_KEY: "sk-test",
+    });
+    expect(provider.id).toBe("openai");
+  });
+
+  it("defaults openai model to gpt-4o-mini", () => {
+    const cfg = readAiRuntimeConfig({
+      AI_PROVIDER: "openai",
+      OPENAI_API_KEY: "sk-test",
+    });
+    expect(cfg.model).toBe("gpt-4o-mini");
+  });
+
   it("call sites only need AiProvider — swap does not change invoke shape", async () => {
     async function callPort(provider: AiProvider) {
       return provider.generateStructured(echoInput, structuredEchoSchema);
@@ -77,10 +94,27 @@ describe("createAiProvider adapter swap (NFR-AIIndependence)", () => {
         ),
     });
 
+    const openai = new OpenAiProvider({
+      apiKey: "test-key",
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: { content: '{"ok":true,"echo":"from-openai"}' },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    });
+
     const a = await callPort(fake);
     const b = await callPort(gemini);
+    const c = await callPort(openai);
     expect(a.ok && a.data.echo).toBe("swapped");
     expect(b.ok && b.data.echo).toBe("from-gemini");
+    expect(c.ok && c.data.echo).toBe("from-openai");
   });
 
   it("reads timeout and model from env", () => {
@@ -191,5 +225,44 @@ describe("GeminiAiProvider", () => {
       expect(["timeout", "aborted"]).toContain(result.code);
       expect(result.error).toMatch(/retry|manually|cancelled/i);
     }
+  });
+});
+
+describe("OpenAiProvider", () => {
+  it("returns not_configured without API key", async () => {
+    const provider = new OpenAiProvider({ apiKey: "" });
+    const result = await provider.generateStructured(
+      echoInput,
+      structuredEchoSchema,
+    );
+    expect(result).toMatchObject({ ok: false, code: "not_configured" });
+  });
+
+  it("parses successful Chat Completions JSON payload", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: '{"ok":true,"echo":"milk tea"}' } },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const provider = new OpenAiProvider({
+      apiKey: "secret",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const result = await provider.generateStructured(
+      echoInput,
+      structuredEchoSchema,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.echo).toBe("milk tea");
+    const call = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(call[0]).toContain("api.openai.com");
+    expect(call[1].headers).toMatchObject({
+      Authorization: "Bearer secret",
+    });
   });
 });

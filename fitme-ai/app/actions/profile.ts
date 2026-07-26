@@ -31,8 +31,6 @@ import { logger } from "@/lib/logging";
 import { err, ok, type Result } from "@/lib/result";
 import { saveProfileSchema } from "@/lib/schemas/profile";
 
-export { SAFETY_CONSENT_REQUIRED_ERROR };
-
 export type SaveProfileResult = Result<{
   profile: ProfileDto;
   goal: GoalDto;

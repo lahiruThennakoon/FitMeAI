@@ -149,6 +149,8 @@ describe("proportion edits recompute", () => {
       },
       breakdown: decomposed.breakdown,
       kind: "composite",
+      origin: "ai_parse",
+      aiSnapshot: null,
     };
 
     const edited = applyProportionEdit(item, "coconut-grated", 80);

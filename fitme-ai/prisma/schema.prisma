@@ -25,10 +25,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions Session[]
-  accounts Account[]
-  profile  UserProfile?
-  goal     Goal?
+  sessions      Session[]
+  accounts      Account[]
+  profile       UserProfile?
+  goal          Goal?
+  foodEntries   FoodEntry[]
+  aiInteractions AIInteraction[]
+  corrections   UserCorrection[]
 
   @@map("user")
 }
@@ -212,8 +215,9 @@ model Food {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  servings         FoodServing[]
+  servings          FoodServing[]
   recipeIngredients RecipeIngredient[]
+  foodEntries       FoodEntry[]
 
   @@index([name])
   @@map("food")
@@ -250,4 +254,123 @@ model RecipeIngredient {
   @@index([foodId])
   @@index([ingredientId])
   @@map("recipe_ingredient")
+}
+
+// ---------------------------------------------------------------------------
+// Logged food entries + corrections (Story 2.6 / FR-9, FR-20 / AD-8)
+// Soft-delete via deletedAt. AIInteraction stub for provenance (full audit in 2.10).
+// ---------------------------------------------------------------------------
+
+enum NutritionDataSource {
+  database
+  ai_estimated
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+  unknown
+}
+
+model FoodEntry {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodId      String?
+  food        Food?               @relation(fields: [foodId], references: [id], onDelete: SetNull)
+  name        String
+  quantity    Float
+  unit        String
+  mealType    MealType
+  loggedAt    DateTime
+  dataSource  NutritionDataSource
+  confidence  Float?
+  energyKcal  Float?
+  proteinG    Float?
+  carbsG      Float?
+  fatG        Float?
+  fibreG      Float?
+  sugarG      Float?
+  sodiumMg    Float?
+  /// Soft-delete (AD-8). Null = active.
+  deletedAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  aiInteractionId String?
+  aiInteraction   AIInteraction?  @relation(fields: [aiInteractionId], references: [id], onDelete: SetNull)
+
+  items       FoodEntryItem[]
+  corrections UserCorrection[]
+
+  @@index([userId, loggedAt])
+  @@index([userId, deletedAt])
+  @@index([foodId])
+  @@index([aiInteractionId])
+  @@map("food_entry")
+}
+
+model FoodEntryItem {
+  id             String              @id @default(cuid())
+  foodEntryId    String
+  foodEntry      FoodEntry           @relation(fields: [foodEntryId], references: [id], onDelete: Cascade)
+  ingredientSlug String?
+  name           String
+  grams          Int
+  proportionPct  Float
+  dataSource     NutritionDataSource
+  energyKcal     Float?
+  proteinG       Float?
+  carbsG         Float?
+  fatG           Float?
+  fibreG         Float?
+  sugarG         Float?
+  sodiumMg       Float?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([foodEntryId])
+  @@map("food_entry_item")
+}
+
+/// Minimal AI provenance row (Story 2.6); richer audit fields in Story 2.10.
+model AIInteraction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId String
+  model      String?
+  purpose    String
+  confidence Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  foodEntries FoodEntry[]
+  corrections UserCorrection[]
+
+  @@index([userId, createdAt])
+  @@map("ai_interaction")
+}
+
+model UserCorrection {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodEntryId     String
+  foodEntry       FoodEntry      @relation(fields: [foodEntryId], references: [id], onDelete: Cascade)
+  aiInteractionId String?
+  aiInteraction   AIInteraction? @relation(fields: [aiInteractionId], references: [id], onDelete: SetNull)
+  /// Field path edited (e.g. name, quantity, energyKcal).
+  field           String
+  /// JSON-encoded before/after scalars — never logged as health payloads.
+  beforeValue     Json
+  afterValue      Json
+  createdAt       DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([foodEntryId])
+  @@index([aiInteractionId])
+  @@map("user_correction")
 }

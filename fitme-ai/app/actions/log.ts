@@ -9,8 +9,14 @@ import {
   foodParseAiSchema,
   foodParseResponseSchema,
 } from "@/lib/ai/schemas/food-parse";
+import { diffAiCorrections } from "@/lib/domain/nutrition/corrections";
+import { readAiRuntimeConfig } from "@/lib/ai/config";
 import { resolveParsedMeal } from "@/lib/domain/nutrition/resolve-parse";
 import type { ParsedMealDraft } from "@/lib/domain/nutrition/parse-types";
+import {
+  saveConfirmedFoodEntries,
+  type SavedFoodEntryDto,
+} from "@/lib/dal/food-entry";
 import { fieldErrorsFromZod } from "@/lib/auth/actions-shared";
 import { logger } from "@/lib/logging";
 import {
@@ -19,7 +25,10 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { err, ok, type Result } from "@/lib/result";
-import { parseMealInputSchema } from "@/lib/schemas/log";
+import {
+  parseMealInputSchema,
+  saveMealDraftSchema,
+} from "@/lib/schemas/log";
 
 export type ParseMealResult = Result<ParsedMealDraft>;
 
@@ -120,3 +129,98 @@ export async function parseMealAction(
     return err(MANUAL_FALLBACK);
   }
 }
+
+export type SaveMealDraftResult = Result<{
+  entries: SavedFoodEntryDto[];
+  correctionCount: number;
+}>;
+
+export type SaveMealDraftActionDeps = {
+  requireSession?: typeof requireSession;
+  saveConfirmedFoodEntries?: typeof saveConfirmedFoodEntries;
+};
+
+/**
+ * Persist reviewed drafts only after explicit confirm (FR-9).
+ * Records UserCorrection diffs for AI-origin edits (FR-20).
+ */
+export async function saveMealDraftAction(
+  input: unknown,
+  deps: SaveMealDraftActionDeps = {},
+): Promise<SaveMealDraftResult> {
+  const requireSessionFn = deps.requireSession ?? requireSession;
+  const saveEntries = deps.saveConfirmedFoodEntries ?? saveConfirmedFoodEntries;
+
+  let userId: string;
+  try {
+    const user = await requireSessionFn();
+    userId = user.id;
+  } catch {
+    return err("Please sign in to save food.");
+  }
+
+  const parsed = saveMealDraftSchema.safeParse(input);
+  if (!parsed.success) {
+    // Missing confirmed:true → never persist AI drafts silently.
+    if (
+      typeof input === "object" &&
+      input !== null &&
+      "confirmed" in input &&
+      (input as { confirmed?: unknown }).confirmed !== true
+    ) {
+      return err("Confirm your review before saving.");
+    }
+    return err("Check the highlighted fields.", fieldErrorsFromZod(parsed.error));
+  }
+
+  // Name identity edit must not keep a mismatched catalog FK (defense in depth).
+  const items = parsed.data.items.map((item) => {
+    if (
+      item.origin === "ai_parse" &&
+      item.aiSnapshot &&
+      item.name.trim() !== item.aiSnapshot.name.trim()
+    ) {
+      return {
+        ...item,
+        foodSlug: null,
+        catalog: null,
+        breakdown: null,
+        kind: "estimated" as const,
+        dataSource: "ai_estimated" as const,
+      };
+    }
+    return item;
+  });
+
+  const diffsByDraftId = new Map(
+    items.map((item) => [item.id, diffAiCorrections(item)]),
+  );
+  const correctionCount = [...diffsByDraftId.values()].reduce(
+    (n, d) => n + d.length,
+    0,
+  );
+
+  const aiCfg = readAiRuntimeConfig();
+
+  try {
+    const entries = await saveEntries(
+      {
+        userId,
+        items: items as ParsedMealDraft["items"],
+        providerId: aiCfg.provider,
+        model: aiCfg.model,
+      },
+      diffsByDraftId,
+    );
+    logger.info("log.save.ok", {
+      event: "food_save_ok",
+      entryCount: entries.length,
+      correctionCount,
+    });
+    return ok({ entries, correctionCount });
+  } catch {
+    logger.error("log.save.failed", { event: "food_save_failed" });
+    return err("Could not save your log. Please try again.");
+  }
+}
+

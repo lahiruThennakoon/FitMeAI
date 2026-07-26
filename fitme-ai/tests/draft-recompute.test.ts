@@ -37,6 +37,8 @@ const base: ParsedFoodItemDraft = {
   },
   breakdown: null,
   kind: "simple",
+  origin: "ai_parse",
+  aiSnapshot: null,
 };
 
 describe("recomputeDraftNutrition", () => {

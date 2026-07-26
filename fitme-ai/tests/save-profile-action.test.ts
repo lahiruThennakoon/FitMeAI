@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import {
-  SAFETY_CONSENT_REQUIRED_ERROR,
-  saveProfileAction,
-} from "@/app/actions/profile";
+import { saveProfileAction } from "@/app/actions/profile";
+import { SAFETY_CONSENT_REQUIRED_ERROR } from "@/lib/domain/safety/ladder";
 
 afterEach(() => {
   vi.restoreAllMocks();

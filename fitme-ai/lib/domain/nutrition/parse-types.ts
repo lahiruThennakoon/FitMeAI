@@ -35,7 +35,16 @@ export type IngredientBreakdownLine = {
   dataSource: NutritionDataSource;
 };
 
-/** Draft item after AI parse + catalog match (not persisted — Story 2.6). */
+/** Immutable AI values for UserCorrection diffs (Story 2.6 / FR-20). */
+export type AiValueSnapshot = {
+  name: string;
+  quantity: number;
+  unit: FoodParseUnit;
+  mealType: MealType;
+  nutrition: NutritionMacros;
+};
+
+/** Draft item after AI parse + catalog match (not persisted until confirm). */
 export type ParsedFoodItemDraft = {
   id: string;
   name: string;
@@ -53,6 +62,10 @@ export type ParsedFoodItemDraft = {
   /** Present for composite (multi-ingredient) catalog foods. */
   breakdown: IngredientBreakdownLine[] | null;
   kind: "simple" | "composite" | "estimated";
+  /** ai_parse drafts capture corrections on save; manual skips. */
+  origin: "ai_parse" | "manual";
+  /** Original AI values at parse time (ai_parse only). */
+  aiSnapshot: AiValueSnapshot | null;
 };
 
 export type ParsedMealDraft = {
