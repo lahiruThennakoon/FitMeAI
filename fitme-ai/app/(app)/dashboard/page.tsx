@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
 import { listActiveFoodEntriesForUser } from "@/lib/dal/food-entry";
-import { getGoalForUser } from "@/lib/dal/profile";
+import { getGoalForUser, getProfileForUser } from "@/lib/dal/profile";
+import {
+  computeBaselineBurn,
+  computeNetCalories,
+} from "@/lib/domain/burn/baseline";
+import { BaselineBurnPanel } from "./baseline-burn-panel";
 import { SignOutButton } from "../sign-out-button";
 
 function startOfLocalDay(d = new Date()): Date {
@@ -14,18 +19,20 @@ function fmtKcal(v: number | null | undefined): string {
 }
 
 /**
- * Authenticated home (Story 1.3). Route group layout enforces session (AD-1 / AD-6).
+ * Authenticated home (Story 1.3). Baseline Burn on dashboard (Story 3.1 / FR-13).
+ * Route group layout enforces session (AD-1 / AD-6).
  */
 export default async function DashboardPage() {
   const user = await getSession();
   const userId = user?.id;
 
-  const [goal, entries] = userId
+  const [goal, profile, entries] = userId
     ? await Promise.all([
         getGoalForUser(userId),
+        getProfileForUser(userId),
         listActiveFoodEntriesForUser(userId),
       ])
-    : [null, []];
+    : [null, null, []];
 
   const dayStart = startOfLocalDay();
   const todayEntries = entries.filter((e) => e.loggedAt >= dayStart);
@@ -35,6 +42,25 @@ export default async function DashboardPage() {
   );
   const targetKcal = goal?.caloriesKcal ?? null;
   const recent = todayEntries.slice(0, 4);
+
+  const baseline = profile
+    ? computeBaselineBurn({
+        weightG: profile.currentWeightG,
+        heightCm: profile.heightCm,
+        ageYears: profile.ageYears,
+        sex: profile.sex,
+        activityLevel: profile.activityLevel,
+      })
+    : null;
+
+  const netKcal =
+    baseline != null
+      ? computeNetCalories({
+          intakeKcal: todayKcal,
+          baselineBurnKcal: baseline.baselineBurnKcal,
+          exerciseKcal: 0,
+        })
+      : null;
 
   const displayName = user?.name?.trim() || "there";
 
@@ -53,7 +79,7 @@ export default async function DashboardPage() {
           Hi, {displayName}
         </h1>
         <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
-          Log a meal in plain language, or check your daily targets.
+          Log a meal in plain language, or check your daily energy balance.
         </p>
       </header>
 
@@ -105,6 +131,33 @@ export default async function DashboardPage() {
           </p>
         )}
       </section>
+
+      {baseline && netKcal != null ? (
+        <BaselineBurnPanel
+          burn={baseline}
+          intakeKcal={todayKcal}
+          netKcal={netKcal}
+        />
+      ) : (
+        <section
+          className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/80 p-5 dark:border-neutral-600 dark:bg-neutral-900/40"
+          aria-label="Baseline burn unavailable"
+        >
+          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Baseline Burn needs a profile
+          </p>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+            Add your weight, height, age, sex, and activity level so we can
+            estimate daily burn (Mifflin–St Jeor) even with no exercise logged.
+          </p>
+          <Link
+            href="/goals"
+            className="mt-3 inline-flex text-sm font-medium text-brand-blue underline-offset-2 hover:underline"
+          >
+            Set up Profile & targets
+          </Link>
+        </section>
+      )}
 
       <nav className="flex flex-col gap-3" aria-label="Main actions">
         <Link

@@ -78,6 +78,10 @@ After sign-in, open **Profile & targets** at `/goals` (Story 1.6 / FR-4).
 - Values store in canonical units (g, cm, kcal, ml); metric/imperial toggle converts at the edges.
 - Safety ladder (Story 1.7 / FR-5): green / yellow (“not recommended”) / red (consent required). Thresholds and sources are shown on `/goals`. Dangerous saves record consent; safer edits clear it.
 
+### Baseline Burn (Story 3.1 / FR-13)
+
+The dashboard shows **Baseline Burn** (TDEE from BMR × activity) recomputed from the live profile each visit, plus **Net calories** = food in − (baseline + exercise). Exercise defaults to 0 until Story 3.2. Formula and “estimates, not medical advice” are in an expandable details panel; missing activity defaults to sedentary with a note.
+
 ### Nutrition catalog (Story 2.1 / FR-7 data layer)
 
 Curated Food / Ingredient / FoodServing / RecipeIngredient tables with canonical grams/kcal.
