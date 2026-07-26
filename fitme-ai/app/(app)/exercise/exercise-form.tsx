@@ -96,10 +96,14 @@ export function ExerciseForm({ weightKg }: Props) {
   }
 
   const inputClass =
-    "mt-1 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100";
+    "mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5" noValidate>
+    <form
+      onSubmit={onSubmit}
+      className="space-y-5 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
+      noValidate
+    >
       <div>
         <label htmlFor="exercise-type" className="block text-sm font-medium">
           Activity type
@@ -308,15 +312,15 @@ export function ExerciseForm({ weightKg }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="brand-gradient inline-flex h-11 flex-1 items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
+          className="brand-gradient inline-flex h-12 flex-1 items-center justify-center rounded-xl px-5 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
         >
           {pending ? "Saving…" : "Save workout"}
         </button>
         <Link
           href="/dashboard"
-          className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 dark:text-neutral-100 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+          className="inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
         >
-          Back to home
+          Cancel
         </Link>
       </div>
     </form>

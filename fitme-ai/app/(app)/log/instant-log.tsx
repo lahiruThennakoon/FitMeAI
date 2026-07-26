@@ -110,23 +110,23 @@ export function InstantLog() {
 
   return (
     <section
-      className="rounded-xl border border-neutral-200/80 bg-white/60 p-4 dark:border-neutral-700 dark:bg-neutral-900/50"
+      className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
       aria-label="Instant food log"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Quick log (no AI)
+            <span aria-hidden="true">⚡</span> Quick log
           </h2>
-          <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-300">
-            Cached catalog foods — works offline on a weak connection.
+          <p className="mt-0.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+            Tap a cached food — works offline, no AI.
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
             online
-              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-              : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+              ? "bg-brand-green/15 text-emerald-800 dark:text-emerald-200"
+              : "bg-amber-500/15 text-amber-900 dark:text-amber-100"
           }`}
         >
           {online ? "Online" : "Offline"}
@@ -145,7 +145,7 @@ export function InstantLog() {
                 type="button"
                 disabled={pending}
                 onClick={() => logFood(food)}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-800 transition hover:border-brand-blue hover:text-brand-blue disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+                className="rounded-xl border border-neutral-200 bg-white/90 px-3 py-1.5 text-sm font-medium text-neutral-800 shadow-sm transition hover:border-brand-blue/50 hover:text-brand-blue disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
               >
                 {food.name}
                 {food.nutrition.energyKcal != null ? (

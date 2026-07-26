@@ -306,7 +306,10 @@ export function LogMealForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={onParse} className="space-y-4">
+      <form
+        onSubmit={onParse}
+        className="space-y-4 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
+      >
         <div className="space-y-2">
           <label
             htmlFor="meal-text"
@@ -331,7 +334,7 @@ export function LogMealForm() {
         <button
           type="submit"
           disabled={pending || !text.trim()}
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
+          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
         >
           {pending ? "Parsing…" : "Parse meal"}
         </button>

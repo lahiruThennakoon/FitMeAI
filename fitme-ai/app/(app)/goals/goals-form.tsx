@@ -331,9 +331,11 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
   const waterUnit = units === "metric" ? "ml" : "fl oz";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8" noValidate>
-      <fieldset className="space-y-4">
-        <legend className="text-base font-semibold">Your details</legend>
+    <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      <fieldset className="space-y-4 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Your details
+        </legend>
 
         <div className="flex gap-2">
           <button
@@ -478,7 +480,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
 
       <section
         aria-labelledby="formula-heading"
-        className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+        className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
       >
         <h2
           id="formula-heading"
@@ -518,9 +520,12 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
 
       <section
         aria-labelledby="targets-heading"
-        className="space-y-4 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
+        className="space-y-4 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
       >
-        <h2 id="targets-heading" className="text-base font-semibold">
+        <h2
+          id="targets-heading"
+          className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+        >
           Suggested daily targets
         </h2>
         {live ? (
@@ -739,7 +744,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
         disabled={
           pending || Boolean(live?.safety.requiresConsent && !safetyConsent)
         }
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white disabled:opacity-60"
+        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Saving…" : "Save profile & targets"}
       </button>
