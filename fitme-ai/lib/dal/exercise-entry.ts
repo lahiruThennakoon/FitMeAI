@@ -5,7 +5,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { assertOwnership } from "@/lib/dal/guards";
+import { assertOwnership, requireOwnedResource } from "@/lib/dal/guards";
 
 export type CreateExerciseEntryInput = {
   userId: string;
@@ -35,6 +35,30 @@ export type ExerciseEntryDto = {
   displayName: string;
 };
 
+/** Lean edit DTO for Home list/edit (Story 5.3) — same shape as list DTO. */
+export type ExerciseEntryEditableDto = ExerciseEntryDto;
+
+export type UpdateExerciseEntryInput = {
+  type: ExerciseType;
+  customLabel?: string | null;
+  durationMin: number;
+  intensity: ExerciseIntensity;
+  estimatedKcal: number;
+  metUsed: number;
+  weightKgUsed: number;
+};
+
+type EditableExerciseEntryRow = {
+  id: string;
+  userId: string;
+  type: ExerciseType;
+  customLabel: string | null;
+  durationMin: number;
+  intensity: ExerciseIntensity;
+  estimatedKcal: number;
+  performedAt: Date;
+};
+
 function toDto(row: {
   id: string;
   type: ExerciseType;
@@ -58,6 +82,26 @@ function toDto(row: {
     performedAt: row.performedAt.toISOString(),
     displayName,
   };
+}
+
+async function findOwnedExerciseEntry(
+  userId: string,
+  id: string,
+): Promise<EditableExerciseEntryRow> {
+  const row = await prisma.exerciseEntry.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      customLabel: true,
+      durationMin: true,
+      intensity: true,
+      estimatedKcal: true,
+      performedAt: true,
+    },
+  });
+  return requireOwnedResource(row, userId);
 }
 
 export async function createExerciseEntry(
@@ -110,18 +154,48 @@ export async function sumExerciseKcalForUserBetween(
   return agg._sum.estimatedKcal ?? 0;
 }
 
-/** Test helper — soft-delete. */
+/** Fetch a single owned, active entry for populating an edit form. */
+export async function getEditableExerciseEntry(
+  userId: string,
+  id: string,
+): Promise<ExerciseEntryEditableDto> {
+  const row = await findOwnedExerciseEntry(userId, id);
+  return toDto(row);
+}
+
+/**
+ * Update type/duration/intensity (+ estimate columns) on an owned entry
+ * (Story 5.3). Caller must recompute burn via `estimateExerciseBurn` first.
+ */
+export async function updateExerciseEntry(
+  userId: string,
+  id: string,
+  patch: UpdateExerciseEntryInput,
+): Promise<ExerciseEntryEditableDto> {
+  await findOwnedExerciseEntry(userId, id);
+  const row = await prisma.exerciseEntry.update({
+    where: { id },
+    data: {
+      type: patch.type,
+      customLabel: patch.customLabel ?? null,
+      durationMin: patch.durationMin,
+      intensity: patch.intensity,
+      estimatedKcal: patch.estimatedKcal,
+      metUsed: patch.metUsed,
+      weightKgUsed: patch.weightKgUsed,
+    } satisfies Prisma.ExerciseEntryUpdateInput,
+  });
+  return toDto(row);
+}
+
+/** Soft-delete an owned, active entry (Story 5.3 AC3). */
 export async function softDeleteExerciseEntry(
   userId: string,
   id: string,
 ): Promise<void> {
-  const row = await prisma.exerciseEntry.findFirst({
-    where: { id, userId, deletedAt: null },
-  });
-  if (!row) return;
-  assertOwnership(row.userId, userId);
+  const existing = await findOwnedExerciseEntry(userId, id);
   await prisma.exerciseEntry.update({
-    where: { id },
+    where: { id: existing.id },
     data: { deletedAt: new Date() } satisfies Prisma.ExerciseEntryUpdateInput,
   });
 }

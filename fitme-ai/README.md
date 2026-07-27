@@ -98,6 +98,10 @@ Home's Water card lets you quick-add 250 ml / 500 ml or a custom amount, then sh
 
 Each meal in Home's "Meals today" list has inline `Edit` / `Delete` actions. Edit expands a compact form for name, quantity, and macros (calories/protein/carbs/fat/fibre/sugar); delete expands a calm two-step confirm bar (`Keep` / `Remove`) instead of a jarring native confirm dialog. Edits to AI-origin entries are logged as `UserCorrection` rows (FR-20 audit trail) when a field actually changes. Only the entry's owner can edit/delete it — cross-user and missing-entry attempts both surface the same generic message (no enumeration).
 
+### Edit / delete today's exercise (Story 5.3 / FR-14)
+
+Home's "Exercise today" list mirrors meals: inline `Edit` / `Delete` with a calm Keep/Remove confirm. Edit covers activity type, duration, and intensity (plus a custom name when type is custom); burn is recomputed with the same MET formula and stays labelled as an estimate. Soft-delete uses `deletedAt`. Ownership matches meals — missing and cross-user both look like "not found".
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

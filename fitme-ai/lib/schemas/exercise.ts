@@ -45,3 +45,35 @@ export const saveExerciseEntrySchema = z
   });
 
 export type SaveExerciseEntryInput = z.infer<typeof saveExerciseEntrySchema>;
+
+/**
+ * Compact Home edit payload (Story 5.3) — type / duration / intensity only.
+ * Optional create fields stay out of the inline form.
+ */
+export const editExerciseEntrySchema = z
+  .object({
+    type: exerciseTypeSchema,
+    customLabel: z.string().trim().max(80).optional().nullable(),
+    // int so Math.round cannot turn a Zod-accepted fraction (e.g. 0.4) into 0
+    durationMin: z
+      .number()
+      .finite()
+      .int("Duration must be a whole number of minutes")
+      .positive("Duration must be greater than zero")
+      .max(24 * 60, "Keep duration under 24 hours"),
+    intensity: exerciseIntensitySchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "custom") {
+      const label = data.customLabel?.trim() ?? "";
+      if (label.length < 1) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Name your custom exercise",
+          path: ["customLabel"],
+        });
+      }
+    }
+  });
+
+export type EditExerciseEntryInput = z.infer<typeof editExerciseEntrySchema>;

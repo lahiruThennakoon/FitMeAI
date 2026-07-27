@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
-import { sumExerciseKcalForUserBetween } from "@/lib/dal/exercise-entry";
+import {
+  listActiveExerciseEntriesForUser,
+  sumExerciseKcalForUserBetween,
+} from "@/lib/dal/exercise-entry";
 import { listActiveFoodEntriesForUser } from "@/lib/dal/food-entry";
 import { getGoalForUser, getProfileForUser } from "@/lib/dal/profile";
 import { sumWaterMlForUserBetween } from "@/lib/dal/water-entry";
@@ -9,24 +12,27 @@ import {
   isWithinDay,
   zonedDayBounds,
 } from "@/lib/domain/dashboard/day-bounds";
+import { gToKg } from "@/lib/domain/targets/units";
 import { DailySummaryPanel } from "./daily-summary-panel";
+import { TodayExercisesList } from "./today-exercises-list";
 import { TodayMealsList } from "./today-meals-list";
 import { SignOutButton } from "../sign-out-button";
 
 /**
- * Home dashboard (FR-15 / Stories 3.1–3.3). Day bounds use profile timezone (AD-10).
+ * Home dashboard (FR-15 / Stories 3.1–3.3, 5.1–5.3). Day bounds use profile timezone (AD-10).
  */
 export default async function DashboardPage() {
   const user = await getSession();
   const userId = user?.id;
 
-  const [goal, profile, entries] = userId
+  const [goal, profile, entries, exerciseEntries] = userId
     ? await Promise.all([
         getGoalForUser(userId),
         getProfileForUser(userId),
         listActiveFoodEntriesForUser(userId),
+        listActiveExerciseEntriesForUser(userId),
       ])
-    : [null, null, []];
+    : [null, null, [], []];
 
   const bounds = zonedDayBounds(new Date(), profile?.timezone ?? "UTC");
   const [todayExerciseKcal, todayWaterMl] = userId
@@ -39,6 +45,10 @@ export default async function DashboardPage() {
   const todayEntries = entries.filter((e) =>
     isWithinDay(e.loggedAt, bounds),
   );
+  const todayExerciseRows = exerciseEntries.filter((e) =>
+    isWithinDay(new Date(e.performedAt), bounds),
+  );
+  const weightKg = profile ? gToKg(profile.currentWeightG) : null;
 
   const summary = buildDailySummary({
     dayKey: bounds.dayKey,
@@ -105,6 +115,29 @@ export default async function DashboardPage() {
         <TodayMealsList entries={todayMealRows} />
       </section>
 
+      <section
+        className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
+        aria-label="Workouts today"
+      >
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Exercise today
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-white">
+              {todayExerciseRows.length}
+            </p>
+          </div>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            estimates
+          </p>
+        </div>
+
+        <TodayExercisesList
+          entries={todayExerciseRows}
+          weightKg={weightKg}
+        />
+      </section>
 
       <nav className="flex flex-col gap-3" aria-label="Main actions">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
