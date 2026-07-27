@@ -32,6 +32,7 @@ model User {
   foodEntries    FoodEntry[]
   exerciseEntries ExerciseEntry[]
   waterEntries   WaterEntry[]
+  weightEntries  WeightEntry[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
 
@@ -464,4 +465,26 @@ model WaterEntry {
   @@index([userId, loggedAt])
   @@index([userId, deletedAt])
   @@map("water_entry")
+}
+
+// ---------------------------------------------------------------------------
+// Weight check-ins (Story 6.1 / Phase 2 body progress) — canonical g (AD-11)
+// ---------------------------------------------------------------------------
+
+model WeightEntry {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Body mass in grams (canonical).
+  weightG    Int
+  recordedAt DateTime
+  note       String?
+  /// Soft-delete (AD-8). Null = active.
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, recordedAt])
+  @@index([userId, deletedAt])
+  @@map("weight_entry")
 }

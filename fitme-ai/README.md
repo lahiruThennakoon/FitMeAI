@@ -110,6 +110,10 @@ Home can flip between **today** and **yesterday** in the profile timezone (`?day
 
 Log shows **Recent** and **Favorites** above Quick log. Star to pin; tap to create a **new** meal for now (no overwrite). Catalog items reuse the instant/offline path; other meals copy the saved macros and `dataSource` (no new AI estimate). Empty state points to parse or Quick log.
 
+### Weight check-in (Story 6.1)
+
+Profile includes a **Weight check-in** card: log kg/lb (preferred units), see calm distance-to-target copy, and a recent weigh-in list. Each save writes a `WeightEntry` (canonical grams) and updates `profile.currentWeightG` so burn estimates stay current. Trend sparkline lands in Story 6.2.
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

@@ -126,7 +126,12 @@ Users can install FitMe AI and keep logging common foods instantly even on weak 
 ### Epic 5: Daily Habit Loop
 Users can finish incomplete Home loops (water), fix mistakes on today’s logs, look at yesterday, and re-log recent meals quickly — so the app is habit-ready every day.
 **FRs covered:** FR-15 (water progress completion), habit/trust extensions beyond v1 epic list
-**Status:** Planned (2026-07-26) — see `epic-5-daily-habit-loop.md`
+**Status:** Done (2026-07-27) — see `epic-5-daily-habit-loop.md`
+
+### Epic 6: Body Progress
+Users can log weight check-ins and see calm progress toward their target — keeping profile weight current for burn estimates.
+**FRs covered:** Phase 2 Should — body/weight progress (PRD §6.2)
+**Status:** In progress (2026-07-27) — see `epic-6-body-progress.md`
 
 ---
 
@@ -715,5 +720,37 @@ So that everyday foods don’t need a full AI parse every time.
 - **Dependencies:** 2.6, 4.1, 5.2 helpful but not required.
 - **Test scenarios:** re-log creates new row; favorite persists; offline when cached.
 - **Definition of done:** UI on Log; DAL; tests; a11y.
+
+---
+
+## Epic 6: Body Progress
+
+Phase 2 body progress: weigh-ins that keep profile weight honest and show calm progress toward target. See `epic-6-body-progress.md`.
+
+### Story 6.1: Weight check-in log
+
+As a user,
+I want to log my weight over time,
+So that progress toward my target is visible and burn estimates stay current.
+
+**Acceptance Criteria:**
+
+**Given** I have a profile
+**When** I log a weight in preferred units
+**Then** a Weight Entry is saved (grams) and profile current weight updates
+**And** Profile shows recent weigh-ins and calm distance-to-target copy.
+
+### Story 6.2: Weight trend sparkline
+
+As a user,
+I want a simple weight trend,
+So that progress over days is glanceable without charts overload.
+
+**Acceptance Criteria:**
+
+**Given** I have multiple weigh-ins
+**When** I open Profile (or Home progress)
+**Then** I see a calm sparkline / trend of recent weights toward target
+**And** copy stays supportive (no shame).
 
 ---
