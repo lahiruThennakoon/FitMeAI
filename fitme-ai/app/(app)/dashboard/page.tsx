@@ -192,6 +192,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         >
           Log exercise
         </Link>
+        <Link
+          href="/fasting"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600"
+        >
+          Fasting timer
+        </Link>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1">
           <Link
             href="/goals"

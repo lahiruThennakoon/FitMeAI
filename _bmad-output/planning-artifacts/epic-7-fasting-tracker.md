@@ -1,6 +1,6 @@
 ---
 title: Epic 7 — Fasting Time Tracker
-status: planned
+status: in-progress
 updated: 2026-07-27
 owner: product + UX
 dependsOn:

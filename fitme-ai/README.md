@@ -114,6 +114,10 @@ Log shows **Recent** and **Favorites** above Quick log. Star to pin; tap to crea
 
 Profile includes a **Weight check-in** card: log kg/lb (preferred units), see calm distance-to-target copy, and a recent weigh-in list. Each save writes a `WeightEntry` (canonical grams) and updates `profile.currentWeightG` so burn estimates stay current. Trend sparkline lands in Story 6.2.
 
+### Fasting timer (Story 7.1)
+
+**Fasting timer** at `/fasting` (also linked from Home). Start an optional protocol/planned duration; end anytime. Only one active fast per user. Personal clock only — not medical advice. History list and Home status chip land in 7.3–7.4.
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

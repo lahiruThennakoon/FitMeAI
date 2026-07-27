@@ -33,6 +33,7 @@ model User {
   exerciseEntries ExerciseEntry[]
   waterEntries   WaterEntry[]
   weightEntries  WeightEntry[]
+  fastingSessions FastingSession[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
 
@@ -487,4 +488,31 @@ model WeightEntry {
   @@index([userId, recordedAt])
   @@index([userId, deletedAt])
   @@map("weight_entry")
+}
+
+// ---------------------------------------------------------------------------
+// Fasting sessions (Story 7.1) — at most one active (endedAt null) per user
+// ---------------------------------------------------------------------------
+
+model FastingSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt          DateTime
+  /// Null while the fast is in progress.
+  endedAt            DateTime?
+  /// Optional planned length in minutes (e.g. 16h = 960).
+  plannedDurationMin Int?
+  /// Free label e.g. "16:8", "OMAD", "custom".
+  protocolLabel      String?
+  notes              String?
+  /// Soft-delete (AD-8). Null = active row.
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId, startedAt])
+  @@index([userId, endedAt])
+  @@index([userId, deletedAt])
+  @@map("fasting_session")
 }
