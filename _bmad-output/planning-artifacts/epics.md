@@ -135,7 +135,7 @@ Users can log weight check-ins and see calm progress toward their target — kee
 
 ### Epic 7: Fasting Time Tracker
 Users can start/stop a fast, see elapsed time, and keep a calm session history — data for later correlations.
-**Status:** Planned (2026-07-27) — see `epic-7-fasting-tracker.md`
+**Status:** In progress (2026-07-27) — see `epic-7-fasting-tracker.md`
 
 ### Epic 8: Blood Sugar Level Tracker
 Users can log glucose readings with context tags (fasting / meal / bedtime) — personal tracker only, not medical advice.
