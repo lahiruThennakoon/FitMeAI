@@ -133,6 +133,19 @@ Users can log weight check-ins and see calm progress toward their target — kee
 **FRs covered:** Phase 2 Should — body/weight progress (PRD §6.2)
 **Status:** In progress (2026-07-27) — see `epic-6-body-progress.md`
 
+### Epic 7: Fasting Time Tracker
+Users can start/stop a fast, see elapsed time, and keep a calm session history — data for later correlations.
+**Status:** Planned (2026-07-27) — see `epic-7-fasting-tracker.md`
+
+### Epic 8: Blood Sugar Level Tracker
+Users can log glucose readings with context tags (fasting / meal / bedtime) — personal tracker only, not medical advice.
+**Status:** Planned (2026-07-27) — see `epic-8-blood-sugar-tracker.md`
+
+### Epic 9: Flexible Correlation Graphs
+Users pick X/Y metrics (weight, glucose, fasting duration, time) and explore calm correlation / trend charts.
+**Status:** Planned (2026-07-27) — see `epic-9-correlation-graphs.md`
+**Depends on:** 6.1, 7.x, 8.x
+
 ---
 
 ## Epic 1: Secure Account & Personalized Setup
@@ -752,5 +765,41 @@ So that progress over days is glanceable without charts overload.
 **When** I open Profile (or Home progress)
 **Then** I see a calm sparkline / trend of recent weights toward target
 **And** copy stays supportive (no shame).
+
+**Note:** May be skipped if Epic 9 delivers `time × weight` first (prefer one charting stack).
+
+---
+
+## Epic 7: Fasting Time Tracker
+
+See `epic-7-fasting-tracker.md`. Manual start/stop fasting sessions, live timer, history — no medical claims.
+
+### Story 7.1: Fasting session model + start/stop
+### Story 7.2: Active fast UI (timer + End)
+### Story 7.3: Fasting history list + soft-delete
+### Story 7.4: Home glance — fasting status chip
+
+---
+
+## Epic 8: Blood Sugar Level Tracker
+
+See `epic-8-blood-sugar-tracker.md`. Manual glucose logs with context tags; disclaimer; not CGM / not diagnosis.
+
+### Story 8.1: GlucoseEntry model + log action
+### Story 8.2: Log UI (value, unit, context, time)
+### Story 8.3: Recent list + edit/soft-delete
+### Story 8.4: Home glance — last reading (optional)
+
+---
+
+## Epic 9: Flexible Correlation Graphs
+
+See `epic-9-correlation-graphs.md`. Progress page with selectable X/Y (weight, glucose, fasting duration, time) and range.
+
+### Story 9.1: Chart library spike + Progress page shell
+### Story 9.2: Metric series DAL (time-bounded)
+### Story 9.3: XY picker + scatter/line renderer
+### Story 9.4: Time-range + empty/sparse states
+### Story 9.5: Optional — absorb weight sparkline (6.2)
 
 ---

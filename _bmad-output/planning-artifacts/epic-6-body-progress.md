@@ -29,10 +29,12 @@ After this epic a user can:
 | ID | Story | Depends on | Value |
 |----|--------|------------|--------|
 | 6.1 | Weight check-in log | 1.6 | History + profile weight sync |
-| 6.2 | Weight trend sparkline | 6.1 | Motivation without shame |
+| 6.2 | Weight trend sparkline | 6.1 | Motivation without shame (optional if Epic 9 comes first) |
 
 ## Out of scope
 
 - Photo / barcode body scans  
 - Coach sharing  
 - Clinical BMI advice beyond existing safety ladder on targets  
+- Multi-metric correlation graphs → **Epic 9**  
+- Fasting / glucose logging → **Epics 7–8**  
