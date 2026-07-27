@@ -10,20 +10,29 @@ import { sumWaterMlForUserBetween } from "@/lib/dal/water-entry";
 import { buildDailySummary } from "@/lib/domain/dashboard/daily-summary";
 import {
   isWithinDay,
-  zonedDayBounds,
+  resolveHomeDaySelection,
 } from "@/lib/domain/dashboard/day-bounds";
 import { gToKg } from "@/lib/domain/targets/units";
 import { DailySummaryPanel } from "./daily-summary-panel";
+import { DaySwitcher } from "./day-switcher";
 import { TodayExercisesList } from "./today-exercises-list";
 import { TodayMealsList } from "./today-meals-list";
 import { SignOutButton } from "../sign-out-button";
 
+type PageProps = {
+  searchParams?: Promise<{ day?: string | string[] }>;
+};
+
 /**
- * Home dashboard (FR-15 / Stories 3.1–3.3, 5.1–5.3). Day bounds use profile timezone (AD-10).
+ * Home dashboard (FR-15 / Stories 3.1–3.3, 5.1–5.4).
+ * Day bounds use profile timezone (AD-10); `?day=` selects today or yesterday.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: PageProps) {
   const user = await getSession();
   const userId = user?.id;
+  const params = searchParams ? await searchParams : {};
+  const rawDay = params.day;
+  const requestedDay = Array.isArray(rawDay) ? rawDay[0] : rawDay;
 
   const [goal, profile, entries, exerciseEntries] = userId
     ? await Promise.all([
@@ -34,32 +43,36 @@ export default async function DashboardPage() {
       ])
     : [null, null, [], []];
 
-  const bounds = zonedDayBounds(new Date(), profile?.timezone ?? "UTC");
-  const [todayExerciseKcal, todayWaterMl] = userId
+  const selection = resolveHomeDaySelection({
+    now: new Date(),
+    timeZone: profile?.timezone ?? "UTC",
+    requestedDay,
+  });
+  const { bounds, todayKey, yesterdayKey, isToday } = selection;
+
+  const [dayExerciseKcal, dayWaterMl] = userId
     ? await Promise.all([
         sumExerciseKcalForUserBetween(userId, bounds.start, bounds.end),
         sumWaterMlForUserBetween(userId, bounds.start, bounds.end),
       ])
     : [0, 0];
 
-  const todayEntries = entries.filter((e) =>
-    isWithinDay(e.loggedAt, bounds),
-  );
-  const todayExerciseRows = exerciseEntries.filter((e) =>
+  const dayEntries = entries.filter((e) => isWithinDay(e.loggedAt, bounds));
+  const dayExerciseRows = exerciseEntries.filter((e) =>
     isWithinDay(new Date(e.performedAt), bounds),
   );
   const weightKg = profile ? gToKg(profile.currentWeightG) : null;
 
   const summary = buildDailySummary({
     dayKey: bounds.dayKey,
-    entries: todayEntries,
-    exerciseKcal: todayExerciseKcal,
-    waterMlConsumed: todayWaterMl,
+    entries: dayEntries,
+    exerciseKcal: dayExerciseKcal,
+    waterMlConsumed: dayWaterMl,
     profile,
     goal,
   });
 
-  const todayMealRows = todayEntries.map((e) => ({
+  const mealRows = dayEntries.map((e) => ({
     id: e.id,
     name: e.name,
     quantity: e.quantity,
@@ -75,6 +88,8 @@ export default async function DashboardPage() {
     isAiOrigin: e.aiInteractionId != null,
   }));
   const displayName = user?.name?.trim() || "there";
+  const mealsHeading = isToday ? "Meals today" : "Meals yesterday";
+  const exerciseHeading = isToday ? "Exercise today" : "Exercise yesterday";
 
   return (
     <main className="relative mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-5 py-10">
@@ -91,20 +106,29 @@ export default async function DashboardPage() {
           Hi, {displayName}
         </h1>
         <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
-          A calm look at today — use it to decide your next move.
+          {isToday
+            ? "A calm look at today — use it to decide your next move."
+            : "A calm look at yesterday — every day is just a chapter."}
         </p>
       </header>
 
-      <DailySummaryPanel summary={summary} />
+      <DaySwitcher
+        todayKey={todayKey}
+        yesterdayKey={yesterdayKey}
+        selectedKey={bounds.dayKey}
+        isToday={isToday}
+      />
+
+      <DailySummaryPanel summary={summary} isToday={isToday} />
 
       <section
         className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
-        aria-label="Recent meals today"
+        aria-label={mealsHeading}
       >
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              Meals today
+              {mealsHeading}
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-white">
               {summary.mealCount}
@@ -112,20 +136,20 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <TodayMealsList entries={todayMealRows} />
+        <TodayMealsList entries={mealRows} isToday={isToday} />
       </section>
 
       <section
         className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
-        aria-label="Workouts today"
+        aria-label={exerciseHeading}
       >
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              Exercise today
+              {exerciseHeading}
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-white">
-              {todayExerciseRows.length}
+              {dayExerciseRows.length}
             </p>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
@@ -134,8 +158,9 @@ export default async function DashboardPage() {
         </div>
 
         <TodayExercisesList
-          entries={todayExerciseRows}
+          entries={dayExerciseRows}
           weightKg={weightKg}
+          isToday={isToday}
         />
       </section>
 
@@ -143,6 +168,18 @@ export default async function DashboardPage() {
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Next actions
         </p>
+        {!isToday ? (
+          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            Logging always goes to{" "}
+            <Link
+              href="/dashboard"
+              className="font-medium text-brand-blue underline-offset-2 hover:underline"
+            >
+              today
+            </Link>
+            .
+          </p>
+        ) : null}
         <Link
           href="/log"
           className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"

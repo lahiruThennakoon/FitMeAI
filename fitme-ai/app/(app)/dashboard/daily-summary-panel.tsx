@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BaselineBurnResult } from "@/lib/domain/burn/baseline";
 import {
   describeEnergyBalance,
@@ -12,6 +13,8 @@ import { WaterLogControl } from "./water-log-control";
 
 type Props = {
   summary: DailySummary;
+  /** When false, viewing yesterday — hide water quick-add (logs always go to today). */
+  isToday?: boolean;
 };
 
 function fmt(v: number, unit: string): string {
@@ -140,21 +143,24 @@ function ProgressBar({
 }
 
 /**
- * Today’s energy — ring hero + Food / Burn rows (mock-inspired, calm copy).
+ * Energy balance — ring hero + Food / Burn rows (mock-inspired, calm copy).
  */
 function EnergyBalanceCard({
   intakeKcal,
   exerciseKcal,
   burn,
   netKcal,
+  isToday = true,
 }: {
   intakeKcal: number;
   exerciseKcal: number;
   burn: BaselineBurnResult;
   netKcal: number;
+  isToday?: boolean;
 }) {
   const balance = describeEnergyBalance(netKcal);
   const isOver = balance.kind === "over";
+  const dayLabel = isToday ? "Today’s energy" : "Yesterday’s energy";
 
   const shell = isOver
     ? "border-red-300/50 bg-red-50/80 dark:border-red-800/50 dark:bg-red-950/25"
@@ -172,7 +178,7 @@ function EnergyBalanceCard({
     <div
       className={`rounded-xl border px-3 py-3.5 ${shell}`}
       data-testid="energy-balance"
-      aria-label={`Today's energy: ${balance.statusLabel}`}
+      aria-label={`${dayLabel}: ${balance.statusLabel}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -182,7 +188,7 @@ function EnergyBalanceCard({
           >
             ⚡
           </span>
-          Today’s energy
+          {dayLabel}
         </p>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip}`}
@@ -224,7 +230,7 @@ function EnergyBalanceCard({
 /**
  * Full daily summary: calories, remaining, macros, water, net (FR-15).
  */
-export function DailySummaryPanel({ summary }: Props) {
+export function DailySummaryPanel({ summary, isToday = true }: Props) {
   const net = summary.netKcal;
   const remaining = summary.remainingKcal;
   /** Remaining: positive = under target (↓), negative = over (↑). */
@@ -276,7 +282,7 @@ export function DailySummaryPanel({ summary }: Props) {
     >
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          Today · {summary.dayKey}
+          {isToday ? "Today" : "Yesterday"} · {summary.dayKey}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
           {summary.supportiveMessage}
@@ -362,6 +368,7 @@ export function DailySummaryPanel({ summary }: Props) {
           exerciseKcal={summary.exerciseKcal}
           burn={summary.baseline}
           netKcal={net}
+          isToday={isToday}
         />
       ) : (
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
@@ -437,7 +444,20 @@ export function DailySummaryPanel({ summary }: Props) {
             own anytime in Profile.
           </p>
         ) : null}
-        <WaterLogControl preferredUnits={summary.preferredUnits} />
+        {isToday ? (
+          <WaterLogControl preferredUnits={summary.preferredUnits} />
+        ) : (
+          <p className="mt-3 text-sm text-sky-900/80 dark:text-sky-200/80">
+            Water logging always applies to today.{" "}
+            <Link
+              href="/dashboard"
+              className="font-medium text-brand-blue underline-offset-2 hover:underline"
+            >
+              Back to today
+            </Link>{" "}
+            to add a sip.
+          </p>
+        )}
       </div>
     </section>
   );

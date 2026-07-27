@@ -90,17 +90,20 @@ function toFormState(entry: FoodEntryEditableDto): EditFormState {
 
 type Props = {
   entries: FoodEntryEditableDto[];
+  isToday?: boolean;
 };
 
 /**
  * Today's meal list with inline edit/soft-delete (Story 5.2 / FR-9 correction
  * path). Fixing a mistake is calm and reversible-feeling — no shame copy.
  */
-export function TodayMealsList({ entries }: Props) {
+export function TodayMealsList({ entries, isToday = true }: Props) {
   if (entries.length === 0) {
     return (
       <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-        No meals yet today — a short description is enough to get started.
+        {isToday
+          ? "No meals yet today — a short description is enough to get started."
+          : "No meals logged yesterday — that's fine. Today is a fresh page."}
       </p>
     );
   }
@@ -109,7 +112,7 @@ export function TodayMealsList({ entries }: Props) {
     <ul
       className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
       data-testid="today-meals-list"
-      aria-label="Today's meals, scrollable"
+      aria-label={isToday ? "Today's meals, scrollable" : "Yesterday's meals, scrollable"}
     >
       {entries.map((entry) => (
         <MealRow key={entry.id} entry={entry} />

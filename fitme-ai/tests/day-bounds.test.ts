@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   isWithinDay,
+  previousZonedDayKey,
+  resolveHomeDaySelection,
   startOfZonedDay,
   zonedDayBounds,
+  zonedDayBoundsForDayKey,
 } from "@/lib/domain/dashboard/day-bounds";
 
 describe("zonedDayBounds (AD-10)", () => {
@@ -40,5 +43,94 @@ describe("zonedDayBounds (AD-10)", () => {
     const a = startOfZonedDay("2026-01-15", "Asia/Colombo");
     const b = startOfZonedDay("2026-01-15", "Asia/Colombo");
     expect(a.getTime()).toBe(b.getTime());
+  });
+});
+
+describe("resolveHomeDaySelection (Story 5.4)", () => {
+  const now = new Date("2026-07-26T12:00:00.000Z");
+
+  it("defaults to today when no day is requested", () => {
+    const sel = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: null,
+    });
+    expect(sel.isToday).toBe(true);
+    expect(sel.bounds.dayKey).toBe("2026-07-26");
+    expect(sel.yesterdayKey).toBe("2026-07-25");
+  });
+
+  it("selects yesterday when requested", () => {
+    const sel = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: "2026-07-25",
+    });
+    expect(sel.isToday).toBe(false);
+    expect(sel.bounds.dayKey).toBe("2026-07-25");
+    expect(isWithinDay(new Date("2026-07-25T12:00:00.000Z"), sel.bounds)).toBe(
+      true,
+    );
+    expect(isWithinDay(new Date("2026-07-26T00:00:00.000Z"), sel.bounds)).toBe(
+      false,
+    );
+  });
+
+  it("falls back to today for future or older-than-yesterday keys", () => {
+    const future = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: "2026-07-27",
+    });
+    const older = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: "2026-07-20",
+    });
+    expect(future.isToday).toBe(true);
+    expect(older.isToday).toBe(true);
+    expect(future.bounds.dayKey).toBe("2026-07-26");
+  });
+
+  it("falls back to today for malformed day query", () => {
+    const sel = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: "not-a-day",
+    });
+    expect(sel.isToday).toBe(true);
+    expect(sel.bounds.dayKey).toBe("2026-07-26");
+  });
+
+  it("resolves true Colombo midnight (half-hour offset)", () => {
+    // Asia/Colombo midnight for 2026-07-26 is 2026-07-25T18:30:00.000Z
+    const start = startOfZonedDay("2026-07-26", "Asia/Colombo");
+    expect(start.toISOString()).toBe("2026-07-25T18:30:00.000Z");
+    expect(previousZonedDayKey("2026-07-26", "Asia/Colombo")).toBe(
+      "2026-07-25",
+    );
+  });
+
+  it("respects Asia/Colombo day boundary for yesterday", () => {
+    // 2026-07-25 20:00 UTC = 2026-07-26 in Colombo → yesterday is 2026-07-25
+    const colomboNow = new Date("2026-07-25T20:00:00.000Z");
+    const sel = resolveHomeDaySelection({
+      now: colomboNow,
+      timeZone: "Asia/Colombo",
+      requestedDay: "2026-07-25",
+    });
+    expect(sel.todayKey).toBe("2026-07-26");
+    expect(sel.yesterdayKey).toBe("2026-07-25");
+    expect(sel.isToday).toBe(false);
+    expect(sel.bounds.dayKey).toBe("2026-07-25");
+  });
+
+  it("previousZonedDayKey and boundsForDayKey stay consistent", () => {
+    expect(previousZonedDayKey("2026-07-26", "UTC")).toBe("2026-07-25");
+    const bounds = zonedDayBoundsForDayKey("2026-07-25", "UTC");
+    expect(bounds.dayKey).toBe("2026-07-25");
+    expect(bounds.end.getTime()).toBe(
+      startOfZonedDay("2026-07-26", "UTC").getTime(),
+    );
   });
 });

@@ -102,6 +102,10 @@ Each meal in Home's "Meals today" list has inline `Edit` / `Delete` actions. Edi
 
 Home's "Exercise today" list mirrors meals: inline `Edit` / `Delete` with a calm Keep/Remove confirm. Edit covers activity type, duration, and intensity (plus a custom name when type is custom); burn is recomputed with the same MET formula and stays labelled as an estimate. Soft-delete uses `deletedAt`. Ownership matches meals — missing and cross-user both look like "not found".
 
+### Day switcher on Home (Story 5.4)
+
+Home can flip between **today** and **yesterday** in the profile timezone (`?day=YYYY-MM-DD`, clean `/dashboard` = today). Meals, exercise, water, and energy all rebuild for the selected day. Future days are not offered. Logging CTAs and water quick-add still target *today* — when viewing yesterday, water add is hidden with a calm link back.
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

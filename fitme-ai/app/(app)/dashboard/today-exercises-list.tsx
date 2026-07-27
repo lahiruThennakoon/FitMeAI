@@ -84,17 +84,24 @@ type Props = {
   entries: ExerciseEntryEditableDto[];
   /** Profile body weight in kg when available — live preview only. */
   weightKg: number | null;
+  isToday?: boolean;
 };
 
 /**
  * Today's exercise list with inline edit/soft-delete (Story 5.3).
  * Burn stays labelled as an estimate after edits.
  */
-export function TodayExercisesList({ entries, weightKg }: Props) {
+export function TodayExercisesList({
+  entries,
+  weightKg,
+  isToday = true,
+}: Props) {
   if (entries.length === 0) {
     return (
       <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-        No workouts yet today — a short log keeps energy balance honest.
+        {isToday
+          ? "No workouts yet today — a short log keeps energy balance honest."
+          : "No workouts logged yesterday — rest days count too."}
       </p>
     );
   }
@@ -103,7 +110,9 @@ export function TodayExercisesList({ entries, weightKg }: Props) {
     <ul
       className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
       data-testid="today-exercises-list"
-      aria-label="Today's workouts, scrollable"
+      aria-label={
+        isToday ? "Today's workouts, scrollable" : "Yesterday's workouts, scrollable"
+      }
     >
       {entries.map((entry) => (
         <ExerciseRow key={entry.id} entry={entry} weightKg={weightKg} />
