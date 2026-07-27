@@ -106,6 +106,10 @@ Home's "Exercise today" list mirrors meals: inline `Edit` / `Delete` with a calm
 
 Home can flip between **today** and **yesterday** in the profile timezone (`?day=YYYY-MM-DD`, clean `/dashboard` = today). Meals, exercise, water, and energy all rebuild for the selected day. Future days are not offered. Logging CTAs and water quick-add still target *today* — when viewing yesterday, water add is hidden with a calm link back.
 
+### Recent & favorites on Log (Story 5.5)
+
+Log shows **Recent** and **Favorites** above Quick log. Star to pin; tap to create a **new** meal for now (no overwrite). Catalog items reuse the instant/offline path; other meals copy the saved macros and `dataSource` (no new AI estimate). Empty state points to parse or Quick log.
+
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 
 - **Quick log** on `/log` uses a client-cached catalog (no AI). Works offline after one online visit populates the cache.

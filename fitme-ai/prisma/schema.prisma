@@ -300,6 +300,8 @@ model FoodEntry {
   clientKey   String?
   /// Soft-delete (AD-8). Null = active.
   deletedAt   DateTime?
+  /// Pin for one-tap re-log on Log (Story 5.5).
+  isFavorite  Boolean             @default(false)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -312,6 +314,7 @@ model FoodEntry {
   @@unique([userId, clientKey])
   @@index([userId, loggedAt])
   @@index([userId, deletedAt])
+  @@index([userId, isFavorite])
   @@index([foodId])
   @@index([aiInteractionId])
   @@map("food_entry")
