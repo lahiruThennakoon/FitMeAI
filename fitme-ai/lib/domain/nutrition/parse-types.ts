@@ -66,6 +66,11 @@ export type ParsedFoodItemDraft = {
   origin: "ai_parse" | "manual";
   /** Original AI values at parse time (ai_parse only). */
   aiSnapshot: AiValueSnapshot | null;
+  /**
+   * Optional free-text context typed in review. Optional rather than nullable
+   * so the many draft builders (parse, decompose, chips, rescale) stay valid.
+   */
+  note?: string | null;
 };
 
 export type ParsedMealDraft = {

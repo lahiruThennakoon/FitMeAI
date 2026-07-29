@@ -131,19 +131,19 @@ Users can finish incomplete Home loops (water), fix mistakes on today’s logs, 
 ### Epic 6: Body Progress
 Users can log weight check-ins and see calm progress toward their target — keeping profile weight current for burn estimates.
 **FRs covered:** Phase 2 Should — body/weight progress (PRD §6.2)
-**Status:** In progress (2026-07-27) — see `epic-6-body-progress.md`
+**Status:** In progress (2026-07-27) — 6.1 in review; 6.2 absorbed by Epic 9.5 — see `epic-6-body-progress.md`
 
 ### Epic 7: Fasting Time Tracker
 Users can start/stop a fast, see elapsed time, and keep a calm session history — data for later correlations.
-**Status:** In progress (2026-07-27) — see `epic-7-fasting-tracker.md`
+**Status:** Done (2026-07-27) — all stories in review pending polish — see `epic-7-fasting-tracker.md`
 
 ### Epic 8: Blood Sugar Level Tracker
 Users can log glucose readings with context tags (fasting / meal / bedtime) — personal tracker only, not medical advice.
-**Status:** Planned (2026-07-27) — see `epic-8-blood-sugar-tracker.md`
+**Status:** Done (2026-07-27) — all stories in review pending polish — see `epic-8-blood-sugar-tracker.md`
 
 ### Epic 9: Flexible Correlation Graphs
 Users pick X/Y metrics (weight, glucose, fasting duration, time) and explore calm correlation / trend charts.
-**Status:** Planned (2026-07-27) — see `epic-9-correlation-graphs.md`
+**Status:** Done (2026-07-27) — see `epic-9-correlation-graphs.md`; 9.5 absorbs Epic 6.2 weight sparkline
 **Depends on:** 6.1, 7.x, 8.x
 
 ---
@@ -755,6 +755,8 @@ So that progress toward my target is visible and burn estimates stay current.
 
 ### Story 6.2: Weight trend sparkline
 
+**Status: Absorbed (2026-07-27)** — delivered as Epic 9.5 `time × weight` on `/progress`. See `6-2-weight-trend-sparkline.md` and `9-5-weight-trend-via-progress.md`.
+
 As a user,
 I want a simple weight trend,
 So that progress over days is glanceable without charts overload.
@@ -762,44 +764,42 @@ So that progress over days is glanceable without charts overload.
 **Acceptance Criteria:**
 
 **Given** I have multiple weigh-ins
-**When** I open Profile (or Home progress)
-**Then** I see a calm sparkline / trend of recent weights toward target
+**When** I open Progress with X=time, Y=weight
+**Then** I see a calm trend of recent weights
 **And** copy stays supportive (no shame).
-
-**Note:** May be skipped if Epic 9 delivers `time × weight` first (prefer one charting stack).
 
 ---
 
 ## Epic 7: Fasting Time Tracker
 
-See `epic-7-fasting-tracker.md`. Manual start/stop fasting sessions, live timer, history — no medical claims.
+See `epic-7-fasting-tracker.md`. **Status: Done (2026-07-27).**
 
-### Story 7.1: Fasting session model + start/stop
-### Story 7.2: Active fast UI (timer + End)
-### Story 7.3: Fasting history list + soft-delete
-### Story 7.4: Home glance — fasting status chip
+### Story 7.1: Fasting session model + start/stop — **review**
+### Story 7.2: Active fast UI (timer + progress) — **review**
+### Story 7.3: Fasting history list + soft-delete — **review**
+### Story 7.4: Home glance — fasting status chip — **review**
 
 ---
 
 ## Epic 8: Blood Sugar Level Tracker
 
-See `epic-8-blood-sugar-tracker.md`. Manual glucose logs with context tags; disclaimer; not CGM / not diagnosis.
+See `epic-8-blood-sugar-tracker.md`. **Status: Done (2026-07-27).**
 
-### Story 8.1: GlucoseEntry model + log action
-### Story 8.2: Log UI (value, unit, context, time)
-### Story 8.3: Recent list + edit/soft-delete
-### Story 8.4: Home glance — last reading (optional)
+### Story 8.1: GlucoseEntry model + log action — **review**
+### Story 8.2: Log UI (value, unit, context, time) — **review**
+### Story 8.3: Recent list + edit/soft-delete — **review**
+### Story 8.4: Home glance — last reading — **review**
 
 ---
 
 ## Epic 9: Flexible Correlation Graphs
 
-See `epic-9-correlation-graphs.md`. Progress page with selectable X/Y (weight, glucose, fasting duration, time) and range.
+See `epic-9-correlation-graphs.md`. **Status: Done (2026-07-27).**
 
-### Story 9.1: Chart library spike + Progress page shell
-### Story 9.2: Metric series DAL (time-bounded)
-### Story 9.3: XY picker + scatter/line renderer
-### Story 9.4: Time-range + empty/sparse states
-### Story 9.5: Optional — absorb weight sparkline (6.2)
+### Story 9.1: Progress page shell + SVG chart spike — **review**
+### Story 9.2: Metric series DAL (time-bounded) — **review**
+### Story 9.3: XY picker + scatter/line renderer — **review**
+### Story 9.4: Time-range + empty/sparse states — **review**
+### Story 9.5: Weight trend via Progress (absorbs 6.2) — **done**
 
 ---

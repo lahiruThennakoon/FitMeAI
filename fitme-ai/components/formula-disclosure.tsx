@@ -79,25 +79,42 @@ export function FormulaNote({ children }: { children: ReactNode }) {
 
 /**
  * Shared Baseline Burn transparency block (dashboard + burn panel).
+ *
+ * The one-line arithmetic is always visible — a number the whole dashboard
+ * hangs off shouldn't need a click to justify itself. The disclosure keeps the
+ * long-form Mifflin–St Jeor expressions for anyone who wants to check them.
  */
 export function BaselineBurnCalcDetails({ burn }: { burn: BaselineBurnResult }) {
   const activityLabel = burn.activityLevel.replaceAll("_", " ");
 
   return (
-    <FormulaDisclosure title="How Baseline Burn is calculated">
-      <FormulaRow
-        label="BMR"
-        value={`${burn.bmrKcal} kcal`}
-        meta="Mifflin–St Jeor"
-        formula={burn.formulaBmr}
-      />
-      <FormulaRow
-        label="Baseline Burn"
-        value={`${Math.round(burn.baselineBurnKcal)} kcal/day`}
-        meta={`TDEE · ${activityLabel} (${burn.activityMultiplier}×)`}
-        formula={burn.formulaTdee}
-      />
-      <FormulaNote>{burn.limitation}</FormulaNote>
-    </FormulaDisclosure>
+    <>
+      <p
+        className="mt-2 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
+        data-testid="baseline-burn-gist"
+      >
+        <span className="tabular-nums font-medium text-neutral-700 dark:text-neutral-200">
+          {Math.round(burn.baselineBurnKcal)} kcal
+        </span>{" "}
+        = BMR <span className="tabular-nums">{burn.bmrKcal}</span> ×{" "}
+        <span className="tabular-nums">{burn.activityMultiplier}</span> (
+        {activityLabel}), from Mifflin–St Jeor.
+      </p>
+      <FormulaDisclosure title="Show the full formula">
+        <FormulaRow
+          label="BMR"
+          value={`${burn.bmrKcal} kcal`}
+          meta="Mifflin–St Jeor"
+          formula={burn.formulaBmr}
+        />
+        <FormulaRow
+          label="Baseline Burn"
+          value={`${Math.round(burn.baselineBurnKcal)} kcal/day`}
+          meta={`TDEE · ${activityLabel} (${burn.activityMultiplier}×)`}
+          formula={burn.formulaTdee}
+        />
+        <FormulaNote>{burn.limitation}</FormulaNote>
+      </FormulaDisclosure>
+    </>
   );
 }

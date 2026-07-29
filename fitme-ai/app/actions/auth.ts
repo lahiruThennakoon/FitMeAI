@@ -3,17 +3,26 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
+  CHANGE_EMAIL_GENERIC_ERROR,
+  CHANGE_EMAIL_SAME_ADDRESS_ERROR,
+  CHANGE_PASSWORD_GENERIC_ERROR,
+  CHANGE_PASSWORD_SUCCESS_MESSAGE,
   DELETE_ACCOUNT_GENERIC_ERROR,
   RATE_LIMIT_ERROR,
   REGISTER_GENERIC_ERROR,
   REGISTER_SUCCESS_MESSAGE,
   REQUEST_RESET_SUCCESS_MESSAGE,
   RESET_PASSWORD_GENERIC_ERROR,
+  changeEmailPendingMessage,
   fieldErrorsFromZod,
   mapLoginError,
   nameFromEmail,
   type AuthClientKeyFn,
   type AuthRateLimitFn,
+  type ChangeEmailDeps,
+  type ChangeEmailResult,
+  type ChangePasswordDeps,
+  type ChangePasswordResult,
   type DeleteAccountDeps,
   type DeleteAccountResult,
   type LoginActionDeps,
@@ -28,17 +37,21 @@ import {
 import { logger } from "@/lib/logging";
 import {
   enforceAuthRateLimit,
+  rateLimitMessage,
   type AuthRateLimitBucket,
 } from "@/lib/rate-limit";
 import { clientKeyFromHeaders } from "@/lib/rate-limit/client-key";
 import { err, ok } from "@/lib/result";
 import {
+  changeEmailSchema,
+  changePasswordSchema,
   deleteAccountSchema,
   loginSchema,
   registerSchema,
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from "@/lib/schemas/auth";
+import { getSession } from "@/lib/dal";
 
 async function defaultClientKey(): Promise<string> {
   return clientKeyFromHeaders(await headers());
@@ -61,7 +74,7 @@ async function guardAuthRateLimit(opts: {
     const result = rateLimit(opts.bucket, clientKey);
     if (!result.ok) {
       logger.warn(opts.event, { outcome: "rate_limited" });
-      return { ok: false, error: RATE_LIMIT_ERROR };
+      return { ok: false, error: rateLimitMessage(result.retryAfterSec) };
     }
     return { ok: true };
   } catch {
@@ -247,6 +260,107 @@ export async function resetPasswordAction(
     logger.error("auth.password_reset.failed", { outcome: "rejected" });
     return err(RESET_PASSWORD_GENERIC_ERROR);
   }
+}
+
+/**
+ * Change password without leaving the app (Tier 3).
+ *
+ * Reuses the login rate-limit bucket: this endpoint verifies a password, so it
+ * is a credential-guessing surface just like sign-in.
+ */
+export async function changePasswordAction(
+  input: unknown,
+  deps: ChangePasswordDeps = {},
+): Promise<ChangePasswordResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "login",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.password_change.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
+  const parsed = changePasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return err(
+      "Please check the highlighted fields.",
+      fieldErrorsFromZod(parsed.error),
+    );
+  }
+
+  const changePassword =
+    deps.changePassword ?? ((args) => auth.api.changePassword(args));
+  const getHeaders = deps.getHeaders ?? (async () => await headers());
+
+  try {
+    await changePassword({
+      body: {
+        currentPassword: parsed.data.currentPassword,
+        newPassword: parsed.data.newPassword,
+        revokeOtherSessions: parsed.data.revokeOtherSessions,
+      },
+      headers: await getHeaders(),
+    });
+    logger.info("auth.password_change.completed", { outcome: "accepted" });
+    return ok({ message: CHANGE_PASSWORD_SUCCESS_MESSAGE });
+  } catch {
+    logger.warn("auth.password_change.failed", { outcome: "rejected" });
+    return err(CHANGE_PASSWORD_GENERIC_ERROR, {
+      currentPassword: CHANGE_PASSWORD_GENERIC_ERROR,
+    });
+  }
+}
+
+/**
+ * Start an email change. Better Auth mails the approval link to the address
+ * currently on file, so the response is the same whether or not the new address
+ * is already registered.
+ */
+export async function changeEmailAction(
+  input: unknown,
+  deps: ChangeEmailDeps = {},
+): Promise<ChangeEmailResult> {
+  const limited = await guardAuthRateLimit({
+    bucket: "passwordResetRequest",
+    getClientKey: deps.getClientKey,
+    rateLimit: deps.rateLimit,
+    event: "auth.email_change.rate_limited",
+  });
+  if (!limited.ok) return err(limited.error);
+
+  const parsed = changeEmailSchema.safeParse(input);
+  if (!parsed.success) {
+    return err(
+      "Please check the highlighted fields.",
+      fieldErrorsFromZod(parsed.error),
+    );
+  }
+
+  const readSession = deps.getSession ?? getSession;
+  const session = await readSession();
+  if (!session) return err("Please sign in to change your email.");
+
+  if (session.email.toLowerCase() === parsed.data.newEmail.toLowerCase()) {
+    return err(CHANGE_EMAIL_SAME_ADDRESS_ERROR, {
+      newEmail: CHANGE_EMAIL_SAME_ADDRESS_ERROR,
+    });
+  }
+
+  const changeEmail = deps.changeEmail ?? ((args) => auth.api.changeEmail(args));
+  const getHeaders = deps.getHeaders ?? (async () => await headers());
+
+  try {
+    await changeEmail({
+      body: { newEmail: parsed.data.newEmail, callbackURL: "/settings" },
+      headers: await getHeaders(),
+    });
+  } catch {
+    // Stay neutral: a "taken" address must look like a success (enumeration-safe).
+    logger.warn("auth.email_change.failed", { outcome: "error" });
+  }
+
+  logger.info("auth.email_change.requested", { outcome: "accepted" });
+  return ok({ message: changeEmailPendingMessage(session.email) });
 }
 
 export async function deleteAccountAction(

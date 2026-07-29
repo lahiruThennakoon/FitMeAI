@@ -104,7 +104,7 @@ Home's "Exercise today" list mirrors meals: inline `Edit` / `Delete` with a calm
 
 ### Day switcher on Home (Story 5.4)
 
-Home can flip between **today** and **yesterday** in the profile timezone (`?day=YYYY-MM-DD`, clean `/dashboard` = today). Meals, exercise, water, and energy all rebuild for the selected day. Future days are not offered. Logging CTAs and water quick-add still target *today* — when viewing yesterday, water add is hidden with a calm link back.
+Home can show **today or any past day** in the profile timezone (`?day=YYYY-MM-DD`, clean `/dashboard` = today). Use the calendar control on Home to pick a date, or step day-by-day with the arrows. Meals, exercise, water, and energy all rebuild for the selected day. Future days are not offered. Logging CTAs and water quick-add still target *today* — when viewing a past day, water add is hidden with a calm link back.
 
 ### Recent & favorites on Log (Story 5.5)
 
@@ -112,11 +112,19 @@ Log shows **Recent** and **Favorites** above Quick log. Star to pin; tap to crea
 
 ### Weight check-in (Story 6.1)
 
-Profile includes a **Weight check-in** card: log kg/lb (preferred units), see calm distance-to-target copy, and a recent weigh-in list. Each save writes a `WeightEntry` (canonical grams) and updates `profile.currentWeightG` so burn estimates stay current. Trend sparkline lands in Story 6.2.
+Profile includes a **Weight check-in** card: log kg/lb (preferred units), see calm distance-to-target copy, and a recent weigh-in list. Each save writes a `WeightEntry` (canonical grams) and updates `profile.currentWeightG` so burn estimates stay current. When you override weekly weight change (e.g. −1000 g = 1 kg/week loss), safety warnings appear at save time; **Pacing vs plan** on Profile compares recent weigh-ins to that rate once you have two entries about a week apart. Weight trend is on **Progress** (`time × weight`).
 
-### Fasting timer (Story 7.1)
+### Fasting timer (Stories 7.1–7.4)
 
-**Fasting timer** at `/fasting` (also linked from Home). Start an optional protocol/planned duration; end anytime. Only one active fast per user. Personal clock only — not medical advice. History list and Home status chip land in 7.3–7.4.
+**Fasting timer** at `/fasting` (also linked from Home). Start an optional protocol/planned duration with a live timer and planned-window progress bar; end anytime. Only one active fast per user. Completed fasts appear in history (soft-delete supported). Home shows an active-fast status chip when a fast is running. Personal clock only — not medical advice.
+
+### Blood sugar log (Epic 8)
+
+**Glucose** at `/glucose`. Log value in mg/dL or mmol/L (stored canonical mg/dL), context tag, and optional note. Recent list supports edit and soft-delete. Home shows the latest reading when present. Personal tracker only — not diagnosis or treatment.
+
+### Progress charts (Epic 9)
+
+**Progress** at `/progress`. Pick X and Y from weight, glucose, fasting duration, or time; choose 7 / 30 / 90 day range. Line charts for time trends; scatter for metric pairs (same-calendar-day join in profile timezone). Empty states encourage logging — no medical conclusions from correlations.
 
 ### Offline PWA (Stories 4.1–4.2 / FR-16)
 

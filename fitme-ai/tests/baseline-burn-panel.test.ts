@@ -25,7 +25,8 @@ describe("BaselineBurnPanel", () => {
     expect(html).toContain('data-testid="energy-balance-chart"');
     expect(html).toContain("Food");
     expect(html).toContain("Burn");
-    expect(html).toContain("How Baseline Burn is calculated");
+    expect(html).toContain('data-testid="baseline-burn-gist"');
+    expect(html).toContain("Show the full formula");
     expect(html).toContain("Mifflin");
     expect(html).toContain("not medical advice");
     expect(html).not.toContain("Net calories");

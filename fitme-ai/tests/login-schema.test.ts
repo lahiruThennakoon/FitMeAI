@@ -8,6 +8,9 @@ describe("loginSchema (field-keyed validation for sign-in)", () => {
       password: "securepass",
     });
     expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.email).toBe("nimali@example.com");
+    }
   });
 
   it("rejects a malformed email", () => {
@@ -34,5 +37,32 @@ describe("loginSchema (field-keyed validation for sign-in)", () => {
         parsed.error.issues.some((i) => i.path[0] === "password"),
       ).toBe(true);
     }
+  });
+
+  it("rejects whitespace-only passwords", () => {
+    const parsed = loginSchema.safeParse({
+      email: "nimali@example.com",
+      password: "   ",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("trims and lowercases email on output", () => {
+    const parsed = loginSchema.safeParse({
+      email: "  Nimali@Example.COM ",
+      password: "securepass",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.email).toBe("nimali@example.com");
+    }
+  });
+
+  it("rejects passwords longer than 128 characters", () => {
+    const parsed = loginSchema.safeParse({
+      email: "nimali@example.com",
+      password: "x".repeat(129),
+    });
+    expect(parsed.success).toBe(false);
   });
 });

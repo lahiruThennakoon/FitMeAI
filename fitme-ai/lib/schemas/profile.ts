@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { glucoseDisplayUnitSchema } from "@/lib/schemas/glucose";
 
 export const sexSchema = z.enum(["male", "female"]);
 export const activityLevelSchema = z.enum([
@@ -65,11 +66,14 @@ export const saveProfileSchema = z
       .default([]),
     goalType: goalTypeSchema,
     preferredUnits: preferredUnitsSchema,
+    preferredGlucoseUnit: glucoseDisplayUnitSchema.default("mg_dl"),
+    eatBackExercise: z.boolean().default(false),
     country: z
       .string()
       .trim()
-      .min(2, "Enter your country.")
-      .max(80, "Country must be at most 80 characters."),
+      .max(80, "Country must be at most 80 characters.")
+      .optional()
+      .transform((v) => v ?? ""),
     timezone: z
       .string()
       .trim()
@@ -127,7 +131,7 @@ export const saveProfileSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["height"],
-          message: "Height should be between 40 and 98 in.",
+          message: `Height should be between 3'4" and 8'2".`,
         });
       }
       if (data.currentWeight < 67 || data.currentWeight > 881) {
@@ -148,3 +152,30 @@ export const saveProfileSchema = z
   });
 
 export type SaveProfileInput = z.infer<typeof saveProfileSchema>;
+
+/**
+ * The display-only slice editable straight from Settings.
+ * Deliberately excludes anything that feeds target maths.
+ */
+export const displayPreferencesSchema = z.object({
+  preferredUnits: preferredUnitsSchema,
+  preferredGlucoseUnit: glucoseDisplayUnitSchema.default("mg_dl"),
+  timezone: z
+    .string()
+    .trim()
+    .min(1, "Choose a timezone.")
+    .refine(isValidIanaTimezone, {
+      message: "Choose a valid timezone (e.g. Asia/Colombo).",
+    }),
+});
+
+export type DisplayPreferencesInput = z.infer<typeof displayPreferencesSchema>;
+
+export const notificationPreferencesSchema = z.object({
+  notifyFastingEnd: z.boolean(),
+  notifyWeeklyDigest: z.boolean(),
+});
+
+export type NotificationPreferencesInput = z.infer<
+  typeof notificationPreferencesSchema
+>;

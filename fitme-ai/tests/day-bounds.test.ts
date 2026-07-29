@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildHomeDayLabels,
+  formatHomeDayShort,
   isWithinDay,
   previousZonedDayKey,
   resolveHomeDaySelection,
@@ -76,19 +78,26 @@ describe("resolveHomeDaySelection (Story 5.4)", () => {
     );
   });
 
-  it("falls back to today for future or older-than-yesterday keys", () => {
-    const future = resolveHomeDaySelection({
-      now,
-      timeZone: "UTC",
-      requestedDay: "2026-07-27",
-    });
+  it("selects any past day when requested", () => {
     const older = resolveHomeDaySelection({
       now,
       timeZone: "UTC",
       requestedDay: "2026-07-20",
     });
+    expect(older.isToday).toBe(false);
+    expect(older.bounds.dayKey).toBe("2026-07-20");
+    expect(isWithinDay(new Date("2026-07-20T12:00:00.000Z"), older.bounds)).toBe(
+      true,
+    );
+  });
+
+  it("falls back to today for future keys", () => {
+    const future = resolveHomeDaySelection({
+      now,
+      timeZone: "UTC",
+      requestedDay: "2026-07-27",
+    });
     expect(future.isToday).toBe(true);
-    expect(older.isToday).toBe(true);
     expect(future.bounds.dayKey).toBe("2026-07-26");
   });
 
@@ -132,5 +141,29 @@ describe("resolveHomeDaySelection (Story 5.4)", () => {
     expect(bounds.end.getTime()).toBe(
       startOfZonedDay("2026-07-26", "UTC").getTime(),
     );
+  });
+
+  it("buildHomeDayLabels formats past days", () => {
+    const labels = buildHomeDayLabels("2026-07-20", "2026-07-26", "2026-07-25");
+    expect(labels.isToday).toBe(false);
+    expect(labels.isYesterday).toBe(false);
+    expect(labels.mealsHeading).toContain("Meals ·");
+    expect(labels.switcherLabel).toContain("2026-07-20");
+  });
+
+  it("names the viewed day in removal prompts, not always today", () => {
+    const today = buildHomeDayLabels("2026-07-26", "2026-07-26", "2026-07-25");
+    expect(today.removeScopeLabel).toBe("today");
+
+    const yesterday = buildHomeDayLabels(
+      "2026-07-25",
+      "2026-07-26",
+      "2026-07-25",
+    );
+    expect(yesterday.removeScopeLabel).toBe("yesterday");
+
+    const older = buildHomeDayLabels("2026-07-20", "2026-07-26", "2026-07-25");
+    expect(older.removeScopeLabel).not.toBe("today");
+    expect(older.removeScopeLabel).toBe(formatHomeDayShort("2026-07-20"));
   });
 });

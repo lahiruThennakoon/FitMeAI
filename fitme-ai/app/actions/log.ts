@@ -42,6 +42,7 @@ import { logger } from "@/lib/logging";
 import {
   clientKeyFromHeaders,
   enforceAiRateLimit,
+  rateLimitMessage,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { err, ok, type Result } from "@/lib/result";
@@ -106,7 +107,7 @@ export async function parseMealAction(
 
   const limited = rateLimit("foodParse", clientKey);
   if (!limited.ok) {
-    return err(RATE_LIMIT_ERROR);
+    return err(rateLimitMessage(limited.retryAfterSec));
   }
 
   const parsed = parseMealInputSchema.safeParse(input);

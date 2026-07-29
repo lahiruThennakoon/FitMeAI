@@ -14,6 +14,7 @@ import {
   NO_MEDICAL_ADVICE,
   SAFETY_CONSENT_REQUIRED_ERROR,
 } from "@/lib/domain/safety/ladder";
+import { goalDirectionWarning } from "@/lib/domain/targets/goal-direction";
 import {
   mergeOverrides,
   suggestTargets,
@@ -23,12 +24,19 @@ import {
   displayHeight,
   displayMass,
   displayWater,
+  feetInchesToInches,
   gToKg,
+  gToLb,
+  lbToG,
   parseHeightToCm,
   parseMassToG,
+  parseWaterToMl,
+  roundDisplay,
+  splitFeetInches,
   type PreferredUnits,
 } from "@/lib/domain/targets/units";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+import type { GlucoseDisplayUnit } from "@/lib/domain/glucose/units";
 import {
   FormulaDisclosure,
   FormulaNote,
@@ -86,18 +94,76 @@ function defaultTimezone() {
   }
 }
 
+/**
+ * Overrides are stored canonically but typed in the user's units, so an
+ * imperial user isn't asked for millilitres. Keys absent here are
+ * unit-agnostic (kcal, macro grams, steps, minutes) and pass through.
+ */
+const OVERRIDE_UNIT: Partial<
+  Record<OverrideKey, "water" | "massPerWeek">
+> = {
+  waterMl: "water",
+  weeklyWeightChangeG: "massPerWeek",
+};
+
+function overrideUnitLabel(key: OverrideKey, units: PreferredUnits): string {
+  switch (OVERRIDE_UNIT[key]) {
+    case "water":
+      return units === "imperial" ? "fl oz" : "ml";
+    case "massPerWeek":
+      return units === "imperial" ? "lb/week" : "g/week";
+    default:
+      return "";
+  }
+}
+
+function overrideToDisplay(
+  key: OverrideKey,
+  canonical: number,
+  units: PreferredUnits,
+): number {
+  switch (OVERRIDE_UNIT[key]) {
+    case "water":
+      return displayWater(canonical, units);
+    case "massPerWeek":
+      // Signed: negative means loss, so don't route through Math.abs helpers.
+      return units === "imperial"
+        ? roundDisplay(gToLb(canonical), 2)
+        : Math.round(canonical);
+    default:
+      return canonical;
+  }
+}
+
+function overrideToCanonical(
+  key: OverrideKey,
+  value: number,
+  units: PreferredUnits,
+): number {
+  switch (OVERRIDE_UNIT[key]) {
+    case "water":
+      return parseWaterToMl(value, units);
+    case "massPerWeek":
+      return units === "imperial" ? lbToG(value) : Math.round(value);
+    default:
+      return Math.round(value);
+  }
+}
+
 function initialOverrideValue(
   goal: GoalDto | null,
   key: OverrideKey,
+  units: PreferredUnits,
 ): string {
   if (!goal?.overriddenFields.includes(key)) return "";
-  return String(goal[key]);
+  return String(overrideToDisplay(key, goal[key], units));
 }
 
+/** Keeps fractions so an imperial 1.5 lb/week doesn't round to 2 before conversion. */
 function parseOptionalNumber(raw: string): number | undefined {
   if (raw.trim() === "") return undefined;
   const n = Number(raw);
-  return Number.isFinite(n) ? Math.round(n) : undefined;
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export function GoalsForm({ initialProfile, initialGoal }: Props) {
@@ -113,9 +179,22 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     String(initialProfile?.ageYears ?? ""),
   );
   const [sex, setSex] = useState<Sex>(initialProfile?.sex ?? "female");
+  /** Metric holds cm; imperial splits into feet + inches so nobody types "69". */
   const [height, setHeight] = useState(
-    initialProfile
+    initialProfile && units === "metric"
       ? String(displayHeight(initialProfile.heightCm, units))
+      : "",
+  );
+  const [heightFeet, setHeightFeet] = useState(() =>
+    initialProfile && units === "imperial"
+      ? String(splitFeetInches(displayHeight(initialProfile.heightCm, units)).feet)
+      : "",
+  );
+  const [heightInches, setHeightInches] = useState(() =>
+    initialProfile && units === "imperial"
+      ? String(
+          splitFeetInches(displayHeight(initialProfile.heightCm, units)).inches,
+        )
       : "",
   );
   const [currentWeight, setCurrentWeight] = useState(
@@ -137,23 +216,34 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
   const [goalType, setGoalType] = useState<GoalType>(
     initialProfile?.goalType ?? "general_health",
   );
+  const [glucoseUnit, setGlucoseUnit] = useState<GlucoseDisplayUnit>(
+    initialProfile?.preferredGlucoseUnit ?? "mg_dl",
+  );
+  const [eatBackExercise, setEatBackExercise] = useState(
+    initialProfile?.eatBackExercise ?? false,
+  );
   const [country, setCountry] = useState(initialProfile?.country ?? "");
   const [timezone, setTimezone] = useState(
     initialProfile?.timezone ?? defaultTimezone(),
   );
   const [overrides, setOverrides] = useState<Record<OverrideKey, string>>(
     () => ({
-      caloriesKcal: initialOverrideValue(initialGoal, "caloriesKcal"),
-      proteinG: initialOverrideValue(initialGoal, "proteinG"),
-      carbsG: initialOverrideValue(initialGoal, "carbsG"),
-      fatG: initialOverrideValue(initialGoal, "fatG"),
-      fibreG: initialOverrideValue(initialGoal, "fibreG"),
-      waterMl: initialOverrideValue(initialGoal, "waterMl"),
-      steps: initialOverrideValue(initialGoal, "steps"),
-      exerciseMinutes: initialOverrideValue(initialGoal, "exerciseMinutes"),
+      caloriesKcal: initialOverrideValue(initialGoal, "caloriesKcal", units),
+      proteinG: initialOverrideValue(initialGoal, "proteinG", units),
+      carbsG: initialOverrideValue(initialGoal, "carbsG", units),
+      fatG: initialOverrideValue(initialGoal, "fatG", units),
+      fibreG: initialOverrideValue(initialGoal, "fibreG", units),
+      waterMl: initialOverrideValue(initialGoal, "waterMl", units),
+      steps: initialOverrideValue(initialGoal, "steps", units),
+      exerciseMinutes: initialOverrideValue(
+        initialGoal,
+        "exerciseMinutes",
+        units,
+      ),
       weeklyWeightChangeG: initialOverrideValue(
         initialGoal,
         "weeklyWeightChangeG",
+        units,
       ),
     }),
   );
@@ -170,9 +260,15 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     setOverrides((prev) => ({ ...prev, [key]: value }));
   }
 
+  /** Height in whatever unit the form is currently collecting (cm, or total inches). */
+  const heightEntered =
+    units === "imperial"
+      ? feetInchesToInches(Number(heightFeet || 0), Number(heightInches || 0))
+      : Number(height);
+
   function switchUnits(next: PreferredUnits) {
     if (next === units) return;
-    const h = Number(height);
+    const h = heightEntered;
     const cw = Number(currentWeight);
     const tw = Number(targetWeight);
     const canConvert =
@@ -190,9 +286,29 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
       return;
     }
     setFieldErrors({});
-    setHeight(String(displayHeight(parseHeightToCm(h, units), next)));
+    const nextHeight = displayHeight(parseHeightToCm(h, units), next);
+    if (next === "imperial") {
+      const parts = splitFeetInches(nextHeight);
+      setHeightFeet(String(parts.feet));
+      setHeightInches(String(parts.inches));
+    } else {
+      setHeight(String(nextHeight));
+    }
     setCurrentWeight(String(displayMass(parseMassToG(cw, units), next)));
     setTargetWeight(String(displayMass(parseMassToG(tw, units), next)));
+    // Overrides are stored canonically, so re-render them in the new units.
+    setOverrides((prev) => {
+      const converted = { ...prev };
+      for (const key of OVERRIDE_KEYS) {
+        if (!OVERRIDE_UNIT[key]) continue;
+        const n = parseOptionalNumber(prev[key]);
+        if (n === undefined) continue;
+        converted[key] = String(
+          overrideToDisplay(key, overrideToCanonical(key, n, units), next),
+        );
+      }
+      return converted;
+    });
     setUnits(next);
   }
 
@@ -200,14 +316,14 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     const out: Partial<Record<OverrideKey, number>> = {};
     for (const key of OVERRIDE_KEYS) {
       const n = parseOptionalNumber(overrides[key]);
-      if (n !== undefined) out[key] = n;
+      if (n !== undefined) out[key] = overrideToCanonical(key, n, units);
     }
     return out;
-  }, [overrides]);
+  }, [overrides, units]);
 
   const live = useMemo(() => {
     const age = Number(ageYears);
-    const h = Number(height);
+    const h = heightEntered;
     const cw = Number(currentWeight);
     const tw = Number(targetWeight);
     if (
@@ -254,7 +370,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     };
   }, [
     ageYears,
-    height,
+    heightEntered,
     currentWeight,
     targetWeight,
     units,
@@ -263,6 +379,19 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     goalType,
     builtOverrides,
   ]);
+
+  const directionWarning = useMemo(() => {
+    const cw = Number(currentWeight);
+    const tw = Number(targetWeight);
+    if (!Number.isFinite(cw) || cw <= 0 || !Number.isFinite(tw) || tw <= 0) {
+      return null;
+    }
+    return goalDirectionWarning({
+      goalType,
+      currentWeightG: parseMassToG(cw, units),
+      targetWeightG: parseMassToG(tw, units),
+    });
+  }, [currentWeight, targetWeight, goalType, units]);
 
   const safetyFingerprint = live
     ? [
@@ -298,7 +427,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           displayName,
           ageYears: Number(ageYears),
           sex,
-          height: Number(height),
+          height: heightEntered,
           currentWeight: Number(currentWeight),
           targetWeight: Number(targetWeight),
           activityLevel,
@@ -308,6 +437,8 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
             .filter(Boolean),
           goalType,
           preferredUnits: units,
+          preferredGlucoseUnit: glucoseUnit,
+          eatBackExercise,
           country,
           timezone,
           overrides: overridePayload,
@@ -392,15 +523,44 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
             <option value="male">Male</option>
           </select>
         </div>
-        <Field
-          id="height"
-          label={`Height (${heightUnit})`}
-          type="number"
-          error={fieldErrors.height}
-          value={height}
-          onChange={setHeight}
-          step="any"
-        />
+        {units === "imperial" ? (
+          <div className="space-y-2">
+            <span className="block text-sm font-medium">Height</span>
+            <div className="flex gap-3">
+              <Field
+                id="heightFeet"
+                label="Feet"
+                type="number"
+                value={heightFeet}
+                onChange={setHeightFeet}
+                className="flex-1"
+              />
+              <Field
+                id="heightInches"
+                label="Inches"
+                type="number"
+                value={heightInches}
+                onChange={setHeightInches}
+                className="flex-1"
+              />
+            </div>
+            {fieldErrors.height ? (
+              <p role="alert" className="text-sm text-red-600">
+                {fieldErrors.height}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <Field
+            id="height"
+            label={`Height (${heightUnit})`}
+            type="number"
+            error={fieldErrors.height}
+            value={height}
+            onChange={setHeight}
+            step="any"
+          />
+        )}
         <Field
           id="currentWeight"
           label={`Current weight (${massUnit})`}
@@ -452,6 +612,33 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
               </option>
             ))}
           </select>
+          {directionWarning ? (
+            <p
+              className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-3 py-2 text-xs leading-snug text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100"
+              role="status"
+            >
+              {directionWarning}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2 rounded-xl border border-neutral-200/80 bg-neutral-50/70 p-3 dark:border-neutral-700 dark:bg-neutral-950/40">
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={eatBackExercise}
+              onChange={(e) => setEatBackExercise(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-blue focus:ring-brand-blue/40 dark:border-neutral-600"
+            />
+            <span>
+              <span className="font-medium">Eat back exercise calories</span>
+              <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">
+                Adds the calories you burn in logged workouts to that day&apos;s
+                food budget. Off by default because your calorie target already
+                assumes your activity level — turning this on can double-count.
+              </span>
+            </span>
+          </label>
         </div>
         <Field
           id="dietaryPreferences"
@@ -461,9 +648,31 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           onChange={setDietaryText}
           hint="Optional — e.g. vegetarian, halal"
         />
+        <div className="space-y-2">
+          <label
+            htmlFor="preferredGlucoseUnit"
+            className="block text-sm font-medium"
+          >
+            Blood sugar unit
+          </label>
+          <select
+            id="preferredGlucoseUnit"
+            value={glucoseUnit}
+            onChange={(e) =>
+              setGlucoseUnit(e.target.value as GlucoseDisplayUnit)
+            }
+            className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base dark:border-neutral-700 dark:bg-neutral-950"
+          >
+            <option value="mg_dl">mg/dL</option>
+            <option value="mmol_l">mmol/L</option>
+          </select>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            How glucose readings are shown across the app
+          </p>
+        </div>
         <Field
           id="country"
-          label="Country"
+          label="Country (optional)"
           error={fieldErrors.country}
           value={country}
           onChange={setCountry}
@@ -474,7 +683,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           error={fieldErrors.timezone}
           value={timezone}
           onChange={setTimezone}
-          hint="Used for day boundaries (stored for later features)"
+          hint="Decides where each day starts and ends for your dashboard and charts — keep it accurate."
         />
       </fieldset>
 
@@ -567,8 +776,9 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
                 Override any target (optional)
               </legend>
               <p className="text-sm text-neutral-500">
-                Leave a field blank to keep the suggestion. Values use canonical
-                units (kcal, g, ml, steps, minutes, g/week).
+                Leave a field blank to keep the suggestion. Water and weekly
+                weight change use your {units} units; the rest are kcal, grams,
+                steps and minutes.
               </p>
               <OverrideField
                 id="caloriesKcal"
@@ -612,8 +822,12 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
               />
               <OverrideField
                 id="waterMl"
-                label="Water (ml)"
-                suggested={live.suggested.waterMl}
+                label={`Water (${overrideUnitLabel("waterMl", units)})`}
+                suggested={overrideToDisplay(
+                  "waterMl",
+                  live.suggested.waterMl,
+                  units,
+                )}
                 value={overrides.waterMl}
                 onChange={(v) => setOverride("waterMl", v)}
                 error={fieldErrors["overrides.waterMl"]}
@@ -636,12 +850,16 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
               />
               <OverrideField
                 id="weeklyWeightChangeG"
-                label="Weekly weight change (g)"
-                suggested={live.suggested.weeklyWeightChangeG}
+                label={`Weekly weight change (${overrideUnitLabel("weeklyWeightChangeG", units)})`}
+                suggested={overrideToDisplay(
+                  "weeklyWeightChangeG",
+                  live.suggested.weeklyWeightChangeG,
+                  units,
+                )}
                 value={overrides.weeklyWeightChangeG}
                 onChange={(v) => setOverride("weeklyWeightChangeG", v)}
                 error={fieldErrors["overrides.weeklyWeightChangeG"]}
-                hint="Negative = loss, positive = gain"
+                hint="Negative = loss, positive = gain. After you save, weigh-ins on Profile show pacing vs this plan."
               />
             </fieldset>
 
@@ -766,6 +984,7 @@ function OverrideField(props: {
       id={props.id}
       label={props.label}
       type="number"
+      step="any"
       value={props.value}
       onChange={props.onChange}
       error={props.error}
@@ -787,9 +1006,10 @@ function Field(props: {
   hint?: string;
   step?: string;
   autoComplete?: string;
+  className?: string;
 }) {
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${props.className ?? ""}`}>
       <label htmlFor={props.id} className="block text-sm font-medium">
         {props.label}
       </label>

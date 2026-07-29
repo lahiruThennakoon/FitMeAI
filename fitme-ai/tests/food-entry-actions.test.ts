@@ -1,25 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   deleteFoodEntryAction,
+  restoreFoodEntryAction,
   updateFoodEntryAction,
 } from "@/app/actions/food-entry";
 import { NotFoundError, UnauthorizedError } from "@/lib/dal/guards";
 
 const updateEntry = vi.fn();
 const deleteEntry = vi.fn();
+const restoreEntry = vi.fn();
 
 const session = async () =>
   ({ id: "u1", email: "a@b.com", name: null }) as never;
 
+const loggedAtIso = "2026-01-15T08:30:00.000Z";
+
 const validEdit = {
   name: "Two eggs",
   quantity: 2,
+  unit: "piece",
+  mealType: "breakfast",
+  loggedAt: loggedAtIso,
   energyKcal: 144,
   proteinG: 12.6,
   carbsG: 0.8,
   fatG: 9.6,
   fibreG: 0,
   sugarG: 0.4,
+  sodiumMg: 140,
+  note: null,
 };
 
 beforeEach(() => {
@@ -38,7 +47,21 @@ describe("updateFoodEntryAction (Story 5.2 AC1)", () => {
     if (result.ok) {
       expect(result.data.entry.name).toBe("Two eggs");
     }
-    expect(updateEntry).toHaveBeenCalledWith("u1", "f1", validEdit);
+    expect(updateEntry).toHaveBeenCalledWith("u1", "f1", {
+      ...validEdit,
+      loggedAt: new Date(loggedAtIso),
+    });
+  });
+
+  it("rejects a future loggedAt", async () => {
+    const result = await updateFoodEntryAction(
+      "f1",
+      { ...validEdit, loggedAt: new Date(Date.now() + 3_600_000).toISOString() },
+      { requireSession: session, updateFoodEntry: updateEntry },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(updateEntry).not.toHaveBeenCalled();
   });
 
   it("requires sign-in", async () => {
@@ -62,6 +85,47 @@ describe("updateFoodEntryAction (Story 5.2 AC1)", () => {
 
     expect(result.ok).toBe(false);
     expect(updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("saves a note alongside the edit", async () => {
+    const result = await updateFoodEntryAction(
+      "f1",
+      { ...validEdit, note: "  shared with Amma  " },
+      { requireSession: session, updateFoodEntry: updateEntry },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(updateEntry).toHaveBeenCalledWith(
+      "u1",
+      "f1",
+      expect.objectContaining({ note: "shared with Amma" }),
+    );
+  });
+
+  it("refuses an edit that omits the note, so one can't be cleared by accident", async () => {
+    const { note: _note, ...withoutNote } = validEdit;
+    const result = await updateFoodEntryAction("f1", withoutNote, {
+      requireSession: session,
+      updateFoodEntry: updateEntry,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("accepts an explicitly cleared note", async () => {
+    const result = await updateFoodEntryAction(
+      "f1",
+      { ...validEdit, note: null },
+      { requireSession: session, updateFoodEntry: updateEntry },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(updateEntry).toHaveBeenCalledWith(
+      "u1",
+      "f1",
+      expect.objectContaining({ note: null }),
+    );
   });
 
   it("collapses NotFoundError to a generic not-found message", async () => {
@@ -129,5 +193,31 @@ describe("deleteFoodEntryAction (Story 5.2 AC2)", () => {
     });
 
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("restoreFoodEntryAction (undo)", () => {
+  it("puts a removed entry back", async () => {
+    restoreEntry.mockResolvedValue(undefined);
+
+    const result = await restoreFoodEntryAction("f1", {
+      requireSession: session,
+      restoreFoodEntry: restoreEntry,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(restoreEntry).toHaveBeenCalledWith("u1", "f1");
+  });
+
+  it("collapses a missing entry to not-found copy", async () => {
+    restoreEntry.mockRejectedValue(new NotFoundError());
+
+    const result = await restoreFoodEntryAction("f1", {
+      requireSession: session,
+      restoreFoodEntry: restoreEntry,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/wasn't found/i);
   });
 });

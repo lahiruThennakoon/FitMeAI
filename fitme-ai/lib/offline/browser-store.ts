@@ -78,6 +78,13 @@ export function appendParseQueue(item: OfflineParseQueueItem): void {
   saveParseQueue(enqueueParse(loadParseQueue(), item));
 }
 
+/** Fired when queued offline parses become available to the log form. */
+export const PARSE_QUEUE_EVENT = "fitme:resume-parse";
+
+export function removeParseQueueItem(clientKey: string): void {
+  saveParseQueue(loadParseQueue().filter((i) => i.clientKey !== clientKey));
+}
+
 export function isBrowserOffline(): boolean {
   if (typeof navigator === "undefined") return false;
   return navigator.onLine === false;

@@ -16,12 +16,31 @@ describe("BaselineBurnCalcDetails", () => {
     const html = renderToStaticMarkup(
       createElement(BaselineBurnCalcDetails, { burn }),
     );
-    expect(html).toContain("How Baseline Burn is calculated");
+    expect(html).toContain("Show the full formula");
     expect(html).toContain("BMR");
     expect(html).toContain("Baseline Burn");
     expect(html).toContain("Mifflin");
     expect(html).toContain("not medical advice");
     expect(html).toContain("text-[11px]");
     expect(html).toContain("text-[10px]");
+  });
+
+  it("shows the arithmetic without needing a click", () => {
+    const burn = computeBaselineBurn({
+      weightG: 70_000,
+      heightCm: 175,
+      ageYears: 30,
+      sex: "male",
+      activityLevel: "sedentary",
+    });
+    const html = renderToStaticMarkup(
+      createElement(BaselineBurnCalcDetails, { burn }),
+    );
+    const gist = html.slice(0, html.indexOf("<details"));
+    expect(gist).toContain('data-testid="baseline-burn-gist"');
+    expect(gist).toContain(String(burn.bmrKcal));
+    expect(gist).toContain(String(burn.activityMultiplier));
+    expect(gist).toContain(String(Math.round(burn.baselineBurnKcal)));
+    expect(gist).toContain("sedentary");
   });
 });

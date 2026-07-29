@@ -4,9 +4,27 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteFoodEntryAction,
+  restoreFoodEntryAction,
   updateFoodEntryAction,
 } from "@/app/actions/food-entry";
+import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { UndoNotice } from "@/components/undo-notice";
+import type { HomeDayLabels } from "@/lib/domain/dashboard/day-bounds";
 import type { FoodEntryEditableDto } from "@/lib/dal/food-entry";
+import {
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/domain/datetime-local";
+import {
+  FUTURE_TIME_MESSAGE,
+  INVALID_TIME_MESSAGE,
+  isFutureInstant,
+} from "@/lib/domain/log-time";
+import {
+  FOOD_PARSE_UNITS,
+  MEAL_TYPE_OPTIONS,
+} from "@/lib/domain/nutrition/food-options";
+import type { MealType } from "@/lib/domain/nutrition/parse-types";
 
 function fmtKcal(v: number | null): string {
   if (v == null || !Number.isFinite(v)) return "—";
@@ -67,57 +85,120 @@ function numOrNull(raw: string): number | null {
 type EditFormState = {
   name: string;
   quantity: string;
+  unit: string;
+  mealType: MealType;
+  loggedAt: string;
   energyKcal: string;
   proteinG: string;
   carbsG: string;
   fatG: string;
   fibreG: string;
   sugarG: string;
+  sodiumMg: string;
+  note: string;
 };
 
 function toFormState(entry: FoodEntryEditableDto): EditFormState {
   return {
     name: entry.name,
     quantity: String(entry.quantity),
+    unit: entry.unit,
+    mealType: entry.mealType,
+    loggedAt: toDatetimeLocalValue(entry.loggedAt),
     energyKcal: entry.energyKcal == null ? "" : String(entry.energyKcal),
     proteinG: entry.proteinG == null ? "" : String(entry.proteinG),
     carbsG: entry.carbsG == null ? "" : String(entry.carbsG),
     fatG: entry.fatG == null ? "" : String(entry.fatG),
     fibreG: entry.fibreG == null ? "" : String(entry.fibreG),
     sugarG: entry.sugarG == null ? "" : String(entry.sugarG),
+    sodiumMg: entry.sodiumMg == null ? "" : String(entry.sodiumMg),
+    note: entry.note ?? "",
   };
+}
+
+/**
+ * Units already saved on an entry may predate the current option list
+ * (e.g. imported "ml") — keep them selectable so editing can't silently
+ * rewrite the portion.
+ */
+function unitOptions(current: string): string[] {
+  return (FOOD_PARSE_UNITS as readonly string[]).includes(current)
+    ? [...FOOD_PARSE_UNITS]
+    : [current, ...FOOD_PARSE_UNITS];
 }
 
 type Props = {
   entries: FoodEntryEditableDto[];
-  isToday?: boolean;
+  labels: HomeDayLabels;
 };
 
 /**
  * Today's meal list with inline edit/soft-delete (Story 5.2 / FR-9 correction
  * path). Fixing a mistake is calm and reversible-feeling — no shame copy.
  */
-export function TodayMealsList({ entries, isToday = true }: Props) {
+export function TodayMealsList({ entries, labels }: Props) {
+  const router = useRouter();
+  const [removedId, setRemovedId] = useState<string | null>(null);
+  const [undoError, setUndoError] = useState<string | null>(null);
+  const [undoPending, startUndo] = useTransition();
+
+  function undoRemove(id: string) {
+    setUndoError(null);
+    startUndo(async () => {
+      const result = await restoreFoodEntryAction(id);
+      if (!result.ok) {
+        setUndoError(result.error);
+        return;
+      }
+      setRemovedId(null);
+      router.refresh();
+    });
+  }
+
+  const undo = removedId ? (
+    <div className="mt-2">
+      <UndoNotice
+        message="Meal removed."
+        onUndo={() => undoRemove(removedId)}
+        disabled={undoPending}
+      />
+      {undoError ? (
+        <p className="mt-1 text-xs text-red-600" role="alert">
+          {undoError}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
+
   if (entries.length === 0) {
     return (
-      <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-        {isToday
-          ? "No meals yet today — a short description is enough to get started."
-          : "No meals logged yesterday — that's fine. Today is a fresh page."}
-      </p>
+      <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-700">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          {labels.mealsEmpty}
+        </p>
+        {undo}
+      </div>
     );
   }
 
   return (
-    <ul
-      className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
-      data-testid="today-meals-list"
-      aria-label={isToday ? "Today's meals, scrollable" : "Yesterday's meals, scrollable"}
-    >
-      {entries.map((entry) => (
-        <MealRow key={entry.id} entry={entry} />
-      ))}
-    </ul>
+    <>
+      <ul
+        className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
+        data-testid="today-meals-list"
+        aria-label={labels.mealsAria}
+      >
+        {entries.map((entry) => (
+          <MealRow
+            key={entry.id}
+            entry={entry}
+            removeScopeLabel={labels.removeScopeLabel}
+            onRemoved={setRemovedId}
+          />
+        ))}
+      </ul>
+      {undo}
+    </>
   );
 }
 
@@ -126,7 +207,15 @@ type RowMode = "view" | "editing" | "confirmingDelete";
 const inputClass =
   "mt-1 w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-900 shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100";
 
-function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
+function MealRow({
+  entry,
+  removeScopeLabel,
+  onRemoved,
+}: {
+  entry: FoodEntryEditableDto;
+  removeScopeLabel: string;
+  onRemoved: (id: string) => void;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<RowMode>("view");
   const [pending, startTransition] = useTransition();
@@ -142,16 +231,33 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
   function handleSave(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const loggedAtDate = fromDatetimeLocalValue(form.loggedAt);
+    if (Number.isNaN(loggedAtDate.getTime())) {
+      setError(INVALID_TIME_MESSAGE);
+      return;
+    }
+    if (isFutureInstant(loggedAtDate)) {
+      setError(FUTURE_TIME_MESSAGE);
+      return;
+    }
+    const loggedAtIso = loggedAtDate.toISOString();
+
     startTransition(async () => {
       const result = await updateFoodEntryAction(entry.id, {
         name: form.name,
         quantity: numOrNull(form.quantity) ?? entry.quantity,
+        unit: form.unit,
+        mealType: form.mealType,
+        loggedAt: loggedAtIso,
         energyKcal: numOrNull(form.energyKcal),
         proteinG: numOrNull(form.proteinG),
         carbsG: numOrNull(form.carbsG),
         fatG: numOrNull(form.fatG),
         fibreG: numOrNull(form.fibreG),
         sugarG: numOrNull(form.sugarG),
+        sodiumMg: numOrNull(form.sodiumMg),
+        note: form.note.trim() || null,
       });
       if (!result.ok) {
         setError(result.error);
@@ -171,6 +277,7 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
         setMode("view");
         return;
       }
+      onRemoved(entry.id);
       router.refresh();
     });
   }
@@ -182,7 +289,7 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
         data-testid="meal-row-confirm-delete"
       >
         <span className="text-red-900 dark:text-red-100">
-          Remove &ldquo;{entry.name}&rdquo; from today?
+          Remove &ldquo;{entry.name}&rdquo; from {removeScopeLabel}?
         </span>
         <span className="flex shrink-0 items-center gap-2">
           <button
@@ -235,7 +342,7 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
                 htmlFor={`quantity-${entry.id}`}
                 className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
               >
-                Quantity ({entry.unit})
+                Quantity
               </label>
               <input
                 id={`quantity-${entry.id}`}
@@ -251,6 +358,57 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
                 required
               />
             </div>
+            <div>
+              <label
+                htmlFor={`unit-${entry.id}`}
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+              >
+                Unit
+              </label>
+              <select
+                id={`unit-${entry.id}`}
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                className={inputClass}
+              >
+                {unitOptions(entry.unit).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor={`meal-type-${entry.id}`}
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+              >
+                Meal
+              </label>
+              <select
+                id={`meal-type-${entry.id}`}
+                value={form.mealType}
+                onChange={(e) =>
+                  setForm({ ...form, mealType: e.target.value as MealType })
+                }
+                className={inputClass}
+              >
+                {MEAL_TYPE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <DatetimeLocalField
+              id={`logged-at-${entry.id}`}
+              label="When"
+              value={form.loggedAt}
+              onChange={(value) => setForm({ ...form, loggedAt: value })}
+              max={toDatetimeLocalValue(new Date())}
+              compact
+              required
+            />
             <div>
               <label
                 htmlFor={`energy-${entry.id}`}
@@ -357,6 +515,40 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
                 className={inputClass}
               />
             </div>
+            <div>
+              <label
+                htmlFor={`sodium-${entry.id}`}
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+              >
+                Sodium (mg)
+              </label>
+              <input
+                id={`sodium-${entry.id}`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={form.sodiumMg}
+                onChange={(e) => setForm({ ...form, sodiumMg: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor={`note-${entry.id}`}
+              className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+            >
+              Note (optional)
+            </label>
+            <input
+              id={`note-${entry.id}`}
+              value={form.note}
+              maxLength={500}
+              placeholder="e.g. shared half, home cooked"
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+              className={inputClass}
+            />
           </div>
 
           {error ? (
@@ -420,6 +612,14 @@ function MealRow({ entry }: { entry: FoodEntryEditableDto }) {
           </span>
         </span>
       </div>
+      {entry.note ? (
+        <p
+          className="mt-0.5 break-words pr-16 text-xs text-neutral-500 dark:text-neutral-400"
+          data-testid="meal-row-note"
+        >
+          {entry.note}
+        </p>
+      ) : null}
       {error ? (
         <p className="mt-1 text-xs text-red-600" role="alert">
           {error}

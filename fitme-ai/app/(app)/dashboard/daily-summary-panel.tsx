@@ -1,10 +1,11 @@
-import Link from "next/link";
 import type { BaselineBurnResult } from "@/lib/domain/burn/baseline";
 import {
   describeEnergyBalance,
   type DailySummary,
   type MacroProgress,
 } from "@/lib/domain/dashboard/daily-summary";
+import type { HomeDayLabels } from "@/lib/domain/dashboard/day-bounds";
+import type { WaterEntryDto } from "@/lib/dal/water-entry";
 import { BaselineBurnCalcDetails } from "@/components/formula-disclosure";
 import { displayWater } from "@/lib/domain/targets/units";
 import { DeviationMark, deviationKind } from "./deviation-mark";
@@ -13,8 +14,11 @@ import { WaterLogControl } from "./water-log-control";
 
 type Props = {
   summary: DailySummary;
-  /** When false, viewing yesterday — hide water quick-add (logs always go to today). */
-  isToday?: boolean;
+  labels: HomeDayLabels;
+  /** The viewed day's water logs, so a mis-tap can be removed. */
+  waterEntries: WaterEntryDto[];
+  /** Instant to stamp quick-adds with; null on today (uses "now"). */
+  waterLogAtIso: string | null;
 };
 
 function fmt(v: number, unit: string): string {
@@ -62,7 +66,50 @@ const MACRO_THEME: Record<
     glow: "shadow-[0_0_10px_rgba(251,113,133,0.28)]",
     chip: "text-rose-700 bg-rose-400/10 dark:text-rose-300",
   },
+  sodiumMg: {
+    fill: "bg-violet-400",
+    track: "bg-violet-400/15 dark:bg-violet-400/25",
+    glow: "shadow-[0_0_10px_rgba(167,139,250,0.28)]",
+    chip: "text-violet-700 bg-violet-400/10 dark:text-violet-300",
+  },
 };
+
+/** Within this much of the aim still reads as "on target", not over. */
+const OVER_TOLERANCE = 1.02;
+
+/**
+ * Shared meter groove. The inset shadow and 1px inner padding keep the rail
+ * visible even at 100%, so a full bar still reads as a gauge and not a slab.
+ */
+function MeterTrack({
+  trackClass,
+  label,
+  valueNow,
+  valueText,
+  children,
+}: {
+  trackClass: string;
+  label: string;
+  valueNow?: number;
+  valueText?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`mt-2 h-2.5 rounded-full p-px shadow-[inset_0_1px_2px_rgba(15,23,42,0.16)] dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] ${trackClass}`}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={valueNow}
+      aria-valuetext={valueText}
+      aria-label={label}
+    >
+      <div className="relative h-full overflow-hidden rounded-full">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function ProgressBar({
   label,
@@ -71,6 +118,7 @@ function ProgressBar({
   ratio,
   unit,
   themeKey,
+  targetNote,
 }: {
   label: string;
   consumed: number;
@@ -78,21 +126,30 @@ function ProgressBar({
   ratio: number | null;
   unit: string;
   themeKey: MacroProgress["key"];
+  targetNote?: string;
 }) {
-  const pct = ratio == null ? 0 : Math.round(ratio * 100);
-  const barPct = Math.min(100, pct);
   const theme = MACRO_THEME[themeKey];
-  const hasFill = target != null && barPct > 0;
-  const isOver =
-    target != null && consumed > target * 1.02;
-  const fillClass = isOver
-    ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
-    : theme.fill;
-  const glowClass = isOver
-    ? ""
-    : hasFill
-      ? theme.glow
-      : "";
+  const hasTarget = target != null && target > 0;
+  const barPct = ratio == null ? 0 : Math.min(100, Math.round(ratio * 100));
+  const hasFill = hasTarget && barPct > 0;
+
+  /** `ratio` arrives clamped to 1, so recompute to recover the overage. */
+  const trueRatio = hasTarget ? consumed / target : null;
+  const isOver = trueRatio != null && trueRatio > OVER_TOLERANCE;
+  /**
+   * Past the aim the bar stays full and only the slice beyond the aim turns red.
+   * The colour boundary lands at 1/ratio, so it marks the target while the red
+   * width grows with the overage — 105% no longer looks like 155%.
+   */
+  const overSharePct = trueRatio && isOver ? (1 - 1 / trueRatio) * 100 : 0;
+
+  const valueText = !hasTarget
+    ? undefined
+    : isOver
+      ? `${Math.round(consumed)} of ${Math.round(target)} ${unit} — ${Math.round(
+          trueRatio * 100,
+        )}% of aim, ${Math.round(consumed - target)} ${unit} over`
+      : `${Math.round(consumed)} of ${Math.round(target)} ${unit} — ${barPct}% of aim`;
 
   return (
     <div className="rounded-xl border border-neutral-200/70 bg-white/80 px-3 py-2.5 shadow-sm dark:border-neutral-700/80 dark:bg-neutral-950/50">
@@ -125,19 +182,99 @@ function ProgressBar({
           )}
         </span>
       </div>
-      <div
-        className={`mt-2 h-2.5 overflow-hidden rounded-full ${theme.track}`}
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={target != null ? barPct : undefined}
-        aria-label={`${label} progress`}
+      <MeterTrack
+        trackClass={theme.track}
+        label={`${label} progress`}
+        valueNow={hasTarget ? barPct : undefined}
+        valueText={valueText}
       >
         <div
-          className={`h-full rounded-full transition-[width] duration-500 ease-out ${fillClass} ${glowClass}`}
-          style={{ width: target != null ? `${barPct}%` : "0%" }}
+          className={`h-full rounded-full transition-[width] duration-500 ease-out ${theme.fill} ${
+            hasFill ? theme.glow : ""
+          }`}
+          style={{ width: hasTarget ? `${barPct}%` : "0%" }}
         />
-      </div>
+        {overSharePct > 0 ? (
+          <div
+            className="absolute inset-y-0 right-0 rounded-r-full bg-red-500/90 shadow-[inset_1px_0_0_rgba(255,255,255,0.65)] transition-[width] duration-500 ease-out"
+            style={{ width: `${overSharePct}%` }}
+            aria-hidden="true"
+          />
+        ) : null}
+      </MeterTrack>
+      {targetNote ? (
+        <p className="mt-1.5 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400">
+          {targetNote}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Movement aims from the user's goal. Exercise minutes have logged data so they
+ * get a meter; steps don't (nothing in the app records them yet), so the aim is
+ * shown as a reference rather than a bar that would always read zero.
+ */
+function MovementAims({
+  exerciseMinutes,
+  exerciseMinutesTarget,
+  stepsTarget,
+}: {
+  exerciseMinutes: number;
+  exerciseMinutesTarget: number | null;
+  stepsTarget: number | null;
+}) {
+  if (exerciseMinutesTarget == null && stepsTarget == null) return null;
+
+  const minutesPct =
+    exerciseMinutesTarget && exerciseMinutesTarget > 0
+      ? Math.min(100, Math.round((exerciseMinutes / exerciseMinutesTarget) * 100))
+      : 0;
+
+  return (
+    <div
+      className="rounded-xl border border-brand-green/25 bg-brand-green/[0.06] px-3 py-3 dark:border-brand-green/35 dark:bg-brand-green/10"
+      data-testid="movement-aims"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+        <span aria-hidden="true">🏃</span> Movement aims
+      </p>
+
+      {exerciseMinutesTarget != null ? (
+        <div className="mt-2">
+          <div className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="text-neutral-700 dark:text-neutral-200">
+              Active minutes
+            </span>
+            <span className="tabular-nums text-neutral-600 dark:text-neutral-300">
+              <span className="font-medium text-neutral-900 dark:text-white">
+                {exerciseMinutes}
+              </span>{" "}
+              of {exerciseMinutesTarget} min
+            </span>
+          </div>
+          <MeterTrack
+            trackClass="bg-brand-green/20 dark:bg-brand-green/25"
+            label="Active minutes progress"
+            valueNow={minutesPct}
+            valueText={`${exerciseMinutes} of ${exerciseMinutesTarget} minutes`}
+          >
+            <div
+              className="h-full rounded-full bg-brand-green shadow-[0_0_10px_rgba(34,179,107,0.35)] transition-[width] duration-500 ease-out"
+              style={{ width: `${minutesPct}%` }}
+            />
+          </MeterTrack>
+        </div>
+      ) : null}
+
+      {stepsTarget != null ? (
+        <p className="mt-2.5 text-[11px] leading-snug text-neutral-600 dark:text-neutral-300">
+          Step aim: <span className="tabular-nums font-medium">{stepsTarget.toLocaleString()}</span>{" "}
+          — FitMe doesn&apos;t record steps yet, so track these in your phone or
+          watch for now.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -150,45 +287,46 @@ function EnergyBalanceCard({
   exerciseKcal,
   burn,
   netKcal,
-  isToday = true,
+  energyTitle,
 }: {
   intakeKcal: number;
   exerciseKcal: number;
   burn: BaselineBurnResult;
   netKcal: number;
-  isToday?: boolean;
+  energyTitle: string;
 }) {
-  const balance = describeEnergyBalance(netKcal);
+  const totalBurn = Math.round(burn.baselineBurnKcal + exerciseKcal);
+  const balance = describeEnergyBalance(netKcal, {
+    intakeKcal,
+    burnKcal: totalBurn,
+  });
   const isOver = balance.kind === "over";
-  const dayLabel = isToday ? "Today’s energy" : "Yesterday’s energy";
 
   const shell = isOver
-    ? "border-red-300/50 bg-red-50/80 dark:border-red-800/50 dark:bg-red-950/25"
-    : balance.kind === "under"
-      ? "border-brand-green/35 bg-brand-green/[0.08] dark:border-brand-green/45 dark:bg-brand-green/10"
-      : "border-brand-teal/30 bg-brand-teal/[0.08] dark:border-brand-teal/40 dark:bg-brand-teal/10";
+    ? "border-red-200/60 bg-white/80 shadow-sm dark:border-red-900/45 dark:bg-neutral-950/50"
+    : "border-neutral-200/70 bg-white/80 shadow-sm dark:border-neutral-700/80 dark:bg-neutral-950/50";
 
   const chip = isOver
     ? "bg-red-500/15 text-red-800 dark:text-red-200"
     : balance.kind === "under"
-      ? "bg-brand-green/20 text-emerald-800 dark:text-emerald-200"
-      : "bg-brand-teal/20 text-teal-900 dark:text-teal-200";
+      ? "bg-brand-green/10 text-emerald-800 dark:text-emerald-200"
+      : "bg-brand-teal/15 text-teal-900 dark:text-teal-200";
 
   return (
     <div
       className={`rounded-xl border px-3 py-3.5 ${shell}`}
       data-testid="energy-balance"
-      aria-label={`${dayLabel}: ${balance.statusLabel}`}
+      aria-label={`${energyTitle}: ${balance.statusLabel}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           <span
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-green/20 text-[10px] text-brand-green"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-green/10 text-[10px] text-brand-green"
             aria-hidden="true"
           >
             ⚡
           </span>
-          {dayLabel}
+          {energyTitle}
         </p>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip}`}
@@ -230,7 +368,12 @@ function EnergyBalanceCard({
 /**
  * Full daily summary: calories, remaining, macros, water, net (FR-15).
  */
-export function DailySummaryPanel({ summary, isToday = true }: Props) {
+export function DailySummaryPanel({
+  summary,
+  labels,
+  waterEntries,
+  waterLogAtIso,
+}: Props) {
   const net = summary.netKcal;
   const remaining = summary.remainingKcal;
   /** Remaining: positive = under target (↓), negative = over (↑). */
@@ -243,9 +386,14 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
           ? ("down" as const)
           : ("up" as const);
   const intakeVsTarget =
-    summary.targetKcal != null
-      ? deviationKind(summary.intakeKcal, summary.targetKcal, 50)
+    summary.foodBudgetKcal != null
+      ? deviationKind(summary.intakeKcal, summary.foodBudgetKcal, 50)
       : null;
+  /** Only worth spelling out when the budget differs from the plain target. */
+  const showBudgetCredit =
+    summary.foodBudgetKcal != null &&
+    summary.targetKcal != null &&
+    summary.foodBudgetKcal !== summary.targetKcal;
 
   const isOverWater = summary.waterMlConsumed > summary.waterMlTarget * 1.02;
   const waterBarPct = Math.min(
@@ -282,9 +430,12 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
     >
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          {isToday ? "Today" : "Yesterday"} · {summary.dayKey}
+          {labels.summaryPrefix} · {summary.dayKey}
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+        <p
+          className="dashboard-helper-text mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300"
+          data-testid="summary-supportive-message"
+        >
           {summary.supportiveMessage}
         </p>
       </div>
@@ -336,7 +487,7 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
                 {remainingKind === "up" ? (
                   <DeviationMark
                     kind="up"
-                    label="Over daily target"
+                    label="Over daily budget"
                     size="md"
                     alert
                   />
@@ -349,6 +500,11 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
               </>
             )}
           </dd>
+          {showBudgetCredit ? (
+            <p className="mt-0.5 text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400">
+              of {summary.foodBudgetKcal} kcal budget
+            </p>
+          ) : null}
         </div>
         <div className="rounded-xl border border-brand-teal/25 bg-brand-teal/[0.06] px-3 py-2.5 dark:border-brand-teal/35 dark:bg-brand-teal/10">
           <dt className="text-xs font-medium text-brand-teal">
@@ -362,13 +518,28 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
         </div>
       </dl>
 
+      {summary.remainingBasis ? (
+        <p
+          className="rounded-xl border border-neutral-200/70 bg-neutral-50/70 px-3 py-2 text-[11px] leading-snug text-neutral-600 dark:border-neutral-700/80 dark:bg-neutral-950/40 dark:text-neutral-300"
+          data-testid="remaining-basis"
+        >
+          {summary.remainingBasis}
+        </p>
+      ) : null}
+
+      <MovementAims
+        exerciseMinutes={summary.exerciseMinutes}
+        exerciseMinutesTarget={summary.exerciseMinutesTarget}
+        stepsTarget={summary.stepsTarget}
+      />
+
       {summary.baseline && net != null ? (
         <EnergyBalanceCard
           intakeKcal={summary.intakeKcal}
           exerciseKcal={summary.exerciseKcal}
           burn={summary.baseline}
           netKcal={net}
-          isToday={isToday}
+          energyTitle={labels.energyTitle}
         />
       ) : (
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
@@ -391,6 +562,7 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
               ratio={p.ratio}
               unit={p.unit}
               themeKey={p.key}
+              targetNote={p.targetNote}
             />
           ))}
         </div>
@@ -421,13 +593,10 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
             </span>
           </span>
         </div>
-        <div
-          className="mt-2 h-2.5 overflow-hidden rounded-full bg-sky-200/60 dark:bg-sky-900/40"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={waterBarPct}
-          aria-label="Water progress"
+        <MeterTrack
+          trackClass="bg-sky-200/60 dark:bg-sky-900/40"
+          label="Water progress"
+          valueNow={waterBarPct}
         >
           <div
             className={`h-full rounded-full transition-[width] duration-500 ease-out ${
@@ -437,27 +606,19 @@ export function DailySummaryPanel({ summary, isToday = true }: Props) {
             }`}
             style={{ width: `${waterBarPct}%` }}
           />
-        </div>
+        </MeterTrack>
         {summary.waterMlTargetIsDefault ? (
           <p className="mt-2 text-[11px] leading-snug text-sky-800/70 dark:text-sky-300/70">
             Using a default aim of {waterTargetDisplay} {waterUnit} — set your
             own anytime in Profile.
           </p>
         ) : null}
-        {isToday ? (
-          <WaterLogControl preferredUnits={summary.preferredUnits} />
-        ) : (
-          <p className="mt-3 text-sm text-sky-900/80 dark:text-sky-200/80">
-            Water logging always applies to today.{" "}
-            <Link
-              href="/dashboard"
-              className="font-medium text-brand-blue underline-offset-2 hover:underline"
-            >
-              Back to today
-            </Link>{" "}
-            to add a sip.
-          </p>
-        )}
+        <WaterLogControl
+          preferredUnits={summary.preferredUnits}
+          entries={waterEntries}
+          logAtIso={waterLogAtIso}
+          dayLabel={labels.removeScopeLabel}
+        />
       </div>
     </section>
   );

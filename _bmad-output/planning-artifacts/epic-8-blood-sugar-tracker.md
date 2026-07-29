@@ -1,7 +1,8 @@
 ---
 title: Epic 8 — Blood Sugar Level Tracker
-status: planned
+status: done
 updated: 2026-07-27
+implemented: 2026-07-27
 owner: product + UX
 dependsOn:
   - Epic 7 (optional; graphs need both)
@@ -27,6 +28,28 @@ After this epic a user can:
 3. See recent readings and a simple day list  
 4. Edit/soft-delete a mistaken reading  
 
+**Status:** All stories implemented (2026-07-27). Local polish/review pending user test pass.
+
+## Story sequence
+
+| ID | Story | Status | Implementation artifact |
+|----|--------|--------|-------------------------|
+| 8.1 | GlucoseEntry model + log action | review | `8-1-glucose-entry-model-log.md` |
+| 8.2 | Log UI (value, unit, context, time) | review | `8-2-glucose-log-ui.md` |
+| 8.3 | Recent list + edit/soft-delete | review | `8-3-glucose-list-edit-delete.md` |
+| 8.4 | Home glance: last reading | review | `8-4-home-glucose-glance.md` |
+
+## Implementation summary
+
+| Area | Location |
+|------|----------|
+| Model | `GlucoseEntry` + `GlucoseContext` — migration `20260727160000_glucose_entry` |
+| Canonical unit | mg/dL (mmol/L converted at edges, AD-11) |
+| DAL | `lib/dal/glucose-entry.ts` |
+| Actions | `app/actions/glucose.ts` |
+| UI | `/glucose`, Home `GlucoseGlance` |
+| Tests | `tests/glucose-*.test.ts` |
+
 ## UX invariants
 
 - Always labeled as **user-logged measurements**, not clinical diagnosis  
@@ -34,15 +57,6 @@ After this epic a user can:
 - Preferred units: mg/dL vs mmol/L (store canonical — recommend **mg/dL** or mmol×18; convert at edges like AD-11)  
 - Soft-delete (AD-8); ownership (AD-7)  
 - Calm empty states  
-
-## Story sequence
-
-| ID | Story | Depends on | Value |
-|----|--------|------------|--------|
-| 8.1 | GlucoseEntry model + log action | 1.6 | Persist readings |
-| 8.2 | Log UI (value, unit, context, time) | 8.1 | Daily capture |
-| 8.3 | Recent list + edit/soft-delete | 8.1, 5.2 patterns | Trust |
-| 8.4 | Home glance: last reading (optional) | 8.2 | Awareness |
 
 ## Likely data shape
 
@@ -59,12 +73,14 @@ GlucoseEntry {
 
 Profile (or Goal) may gain `preferredGlucoseUnit: mg_dl | mmol_l` for display only.
 
+**v1 note:** Unit is selected per log form; profile preference deferred.
+
 ## Out of scope
 
 - CGM / Libre / Dexcom integrations  
 - Alerts for hypo/hyper thresholds as medical alarms (optional “personal reminder” later)  
 - AI interpretation of glucose patterns  
-- Correlation charts (Epic 9)  
+- Correlation charts → **Epic 9** (implemented on `/progress`)  
 
 ## Safety notes
 

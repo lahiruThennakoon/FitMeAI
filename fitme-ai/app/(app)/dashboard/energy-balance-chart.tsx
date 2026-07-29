@@ -20,38 +20,31 @@ export function EnergyBalanceChart({
 }: Props) {
   const food = Math.round(intakeKcal);
   const burn = Math.round(baselineBurnKcal + exerciseKcal);
-  const max = Math.max(food, burn, 1);
-  const foodPct = Math.min(100, Math.round((food / max) * 100));
-  const burnPct = Math.min(100, Math.round((burn / max) * 100));
-  const eatenOfBurn =
+  const eatenOfBurnPct =
     burn <= 0 ? 0 : Math.min(100, Math.round((food / burn) * 100));
   const isOver = balance.kind === "over";
   const isUnder = balance.kind === "under";
+  const isExactEven = balance.kind === "even" && balance.gapKcal === 0;
 
   const ringPct =
-    balance.kind === "even" ? 100 : isOver ? 100 : Math.max(8, eatenOfBurn);
+    balance.kind === "even" && !isOver ? 100 : isOver ? 100 : eatenOfBurnPct;
+  const foodBarPct = isOver ? 100 : eatenOfBurnPct;
   const ringStroke = isOver
     ? "stroke-red-500"
     : isUnder
       ? "stroke-brand-green"
       : "stroke-brand-teal";
-  const ringGlow = isOver
-    ? "drop-shadow-[0_0_8px_rgba(239,68,68,0.35)]"
-    : isUnder
-      ? "drop-shadow-[0_0_8px_rgba(34,179,107,0.35)]"
-      : "drop-shadow-[0_0_8px_rgba(14,165,165,0.3)]";
+  const ringGlow = isOver ? "drop-shadow-[0_0_4px_rgba(239,68,68,0.12)]" : "";
 
   const heroSub = isOver
     ? "kcal over"
     : isUnder
-      ? "kcal left"
-      : "kcal even";
+      ? "below burn"
+      : isExactEven
+        ? "kcal even"
+        : "kcal gap";
 
-  const story = isOver
-    ? `You've logged ${balance.gapKcal} kcal more than burn.`
-    : isUnder
-      ? `You still have ${balance.gapKcal} kcal to eat.`
-      : "Food and burn match today.";
+  const story = balance.explanation;
 
   const burnHint =
     exerciseKcal > 0
@@ -65,7 +58,7 @@ export function EnergyBalanceChart({
           pct={ringPct}
           strokeClass={ringStroke}
           glowClass={ringGlow}
-          value={balance.kind === "even" ? "≈" : String(balance.gapKcal)}
+          value={isExactEven ? "≈" : String(balance.gapKcal)}
           label={heroSub}
           alert={isOver}
         />
@@ -87,11 +80,18 @@ export function EnergyBalanceChart({
               </>
             ) : isUnder ? (
               <>
-                You still have{" "}
+                Food is{" "}
                 <span className="text-brand-green">{balance.gapKcal}</span> kcal
+                below burn
               </>
-            ) : (
+            ) : isExactEven ? (
               "Food matches burn"
+            ) : (
+              <>
+                Within{" "}
+                <span className="text-brand-teal">{balance.gapKcal}</span> kcal
+                of burn
+              </>
             )}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
@@ -105,13 +105,14 @@ export function EnergyBalanceChart({
           icon="🍽️"
           iconClass="bg-brand-blue/15 text-brand-blue"
           label="Food"
-          hint="Calories eaten"
+          hint="Share of burn eaten"
           value={food}
-          pct={foodPct}
+          pct={foodBarPct}
+          barTestId="energy-food-bar"
           barClass={
             isOver
-              ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.35)]"
-              : "bg-brand-blue shadow-[0_0_10px_rgba(47,87,227,0.3)]"
+              ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
+              : "bg-brand-blue shadow-[0_0_6px_rgba(47,87,227,0.1)]"
           }
         />
         <MetricRow
@@ -120,8 +121,10 @@ export function EnergyBalanceChart({
           label="Burn"
           hint={burnHint}
           value={burn}
-          pct={burnPct}
-          barClass="bg-brand-teal shadow-[0_0_10px_rgba(14,165,165,0.3)]"
+          pct={100}
+          barTestId="energy-burn-bar"
+          isReference
+          barClass="bg-brand-teal/45 dark:bg-brand-teal/35"
         />
       </div>
     </div>
@@ -200,7 +203,7 @@ function EnergyRing({
           className={`mt-0.5 text-[10px] font-medium ${
             alert
               ? "text-red-500/90"
-              : label.includes("left")
+              : label.includes("below")
                 ? "text-brand-green dark:text-emerald-300"
                 : "text-brand-teal dark:text-teal-300"
           }`}
@@ -220,6 +223,8 @@ function MetricRow({
   value,
   pct,
   barClass,
+  barTestId,
+  isReference = false,
 }: {
   icon: string;
   iconClass: string;
@@ -228,7 +233,13 @@ function MetricRow({
   value: number;
   pct: number;
   barClass: string;
+  barTestId?: string;
+  isReference?: boolean;
 }) {
+  const barWidth = isReference
+    ? 100
+    : Math.max(pct, value > 0 && pct > 0 ? 4 : 0);
+
   return (
     <div className="rounded-xl border border-neutral-200/60 bg-white/60 px-3 py-2.5 dark:border-neutral-700/70 dark:bg-neutral-950/40">
       <div className="flex items-center gap-2.5">
@@ -252,10 +263,14 @@ function MetricRow({
               {value} kcal
             </p>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-neutral-800">
+          <div
+            className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-neutral-800"
+            aria-hidden={isReference}
+          >
             <div
+              data-testid={barTestId}
               className={`h-full rounded-full transition-[width] duration-500 ease-out ${barClass}`}
-              style={{ width: `${Math.max(pct, value > 0 ? 4 : 0)}%` }}
+              style={{ width: `${barWidth}%` }}
             />
           </div>
         </div>

@@ -1,9 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/dal";
 import {
   getGoalForUser,
   getProfileForUser,
+  updateDisplayPreferences,
+  updateNotificationPreferences,
   upsertProfileAndGoal,
   type UpsertProfileGoalInput,
 } from "@/lib/dal/profile";
@@ -29,7 +32,11 @@ import {
 import { fieldErrorsFromZod } from "@/lib/auth/actions-shared";
 import { logger } from "@/lib/logging";
 import { err, ok, type Result } from "@/lib/result";
-import { saveProfileSchema } from "@/lib/schemas/profile";
+import {
+  displayPreferencesSchema,
+  notificationPreferencesSchema,
+  saveProfileSchema,
+} from "@/lib/schemas/profile";
 
 export type SaveProfileResult = Result<{
   profile: ProfileDto;
@@ -60,6 +67,101 @@ export type ProfileActionDeps = {
   getProfileForUser?: typeof getProfileForUser;
   getGoalForUser?: typeof getGoalForUser;
 };
+
+export type DisplayPreferencesActionDeps = {
+  requireSession?: typeof requireSession;
+  updateDisplayPreferences?: typeof updateDisplayPreferences;
+  revalidate?: (path: string) => void;
+};
+
+export type DisplayPreferencesResult = Result<{ profile: ProfileDto }>;
+export type NotificationPreferencesResult = Result<{ profile: ProfileDto }>;
+
+export const PROFILE_REQUIRED_ERROR =
+  "Set up your profile first — units and timezone live alongside it.";
+
+/** Change how numbers are shown (and where the day starts) without touching targets. */
+export async function saveDisplayPreferencesAction(
+  input: unknown,
+  deps: DisplayPreferencesActionDeps = {},
+): Promise<DisplayPreferencesResult> {
+  const parsed = displayPreferencesSchema.safeParse(input);
+  if (!parsed.success) {
+    return err(
+      "Please check the highlighted fields.",
+      fieldErrorsFromZod(parsed.error),
+    );
+  }
+
+  const getSession = deps.requireSession ?? requireSession;
+  const update = deps.updateDisplayPreferences ?? updateDisplayPreferences;
+  const revalidate = deps.revalidate ?? revalidatePath;
+
+  let userId: string;
+  try {
+    const user = await getSession();
+    userId = user.id;
+  } catch {
+    return err("Please sign in to change your preferences.");
+  }
+
+  try {
+    const profile = await update(userId, parsed.data);
+    if (!profile) return err(PROFILE_REQUIRED_ERROR);
+    // The timezone moves day boundaries, so every dated view is now stale.
+    for (const path of ["/dashboard", "/progress", "/settings", "/goals"]) {
+      revalidate(path);
+    }
+    logger.info("profile.preferences.updated", { outcome: "accepted", userId });
+    return ok({ profile });
+  } catch {
+    logger.error("profile.preferences.failed", { outcome: "error", userId });
+    return err("Could not save your preferences. Please try again.");
+  }
+}
+
+export type NotificationPreferencesActionDeps = {
+  requireSession?: typeof requireSession;
+  updateNotificationPreferences?: typeof updateNotificationPreferences;
+  revalidate?: (path: string) => void;
+};
+
+/** Save reminder toggles (Tier 3 — delivery not wired yet). */
+export async function saveNotificationPreferencesAction(
+  input: unknown,
+  deps: NotificationPreferencesActionDeps = {},
+): Promise<NotificationPreferencesResult> {
+  const parsed = notificationPreferencesSchema.safeParse(input);
+  if (!parsed.success) {
+    return err(
+      "Please check the highlighted fields.",
+      fieldErrorsFromZod(parsed.error),
+    );
+  }
+
+  const getSession = deps.requireSession ?? requireSession;
+  const update = deps.updateNotificationPreferences ?? updateNotificationPreferences;
+  const revalidate = deps.revalidate ?? revalidatePath;
+
+  let userId: string;
+  try {
+    const user = await getSession();
+    userId = user.id;
+  } catch {
+    return err("Please sign in to change your preferences.");
+  }
+
+  try {
+    const profile = await update(userId, parsed.data);
+    if (!profile) return err(PROFILE_REQUIRED_ERROR);
+    revalidate("/settings");
+    logger.info("profile.notifications.updated", { outcome: "accepted", userId });
+    return ok({ profile });
+  } catch {
+    logger.error("profile.notifications.failed", { outcome: "error", userId });
+    return err("Could not save your preferences. Please try again.");
+  }
+}
 
 function overriddenFieldNames(
   overrides: Record<string, number | undefined> | undefined,
@@ -204,6 +306,8 @@ export async function saveProfileAction(
       dietaryPreferences: data.dietaryPreferences,
       goalType: data.goalType,
       preferredUnits: data.preferredUnits,
+      preferredGlucoseUnit: data.preferredGlucoseUnit,
+      eatBackExercise: data.eatBackExercise,
       country: data.country,
       timezone: data.timezone,
     },

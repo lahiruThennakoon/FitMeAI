@@ -122,6 +122,58 @@ export type DeleteAccountDeps = {
   rateLimit?: AuthRateLimitFn;
 };
 
+export const CHANGE_PASSWORD_GENERIC_ERROR =
+  "Could not change your password. Check your current password and try again.";
+
+export const CHANGE_PASSWORD_SUCCESS_MESSAGE =
+  "Password changed. Other devices have been signed out.";
+
+export const CHANGE_EMAIL_GENERIC_ERROR =
+  "Could not start the email change. Please try again.";
+
+export const CHANGE_EMAIL_SAME_ADDRESS_ERROR =
+  "That's already your email address.";
+
+/** Neutral either way — never reveals whether the new address is already taken. */
+export function changeEmailPendingMessage(currentEmail: string): string {
+  return `Check ${currentEmail} for a link to approve the change. Your address stays the same until you do.`;
+}
+
+type ChangePassword = (args: {
+  body: {
+    currentPassword: string;
+    newPassword: string;
+    revokeOtherSessions?: boolean;
+  };
+  headers: Headers;
+}) => Promise<unknown>;
+
+type ChangeEmail = (args: {
+  body: {
+    newEmail: string;
+    callbackURL?: string;
+  };
+  headers: Headers;
+}) => Promise<unknown>;
+
+export type ChangePasswordDeps = {
+  changePassword?: ChangePassword;
+  getHeaders?: () => Promise<Headers>;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
+};
+
+export type ChangeEmailDeps = {
+  changeEmail?: ChangeEmail;
+  getHeaders?: () => Promise<Headers>;
+  getSession?: () => Promise<{ id: string; email: string } | null>;
+  getClientKey?: AuthClientKeyFn;
+  rateLimit?: AuthRateLimitFn;
+};
+
+export type ChangePasswordResult = Result<{ message: string }>;
+export type ChangeEmailResult = Result<{ message: string }>;
+
 /** Derive Better Auth `name` without collecting a separate Name field. */
 export function nameFromEmail(email: string): string {
   const local = email.split("@")[0]?.trim();

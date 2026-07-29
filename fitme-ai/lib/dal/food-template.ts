@@ -75,7 +75,7 @@ function dedupeTemplates(rows: TemplateRow[], limit: number): FoodTemplateDto[] 
 /** Distinct recent meals for Log one-tap re-log (Story 5.5). */
 export async function listRecentFoodTemplates(
   userId: string,
-  limit = 8,
+  limit = 24,
 ): Promise<FoodTemplateDto[]> {
   const rows = await prisma.foodEntry.findMany({
     where: { userId, deletedAt: null },
@@ -89,7 +89,7 @@ export async function listRecentFoodTemplates(
 /** Favorited meals for Log (Story 5.5). */
 export async function listFavoriteFoodTemplates(
   userId: string,
-  limit = 12,
+  limit = 40,
 ): Promise<FoodTemplateDto[]> {
   const rows = await prisma.foodEntry.findMany({
     where: { userId, deletedAt: null, isFavorite: true },
@@ -119,60 +119,151 @@ export async function setFoodEntryFavorite(
   return toDto(updated);
 }
 
-export type RelogFoodEntryResult = {
+const draftSourceSelect = {
+  id: true,
+  userId: true,
+  name: true,
+  quantity: true,
+  unit: true,
+  mealType: true,
+  dataSource: true,
+  confidence: true,
+  energyKcal: true,
+  proteinG: true,
+  carbsG: true,
+  fatG: true,
+  fibreG: true,
+  sugarG: true,
+  sodiumMg: true,
+  food: { select: { slug: true } },
+} satisfies Prisma.FoodEntrySelect;
+
+/** Full entry row for edit-before-save re-log (Story 5.5). */
+export async function getFoodEntryForDraft(
+  userId: string,
+  sourceEntryId: string,
+) {
+  const row = await prisma.foodEntry.findFirst({
+    where: { id: sourceEntryId, deletedAt: null },
+    select: draftSourceSelect,
+  });
+  const owned = requireOwnedResource(row, userId);
+  return {
+    id: owned.id,
+    name: owned.name,
+    quantity: owned.quantity,
+    unit: owned.unit,
+    mealType: owned.mealType,
+    dataSource: owned.dataSource,
+    confidence: owned.confidence,
+    energyKcal: owned.energyKcal,
+    proteinG: owned.proteinG,
+    carbsG: owned.carbsG,
+    fatG: owned.fatG,
+    fibreG: owned.fibreG,
+    sugarG: owned.sugarG,
+    sodiumMg: owned.sodiumMg,
+    foodSlug: owned.food?.slug ?? null,
+  };
+}
+
+/**
+ * Every meal logged on one calendar day, oldest first, in draft shape.
+ * Backs "copy a past day" — the caller shifts the times and reviews before save.
+ */
+export async function listFoodEntryDraftsForRange(
+  userId: string,
+  start: Date,
+  end: Date,
+  limit = 20,
+) {
+  const rows = await prisma.foodEntry.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      loggedAt: { gte: start, lt: end },
+    },
+    orderBy: { loggedAt: "asc" },
+    take: limit,
+    select: { ...draftSourceSelect, loggedAt: true },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    quantity: row.quantity,
+    unit: row.unit,
+    mealType: row.mealType,
+    dataSource: row.dataSource,
+    confidence: row.confidence,
+    energyKcal: row.energyKcal,
+    proteinG: row.proteinG,
+    carbsG: row.carbsG,
+    fatG: row.fatG,
+    fibreG: row.fibreG,
+    sugarG: row.sugarG,
+    sodiumMg: row.sodiumMg,
+    foodSlug: row.food?.slug ?? null,
+    loggedAt: row.loggedAt,
+  }));
+}
+
+export type ReloggedFoodEntryDto = {
   id: string;
   name: string;
   energyKcal: number | null;
-  created: boolean;
 };
 
+const relogSourceSelect = {
+  userId: true,
+  foodId: true,
+  name: true,
+  quantity: true,
+  unit: true,
+  mealType: true,
+  dataSource: true,
+  confidence: true,
+  energyKcal: true,
+  proteinG: true,
+  carbsG: true,
+  fatG: true,
+  fibreG: true,
+  sugarG: true,
+  sodiumMg: true,
+  note: true,
+} satisfies Prisma.FoodEntrySelect;
+
 /**
- * Clone an owned entry into a new log for "now" (Story 5.5).
- * Copies nutrition provenance — does not invent a new AI estimate.
+ * Duplicate a past meal with a fresh timestamp — one-tap re-log (Tier 3).
+ * Does not copy favorite status or client keys.
  */
-export async function relogFromFoodEntry(
+export async function relogFoodEntryNow(
   userId: string,
   sourceEntryId: string,
-  clientKey?: string | null,
-): Promise<RelogFoodEntryResult> {
-  const source = await prisma.foodEntry.findFirst({
+  loggedAt: Date = new Date(),
+): Promise<ReloggedFoodEntryDto> {
+  const row = await prisma.foodEntry.findFirst({
     where: { id: sourceEntryId, deletedAt: null },
-    select: {
-      id: true,
-      userId: true,
-      foodId: true,
-      name: true,
-      quantity: true,
-      unit: true,
-      mealType: true,
-      dataSource: true,
-      confidence: true,
-      energyKcal: true,
-      proteinG: true,
-      carbsG: true,
-      fatG: true,
-      fibreG: true,
-      sugarG: true,
-      sodiumMg: true,
-    },
+    select: relogSourceSelect,
   });
-  const owned = requireOwnedResource(source, userId);
+  const owned = requireOwnedResource(row, userId);
 
-  if (clientKey) {
-    const existing = await prisma.foodEntry.findUnique({
-      where: { userId_clientKey: { userId, clientKey } },
+  let aiInteractionId: string | null = null;
+  if (owned.dataSource === "ai_estimated") {
+    const interaction = await prisma.aIInteraction.create({
+      data: {
+        userId,
+        providerId: "relog",
+        model: null,
+        purpose: "food_parse",
+        status: "succeeded",
+        confidence: owned.confidence,
+        requestMeta: { purpose: "food_parse", promptCharLength: 0 },
+      },
     });
-    if (existing && existing.deletedAt == null) {
-      return {
-        id: existing.id,
-        name: existing.name,
-        energyKcal: existing.energyKcal,
-        created: false,
-      };
-    }
+    aiInteractionId = interaction.id;
   }
 
-  const row = await prisma.foodEntry.create({
+  const created = await prisma.foodEntry.create({
     data: {
       userId,
       foodId: owned.foodId,
@@ -180,7 +271,7 @@ export async function relogFromFoodEntry(
       quantity: owned.quantity,
       unit: owned.unit,
       mealType: owned.mealType,
-      loggedAt: new Date(),
+      loggedAt,
       dataSource: owned.dataSource,
       confidence: owned.confidence,
       energyKcal: owned.energyKcal,
@@ -190,16 +281,12 @@ export async function relogFromFoodEntry(
       fibreG: owned.fibreG,
       sugarG: owned.sugarG,
       sodiumMg: owned.sodiumMg,
-      clientKey: clientKey ?? null,
-      isFavorite: false,
-      aiInteractionId: null,
+      note: owned.note,
+      aiInteractionId,
     },
+    select: { id: true, name: true, energyKcal: true },
   });
 
-  return {
-    id: row.id,
-    name: row.name,
-    energyKcal: row.energyKcal,
-    created: true,
-  };
+  return created;
 }
+

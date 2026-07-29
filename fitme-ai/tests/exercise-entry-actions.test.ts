@@ -1,22 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   deleteExerciseEntryAction,
+  restoreExerciseEntryAction,
   updateExerciseEntryAction,
 } from "@/app/actions/exercise";
 import { NotFoundError, UnauthorizedError } from "@/lib/dal/guards";
 
 const updateEntry = vi.fn();
 const deleteEntry = vi.fn();
+const restoreEntry = vi.fn();
 const getProfile = vi.fn();
 
 const session = async () =>
   ({ id: "u1", email: "a@b.com", name: null }) as never;
+
+const performedAtIso = "2026-07-25T18:30:00.000Z";
 
 const validEdit = {
   type: "walking" as const,
   durationMin: 45,
   intensity: "moderate" as const,
   customLabel: null,
+  performedAt: performedAtIso,
 };
 
 beforeEach(() => {
@@ -63,11 +68,30 @@ describe("updateExerciseEntryAction (Story 5.3 AC1/AC2)", () => {
         type: "walking",
         durationMin: 45,
         intensity: "moderate",
+        performedAt: new Date(performedAtIso),
         estimatedKcal: expect.any(Number),
         metUsed: expect.any(Number),
         weightKgUsed: expect.any(Number),
       }),
     );
+  });
+
+  it("rejects a future performedAt without calling the DAL", async () => {
+    const result = await updateExerciseEntryAction(
+      "ex1",
+      {
+        ...validEdit,
+        performedAt: new Date(Date.now() + 3_600_000).toISOString(),
+      },
+      {
+        requireSession: session,
+        getProfileForUser: getProfile,
+        updateExerciseEntry: updateEntry,
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(updateEntry).not.toHaveBeenCalled();
   });
 
   it("increases kcal when duration increases (same type/intensity/weight)", async () => {
@@ -149,6 +173,7 @@ describe("updateExerciseEntryAction (Story 5.3 AC1/AC2)", () => {
         durationMin: 20,
         intensity: "high",
         customLabel: "",
+        performedAt: performedAtIso,
       },
       {
         requireSession: session,
@@ -230,5 +255,31 @@ describe("deleteExerciseEntryAction (Story 5.3 AC3)", () => {
     if (!forbidden.ok && !notFound.ok) {
       expect(forbidden.error).toBe(notFound.error);
     }
+  });
+});
+
+describe("restoreExerciseEntryAction (undo)", () => {
+  it("puts a removed workout back", async () => {
+    restoreEntry.mockResolvedValue(undefined);
+
+    const result = await restoreExerciseEntryAction("ex1", {
+      requireSession: session,
+      restoreExerciseEntry: restoreEntry,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(restoreEntry).toHaveBeenCalledWith("u1", "ex1");
+  });
+
+  it("collapses a missing workout to not-found copy", async () => {
+    restoreEntry.mockRejectedValue(new NotFoundError());
+
+    const result = await restoreExerciseEntryAction("ex1", {
+      requireSession: session,
+      restoreExerciseEntry: restoreEntry,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/wasn't found/i);
   });
 });

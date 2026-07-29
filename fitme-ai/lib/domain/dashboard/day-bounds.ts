@@ -12,6 +12,16 @@ export type DayBounds = {
   dayKey: string;
 };
 
+/** Calendar day key (YYYY-MM-DD) for an instant in the profile timezone. */
+export function dayKeyForInstant(
+  date: Date,
+  timeZone: string | null | undefined,
+): string {
+  const tz =
+    timeZone && timeZone.trim().length > 0 ? timeZone.trim() : "UTC";
+  return dayKeyInTimeZone(date, tz);
+}
+
 function dayKeyInTimeZone(date: Date, timeZone: string): string {
   try {
     return new Intl.DateTimeFormat("en-CA", {
@@ -104,16 +114,151 @@ export function previousZonedDayKey(
   return dayKeyInTimeZone(new Date(start.getTime() - 1), tz);
 }
 
+/** Next local calendar day key (profile timezone). */
+export function nextZonedDayKey(
+  dayKey: string,
+  timeZone: string | null | undefined,
+): string {
+  const tz = normalizeTimeZone(timeZone);
+  const end = zonedDayBoundsForDayKey(dayKey, tz).end;
+  return dayKeyInTimeZone(new Date(end.getTime() + 1), tz);
+}
+
+/** Short label for a day key, e.g. "Mon, Jul 20". */
+export function formatHomeDayShort(dayKey: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(`${dayKey}T12:00:00`));
+  } catch {
+    return dayKey;
+  }
+}
+
+export type HomeDayLabels = {
+  isToday: boolean;
+  isYesterday: boolean;
+  dayKey: string;
+  switcherLabel: string;
+  summaryPrefix: string;
+  energyTitle: string;
+  mealsHeading: string;
+  exerciseHeading: string;
+  mealsAria: string;
+  exerciseAria: string;
+  headerBlurb: string;
+  mealsEmpty: string;
+  exerciseEmpty: string;
+  /** Day named in destructive-action prompts, e.g. "today" / "Mon, Jul 20". */
+  removeScopeLabel: string;
+};
+
+export function buildHomeDayLabels(
+  dayKey: string,
+  todayKey: string,
+  yesterdayKey: string,
+): HomeDayLabels {
+  const isToday = dayKey === todayKey;
+  const isYesterday = dayKey === yesterdayKey;
+  const short = formatHomeDayShort(dayKey);
+
+  const switcherLabel = isToday
+    ? `Today · ${dayKey}`
+    : isYesterday
+      ? `Yesterday · ${dayKey}`
+      : `${short} · ${dayKey}`;
+
+  const summaryPrefix = isToday
+    ? "Today"
+    : isYesterday
+      ? "Yesterday"
+      : short;
+
+  const energyTitle = isToday
+    ? "Today’s energy"
+    : isYesterday
+      ? "Yesterday’s energy"
+      : `${short} · energy`;
+
+  const mealsHeading = isToday
+    ? "Meals today"
+    : isYesterday
+      ? "Meals yesterday"
+      : `Meals · ${short}`;
+
+  const exerciseHeading = isToday
+    ? "Exercise today"
+    : isYesterday
+      ? "Exercise yesterday"
+      : `Exercise · ${short}`;
+
+  const mealsAria = isToday
+    ? "Today's meals, scrollable"
+    : isYesterday
+      ? "Yesterday's meals, scrollable"
+      : `${short} meals, scrollable`;
+
+  const exerciseAria = isToday
+    ? "Today's workouts, scrollable"
+    : isYesterday
+      ? "Yesterday's workouts, scrollable"
+      : `${short} workouts, scrollable`;
+
+  const headerBlurb = isToday
+    ? "A calm look at today — use it to decide your next move."
+    : isYesterday
+      ? "A calm look at yesterday — every day is just a chapter."
+      : `A calm look at ${short} — every day is just a chapter.`;
+
+  const mealsEmpty = isToday
+    ? "No meals yet today — a short description is enough to get started."
+    : isYesterday
+      ? "No meals logged yesterday — that's fine. Today is a fresh page."
+      : `No meals logged ${short}.`;
+
+  const exerciseEmpty = isToday
+    ? "No workouts yet today — a short log keeps energy balance honest."
+    : isYesterday
+      ? "No workouts logged yesterday — rest days count too."
+      : `No workouts logged ${short}.`;
+
+  const removeScopeLabel = isToday
+    ? "today"
+    : isYesterday
+      ? "yesterday"
+      : short;
+
+  return {
+    isToday,
+    isYesterday,
+    dayKey,
+    switcherLabel,
+    summaryPrefix,
+    energyTitle,
+    mealsHeading,
+    exerciseHeading,
+    mealsAria,
+    exerciseAria,
+    headerBlurb,
+    removeScopeLabel,
+    mealsEmpty,
+    exerciseEmpty,
+  };
+}
+
 export type HomeDaySelection = {
   bounds: DayBounds;
   todayKey: string;
   yesterdayKey: string;
   isToday: boolean;
+  labels: HomeDayLabels;
 };
 
 /**
- * Resolve Home day view (Story 5.4): today or yesterday only.
- * Invalid / future / unknown keys fall back to today.
+ * Resolve Home day view: today or any past calendar day in profile timezone.
+ * Invalid / future keys fall back to today.
  */
 export function resolveHomeDaySelection(input: {
   now: Date;
@@ -126,24 +271,22 @@ export function resolveHomeDaySelection(input: {
   const yesterdayKey = previousZonedDayKey(todayKey, tz);
   const requested = input.requestedDay?.trim() ?? "";
 
-  if (requested === yesterdayKey) {
-    return {
-      bounds: zonedDayBoundsForDayKey(yesterdayKey, tz),
-      todayKey,
-      yesterdayKey,
-      isToday: false,
-    };
-  }
-
-  // Explicit today, missing, malformed, future, or any other day → today
-  if (requested && requested !== todayKey && DAY_KEY_RE.test(requested)) {
-    // fall through to today (future / older than yesterday not offered in v1)
-  }
-
-  return {
-    bounds: todayBounds,
+  const finish = (bounds: DayBounds, isToday: boolean): HomeDaySelection => ({
+    bounds,
     todayKey,
     yesterdayKey,
-    isToday: true,
-  };
+    isToday,
+    labels: buildHomeDayLabels(bounds.dayKey, todayKey, yesterdayKey),
+  });
+
+  if (requested && DAY_KEY_RE.test(requested)) {
+    if (requested === todayKey) {
+      return finish(todayBounds, true);
+    }
+    if (requested < todayKey) {
+      return finish(zonedDayBoundsForDayKey(requested, tz), false);
+    }
+  }
+
+  return finish(todayBounds, true);
 }

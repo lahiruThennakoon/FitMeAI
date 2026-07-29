@@ -22,14 +22,16 @@ After this epic a user can:
 
 1. Log a weight check-in in preferred units  
 2. See recent weigh-ins and distance to target  
-3. See a simple trend (later story)  
+3. See a simple trend via **Progress** (`time × weight`) — Story 6.2 absorbed into Epic 9.5  
+4. See **pacing vs weekly plan** on Profile when they override an aggressive rate (e.g. 1 kg/week) — Story 6.3  
 
 ## Story sequence
 
-| ID | Story | Depends on | Value |
-|----|--------|------------|--------|
-| 6.1 | Weight check-in log | 1.6 | History + profile weight sync |
-| 6.2 | Weight trend sparkline | 6.1 | Motivation without shame (optional if Epic 9 comes first) |
+| ID | Story | Status | Implementation artifact |
+|----|--------|--------|-------------------------|
+| 6.1 | Weight check-in log | review | `6-1-weight-check-in-log.md` |
+| 6.2 | Weight trend sparkline | absorbed | `6-2-weight-trend-sparkline.md` → see `9-5-weight-trend-via-progress.md` |
+| 6.3 | Weight pacing vs plan | review | `6-3-weight-pacing-feedback.md` |
 
 ## Out of scope
 

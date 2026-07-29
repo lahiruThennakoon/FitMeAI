@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/dal";
 import { NotFoundError, UnauthorizedError } from "@/lib/dal/guards";
 import {
   createExerciseEntry,
+  restoreExerciseEntry,
   softDeleteExerciseEntry,
   updateExerciseEntry,
   type CreateExerciseEntryInput,
@@ -45,6 +46,7 @@ export type ExerciseEntryActionDeps = {
   getProfileForUser?: typeof getProfileForUser;
   updateExerciseEntry?: typeof updateExerciseEntry;
   softDeleteExerciseEntry?: typeof softDeleteExerciseEntry;
+  restoreExerciseEntry?: typeof restoreExerciseEntry;
 };
 
 /** Not-found and cross-user access both read as "not found" — no enumeration. */
@@ -128,8 +130,8 @@ export async function saveExerciseEntryAction(
 }
 
 /**
- * Edit type/duration/intensity on a saved workout (Story 5.3).
- * Recomputes MET burn and keeps the result labelled as an estimate.
+ * Edit a saved workout (Story 5.3) — core fields, when it happened, and the
+ * optional details. Recomputes MET burn and keeps it labelled as an estimate.
  */
 export async function updateExerciseEntryAction(
   id: string,
@@ -173,6 +175,12 @@ export async function updateExerciseEntryAction(
       data.type === "custom" ? data.customLabel?.trim() ?? null : null,
     durationMin: data.durationMin,
     intensity: data.intensity,
+    performedAt: new Date(data.performedAt),
+    distanceM: data.distanceM == null ? null : Math.round(data.distanceM),
+    sets: data.sets ?? null,
+    reps: data.reps ?? null,
+    weightG: data.weightG ?? null,
+    notes: data.notes?.trim() || null,
     estimatedKcal: estimate.estimatedKcal,
     metUsed: estimate.met,
     weightKgUsed: estimate.weightKgUsed,
@@ -221,5 +229,36 @@ export async function deleteExerciseEntryAction(
     }
     logger.error("exercise.delete.failed", { event: "exercise_delete_failed" });
     return err("Could not remove this workout. Please try again.");
+  }
+}
+
+/** Undo a just-removed workout. */
+export async function restoreExerciseEntryAction(
+  id: string,
+  deps: ExerciseEntryActionDeps = {},
+): Promise<DeleteExerciseResult> {
+  const requireSessionFn = deps.requireSession ?? requireSession;
+  const restoreEntry = deps.restoreExerciseEntry ?? restoreExerciseEntry;
+
+  let userId: string;
+  try {
+    const user = await requireSessionFn();
+    userId = user.id;
+  } catch {
+    return err("Please sign in to restore this workout.");
+  }
+
+  try {
+    await restoreEntry(userId, id);
+    logger.info("exercise.restore.ok", { event: "exercise_restore_ok" });
+    return ok({ id });
+  } catch (e) {
+    if (e instanceof NotFoundError || e instanceof UnauthorizedError) {
+      return err(NOT_FOUND_MESSAGE);
+    }
+    logger.error("exercise.restore.failed", {
+      event: "exercise_restore_failed",
+    });
+    return err("Could not restore this workout. Please try again.");
   }
 }

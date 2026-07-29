@@ -2,6 +2,8 @@ export {
   AI_RATE_LIMITS,
   AUTH_RATE_LIMITS,
   RATE_LIMIT_ERROR,
+  formatWait,
+  rateLimitMessage,
   type AiRateLimitBucket,
   type AuthRateLimitBucket,
 } from "@/lib/rate-limit/config";

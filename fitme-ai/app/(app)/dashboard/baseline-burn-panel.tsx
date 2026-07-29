@@ -20,7 +20,11 @@ export function BaselineBurnPanel({
   exerciseKcal = 0,
   netKcal,
 }: Props) {
-  const balance = describeEnergyBalance(netKcal);
+  const totalBurn = Math.round(burn.baselineBurnKcal + exerciseKcal);
+  const balance = describeEnergyBalance(netKcal, {
+    intakeKcal,
+    burnKcal: totalBurn,
+  });
   const isOver = balance.kind === "over";
 
   const shell = isOver

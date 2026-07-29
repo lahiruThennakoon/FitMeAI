@@ -30,4 +30,11 @@ describe("saveProfileSchema", () => {
     const result = saveProfileSchema.safeParse({ ...validMetric, height: 50 });
     expect(result.success).toBe(false);
   });
+
+  it("accepts an omitted country", () => {
+    const { country: _country, ...withoutCountry } = validMetric;
+    const result = saveProfileSchema.safeParse(withoutCountry);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.country).toBe("");
+  });
 });

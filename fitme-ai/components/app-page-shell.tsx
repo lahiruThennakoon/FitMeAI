@@ -14,6 +14,24 @@ type Props = {
   backLabel?: string;
 };
 
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M12.5 15 7.5 10l5-5" />
+    </svg>
+  );
+}
+
 /**
  * Shared authenticated page chrome — matches Home (gradient, type scale, back).
  */
@@ -24,7 +42,7 @@ export function AppPageShell({
   description,
   children,
   backHref = "/dashboard",
-  backLabel = "← Home",
+  backLabel = "Home",
 }: Props) {
   return (
     <main className="relative mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-5 py-10">
@@ -33,28 +51,33 @@ export function AppPageShell({
         aria-hidden="true"
       />
 
-      <header className="space-y-2">
-        <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={backHref}
-            className="underline-offset-2 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
+            className="inline-flex h-8 items-center gap-0.5 rounded-lg border border-neutral-200/80 bg-white/70 px-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-200 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/80"
+            aria-label={`Back to ${backLabel}`}
           >
+            <ChevronLeftIcon className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
             {backLabel}
           </Link>
-          <span aria-hidden="true"> · </span>
-          {eyebrow}
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 dark:text-white">
-          {emoji ? (
-            <span className="mr-2" aria-hidden="true">
-              {emoji}
-            </span>
-          ) : null}
-          {title}
-        </h1>
-        <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
-          {description}
-        </p>
+          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            {eyebrow}
+          </span>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 dark:text-white">
+            {emoji ? (
+              <span className="mr-2" aria-hidden="true">
+                {emoji}
+              </span>
+            ) : null}
+            {title}
+          </h1>
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+            {description}
+          </p>
+        </div>
       </header>
 
       {children}

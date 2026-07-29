@@ -24,7 +24,7 @@ import {
   softDeleteWaterEntry,
   sumWaterMlForUserBetween,
 } from "@/lib/dal/water-entry";
-import { UnauthorizedError } from "@/lib/dal/guards";
+import { NotFoundError, UnauthorizedError } from "@/lib/dal/guards";
 
 const loggedAt = new Date("2026-07-26T08:00:00.000Z");
 
@@ -48,7 +48,7 @@ describe("createWaterEntry (Story 5.1 / FR-15)", () => {
     });
 
     expect(createRow).toHaveBeenCalledWith({
-      data: { userId: "u1", amountMl: 250, loggedAt },
+      data: { userId: "u1", amountMl: 250, loggedAt, clientKey: null },
     });
     expect(dto).toEqual({
       id: "w1",
@@ -127,11 +127,12 @@ describe("softDeleteWaterEntry", () => {
     });
   });
 
-  it("does nothing when the entry does not exist or is already deleted", async () => {
+  it("raises NotFound when the entry does not exist or is already deleted", async () => {
     findFirstRow.mockResolvedValue(null);
 
-    await softDeleteWaterEntry("u1", "missing");
-
+    await expect(softDeleteWaterEntry("u1", "missing")).rejects.toThrow(
+      NotFoundError,
+    );
     expect(updateRow).not.toHaveBeenCalled();
   });
 

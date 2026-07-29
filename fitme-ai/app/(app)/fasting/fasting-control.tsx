@@ -3,23 +3,53 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  discardActiveFastAction,
   endFastingSessionAction,
+  logPastFastAction,
   startFastingSessionAction,
+  updateFastingSessionAction,
 } from "@/app/actions/fasting";
+import { DatetimeLocalField } from "@/components/datetime-local-field";
 import type { FastingSessionDto } from "@/lib/dal/fasting-session";
-import { formatDurationMs } from "@/lib/domain/fasting/format";
+import {
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/domain/datetime-local";
+import { formatDurationMs, staleFastNudge } from "@/lib/domain/fasting/format";
+import {
+  FUTURE_TIME_MESSAGE,
+  INVALID_TIME_MESSAGE,
+  isFutureInstant,
+} from "@/lib/domain/log-time";
 
 type Props = {
   active: FastingSessionDto | null;
+  /** Server timestamp so the first client render matches the server HTML. */
+  nowMs: number;
 };
 
 const PROTOCOL_PRESETS = ["16:8", "18:6", "OMAD", "custom"] as const;
+
+const fieldClass =
+  "mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100";
+
+/** Resolve a datetime-local value to a past instant, or an error message. */
+function resolvePastInstant(
+  value: string,
+): { ok: true; iso: string } | { ok: false; error: string } {
+  const at = fromDatetimeLocalValue(value);
+  if (Number.isNaN(at.getTime())) {
+    return { ok: false, error: INVALID_TIME_MESSAGE };
+  }
+  if (isFutureInstant(at)) return { ok: false, error: FUTURE_TIME_MESSAGE };
+  return { ok: true, iso: at.toISOString() };
+}
 
 /**
  * Start / end fasting session (Story 7.1).
  * Calm copy — ending early is fine; this is a clock, not a verdict.
  */
-export function FastingControl({ active }: Props) {
+export function FastingControl({ active, nowMs }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +57,15 @@ export function FastingControl({ active }: Props) {
   const [protocol, setProtocol] = useState<string>("16:8");
   const [customLabel, setCustomLabel] = useState("");
   const [plannedHours, setPlannedHours] = useState("16");
-  const [now, setNow] = useState(() => Date.now());
+  const [startedAtInput, setStartedAtInput] = useState("");
+  const [mode, setMode] = useState<"start" | "past">("start");
+  const [pastStart, setPastStart] = useState("");
+  const [pastEnd, setPastEnd] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
+  const [adjustStart, setAdjustStart] = useState("");
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const [now, setNow] = useState(nowMs);
 
   useEffect(() => {
     if (!active) return;
@@ -38,6 +76,7 @@ export function FastingControl({ active }: Props) {
   const elapsedMs = active
     ? Math.max(0, now - new Date(active.startedAt).getTime())
     : 0;
+  const staleNudge = active ? staleFastNudge(elapsedMs) : null;
 
   function onStart(event: React.FormEvent) {
     event.preventDefault();
@@ -49,16 +88,125 @@ export function FastingControl({ active }: Props) {
     const protocolLabel =
       protocol === "custom" ? customLabel.trim() || "custom" : protocol;
 
+    let startedAtIso: string | undefined;
+    if (startedAtInput) {
+      const resolved = resolvePastInstant(startedAtInput);
+      if (!resolved.ok) {
+        setError(resolved.error);
+        return;
+      }
+      startedAtIso = resolved.iso;
+    }
+
     startTransition(async () => {
       const result = await startFastingSessionAction({
         plannedDurationMin,
         protocolLabel,
+        startedAt: startedAtIso,
       });
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setMessage("Fast started — you've got this at your own pace.");
+      setStartedAtInput("");
+      router.refresh();
+    });
+  }
+
+  function onLogPast(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    const start = resolvePastInstant(pastStart);
+    if (!start.ok) {
+      setError(start.error);
+      return;
+    }
+    const end = resolvePastInstant(pastEnd);
+    if (!end.ok) {
+      setError(end.error);
+      return;
+    }
+
+    const hours = Number(plannedHours);
+    const protocolLabel =
+      protocol === "custom" ? customLabel.trim() || "custom" : protocol;
+
+    startTransition(async () => {
+      const result = await logPastFastAction({
+        startedAt: start.iso,
+        endedAt: end.iso,
+        plannedDurationMin:
+          Number.isFinite(hours) && hours > 0 ? Math.round(hours * 60) : null,
+        protocolLabel,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMessage(
+        `Logged · ${formatDurationMs(result.data.session.durationMs)}. Added to your history.`,
+      );
+      setPastStart("");
+      setPastEnd("");
+      router.refresh();
+    });
+  }
+
+  function startAdjust() {
+    if (!active) return;
+    setAdjustStart(toDatetimeLocalValue(active.startedAt));
+    setAdjustNotes(active.notes ?? "");
+    setError(null);
+    setMessage(null);
+    setAdjusting(true);
+  }
+
+  function onSaveAdjust(event: React.FormEvent) {
+    event.preventDefault();
+    if (!active) return;
+    setError(null);
+
+    const start = resolvePastInstant(adjustStart);
+    if (!start.ok) {
+      setError(start.error);
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateFastingSessionAction({
+        sessionId: active.id,
+        startedAt: start.iso,
+        endedAt: null,
+        plannedDurationMin: active.plannedDurationMin,
+        protocolLabel: active.protocolLabel,
+        notes: adjustNotes.trim() || null,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setAdjusting(false);
+      setMessage("Updated.");
+      router.refresh();
+    });
+  }
+
+  function onDiscard() {
+    if (!active) return;
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await discardActiveFastAction({ sessionId: active.id });
+      if (!result.ok) {
+        setError(result.error);
+        setConfirmingDiscard(false);
+        return;
+      }
+      setConfirmingDiscard(false);
+      setMessage("Fast discarded — nothing was added to your history.");
       router.refresh();
     });
   }
@@ -108,18 +256,166 @@ export function FastingControl({ active }: Props) {
             ? ` · planned ${Math.round(active.plannedDurationMin / 60)}h`
             : ""}
         </p>
+        {active.plannedDurationMin && active.plannedDurationMin > 0 ? (
+          <div className="mt-3">
+            {(() => {
+              const plannedMs = active.plannedDurationMin * 60 * 1000;
+              const pct = Math.min(
+                100,
+                Math.round((elapsedMs / plannedMs) * 100),
+              );
+              return (
+                <>
+                  <div
+                    className="h-2 overflow-hidden rounded-full bg-brand-blue/15"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Planned fast progress"
+                  >
+                    <div
+                      className="h-full rounded-full bg-brand-blue transition-[width] duration-1000 ease-linear"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    {pct}% of planned window
+                  </p>
+                </>
+              );
+            })()}
+          </div>
+        ) : null}
+        {staleNudge ? (
+          <p
+            className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100"
+            data-testid="fasting-stale-nudge"
+          >
+            {staleNudge}
+          </p>
+        ) : null}
+
+        {active.notes ? (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+            {active.notes}
+          </p>
+        ) : null}
+
         <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
           This is a personal timer — not medical advice. End whenever you need
           to.
         </p>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onEnd}
-          className="brand-gradient mt-4 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
-        >
-          {pending ? "Ending…" : "End fast"}
-        </button>
+
+        {adjusting ? (
+          <form
+            onSubmit={onSaveAdjust}
+            className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-700 dark:bg-neutral-800/50"
+            noValidate
+          >
+            <DatetimeLocalField
+              id="fasting-adjust-start"
+              label="Actually started at"
+              value={adjustStart}
+              onChange={setAdjustStart}
+              max={toDatetimeLocalValue(new Date())}
+              required
+            />
+            <div>
+              <label
+                htmlFor="fasting-adjust-notes"
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+              >
+                Notes
+              </label>
+              <textarea
+                id="fasting-adjust-notes"
+                rows={2}
+                maxLength={500}
+                value={adjustNotes}
+                onChange={(e) => setAdjustNotes(e.target.value)}
+                className={fieldClass}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={pending}
+                className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              >
+                {pending ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setAdjusting(false)}
+                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {confirmingDiscard ? (
+          <div
+            className="mt-4 rounded-xl border border-red-200/80 bg-red-50/60 p-3 dark:border-red-900/50 dark:bg-red-950/20"
+            data-testid="fasting-confirm-discard"
+          >
+            <p className="text-sm text-red-900 dark:text-red-100">
+              Discard this fast? It won&rsquo;t be saved to your history.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setConfirmingDiscard(false)}
+                className="rounded-lg px-2 py-1 text-sm font-medium text-neutral-600 underline-offset-2 hover:underline disabled:opacity-50 dark:text-neutral-300"
+              >
+                Keep fasting
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={onDiscard}
+                className="rounded-lg bg-red-600 px-2.5 py-1 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {pending ? "Discarding…" : "Discard"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onEnd}
+            className="brand-gradient inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+          >
+            {pending ? "Ending…" : "End fast"}
+          </button>
+          {adjusting ? null : (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={startAdjust}
+              className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium text-neutral-700 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-200 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+            >
+              Adjust start time
+            </button>
+          )}
+          {confirmingDiscard ? null : (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setConfirmingDiscard(true)}
+              className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium text-neutral-500 underline-offset-2 transition hover:text-red-600 hover:underline disabled:opacity-60 dark:text-neutral-400 dark:hover:text-red-300"
+            >
+              Discard
+            </button>
+          )}
+        </div>
         {error ? (
           <p className="mt-2 text-sm text-red-600" role="alert">
             {error}
@@ -144,11 +440,39 @@ export function FastingControl({ active }: Props) {
         Ready when you are
       </p>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-        Start a timer for your fasting window. You can end it anytime — no
-        judgment.
+        {mode === "start"
+          ? "Start a timer for your fasting window. You can end it anytime — no judgment."
+          : "Already finished a fast? Add it with the times you remember."}
       </p>
 
-      <form onSubmit={onStart} className="mt-4 space-y-3">
+      <div
+        className="mt-3 flex gap-2"
+        role="group"
+        aria-label="Fasting entry mode"
+      >
+        <button
+          type="button"
+          onClick={() => setMode("start")}
+          aria-pressed={mode === "start"}
+          className="choice-pill"
+        >
+          Start now
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("past")}
+          aria-pressed={mode === "past"}
+          className="choice-pill"
+        >
+          Log a past fast
+        </button>
+      </div>
+
+      <form
+        onSubmit={mode === "start" ? onStart : onLogPast}
+        className="mt-4 space-y-3"
+        noValidate
+      >
         <div>
           <label
             htmlFor="protocol"
@@ -208,12 +532,47 @@ export function FastingControl({ active }: Props) {
           />
         </div>
 
+        {mode === "start" ? (
+          <DatetimeLocalField
+            id="fasting-started-at"
+            label="Started at (optional)"
+            value={startedAtInput || toDatetimeLocalValue(new Date())}
+            onChange={setStartedAtInput}
+            max={toDatetimeLocalValue(new Date())}
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DatetimeLocalField
+              id="fasting-past-start"
+              label="Started"
+              value={pastStart}
+              onChange={setPastStart}
+              max={toDatetimeLocalValue(new Date())}
+              required
+            />
+            <DatetimeLocalField
+              id="fasting-past-end"
+              label="Ended"
+              value={pastEnd}
+              onChange={setPastEnd}
+              max={toDatetimeLocalValue(new Date())}
+              required
+            />
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={pending}
           className="brand-gradient inline-flex h-11 w-full items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
         >
-          {pending ? "Starting…" : "Start fast"}
+          {mode === "start"
+            ? pending
+              ? "Starting…"
+              : "Start fast"
+            : pending
+              ? "Saving…"
+              : "Log this fast"}
         </button>
       </form>
 

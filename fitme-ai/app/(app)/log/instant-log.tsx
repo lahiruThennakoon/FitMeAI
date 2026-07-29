@@ -12,6 +12,24 @@ import {
 } from "@/lib/offline/browser-store";
 import { newClientKey, sortCachedFoods } from "@/lib/offline/food-cache";
 import type { CachedFood } from "@/lib/offline/types";
+import {
+  MEAL_TYPE_OPTIONS,
+  mealTypeLabel,
+} from "@/lib/domain/nutrition/food-options";
+import type { MealType } from "@/lib/domain/nutrition/parse-types";
+
+/** Servings per tap; a blank or nonsense box still logs one serving. */
+function servingsFrom(raw: string): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function portionSummary(servings: number, mealType: MealType): string {
+  const amount = `${servings} ${servings === 1 ? "serving" : "servings"}`;
+  return mealType === "unknown"
+    ? amount
+    : `${amount} · ${mealTypeLabel(mealType)}`;
+}
 
 /** One-time synchronous read of the local cache — feeds lazy state initializers below. */
 function readInitialCache(): {
@@ -45,6 +63,9 @@ export function InstantLog() {
   const [online, setOnline] = useState(() => !isBrowserOffline());
   const [message, setMessage] = useState<string | null>(initialCache.message);
   const [pending, startTransition] = useTransition();
+  const [servingsRaw, setServingsRaw] = useState("1");
+  const [mealType, setMealType] = useState<MealType>("unknown");
+  const servings = servingsFrom(servingsRaw);
 
   useEffect(() => {
     const onOnline = () => setOnline(true);
@@ -77,11 +98,12 @@ export function InstantLog() {
     const payload = {
       clientKey,
       foodSlug: food.slug,
-      quantity: 1,
+      quantity: servings,
       unit: "serving" as const,
-      mealType: "unknown" as const,
+      mealType,
       loggedAt: new Date().toISOString(),
     };
+    const portion = portionSummary(servings, mealType);
 
     startTransition(async () => {
       if (isBrowserOffline()) {
@@ -91,7 +113,7 @@ export function InstantLog() {
           queuedAt: new Date().toISOString(),
         });
         setMessage(
-          `Queued ${food.name} for sync when you're back online (no AI needed).`,
+          `Queued ${food.name} (${portion}) for sync when you're back online (no AI needed).`,
         );
         return;
       }
@@ -103,7 +125,7 @@ export function InstantLog() {
         }
         setMessage(
           result.data.created
-            ? `Logged ${result.data.name} from catalog.`
+            ? `Logged ${result.data.name} — ${portion}.`
             : `${result.data.name} was already saved.`,
         );
         router.refresh();
@@ -113,7 +135,9 @@ export function InstantLog() {
           kind: "instant_food",
           queuedAt: new Date().toISOString(),
         });
-        setMessage(`Saved ${food.name} offline — will sync when connected.`);
+        setMessage(
+          `Saved ${food.name} (${portion}) offline — will sync when connected.`,
+        );
       }
     });
   }
@@ -131,7 +155,8 @@ export function InstantLog() {
             <span aria-hidden="true">⚡</span> Quick log
           </h2>
           <p className="mt-0.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            Tap a cached food — works offline, no AI.
+            Tap a cached food — works offline, no AI. Taps log{" "}
+            {portionSummary(servings, mealType)}.
           </p>
         </div>
         <span
@@ -150,25 +175,72 @@ export function InstantLog() {
           No cached foods yet. Open this page online once to download staples.
         </p>
       ) : (
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {display.slice(0, 12).map((food) => (
-            <li key={food.slug}>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => logFood(food)}
-                className="rounded-xl border border-neutral-200 bg-white/90 px-3 py-1.5 text-sm font-medium text-neutral-800 shadow-sm transition hover:border-brand-blue/50 hover:text-brand-blue disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+        <>
+          {/* Portion applies to the next tap, and the chips show the scaled
+              calories so the setting can't quietly go stale. */}
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <div>
+              <label
+                htmlFor="instant-servings"
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
               >
-                {food.name}
-                {food.nutrition.energyKcal != null ? (
-                  <span className="ml-1 text-xs text-neutral-500">
-                    ~{Math.round(food.nutrition.energyKcal)} kcal
-                  </span>
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
+                Servings
+              </label>
+              <input
+                id="instant-servings"
+                type="number"
+                inputMode="decimal"
+                min={0.25}
+                step="0.25"
+                value={servingsRaw}
+                disabled={pending}
+                onChange={(e) => setServingsRaw(e.target.value)}
+                className="mt-1 w-20 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-900 shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="instant-meal-type"
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+              >
+                Meal
+              </label>
+              <select
+                id="instant-meal-type"
+                value={mealType}
+                disabled={pending}
+                onChange={(e) => setMealType(e.target.value as MealType)}
+                className="mt-1 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-900 shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+              >
+                {MEAL_TYPE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {display.slice(0, 12).map((food) => (
+              <li key={food.slug}>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => logFood(food)}
+                  aria-label={`Log ${food.name}, ${portionSummary(servings, mealType)}`}
+                  className="action-chip px-3 py-1.5 text-sm font-medium shadow-sm disabled:opacity-50"
+                >
+                  {food.name}
+                  {food.nutrition.energyKcal != null ? (
+                    <span className="ml-1 text-xs text-neutral-500">
+                      ~{Math.round(food.nutrition.energyKcal * servings)} kcal
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {message ? (

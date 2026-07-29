@@ -100,6 +100,33 @@ describe("saveConfirmedFoodEntries", () => {
     expect(correctionCreate).not.toHaveBeenCalled();
   });
 
+  it("persists a trimmed note and stores a blank one as null", async () => {
+    const withNote = item();
+    withNote.note = "  shared with Amma  ";
+    const blank = item();
+    blank.id = "draft_blank";
+    blank.note = "   ";
+
+    await saveConfirmedFoodEntries(
+      { userId: "u1", items: [withNote, blank], providerId: "fake" },
+      new Map([
+        [withNote.id, []],
+        [blank.id, []],
+      ]),
+    );
+
+    expect(entryCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ note: "shared with Amma" }),
+      }),
+    );
+    expect(entryCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ data: expect.objectContaining({ note: null }) }),
+    );
+  });
+
   it("links FoodEntry to an existing parse AIInteraction (FR-19)", async () => {
     const draft = item();
     draft.dataSource = "ai_estimated";
@@ -123,5 +150,36 @@ describe("saveConfirmedFoodEntries", () => {
         }),
       }),
     );
+  });
+
+  it("does not attribute re-logged drafts to an unrelated parse", async () => {
+    const parsed = item();
+    const relogged = item();
+    relogged.id = "draft_relog";
+    relogged.origin = "manual";
+    relogged.aiSnapshot = null;
+    // Estimated macros carried over from the original entry still need an audit
+    // row, but it must not be this parse's row.
+    relogged.dataSource = "ai_estimated";
+    const diffs = new Map([
+      [parsed.id, []],
+      [relogged.id, []],
+    ]);
+
+    await saveConfirmedFoodEntries(
+      {
+        userId: "u1",
+        items: [parsed, relogged],
+        aiInteractionId: "ai-parse-99",
+      },
+      diffs,
+    );
+
+    expect(aiCreate).toHaveBeenCalledOnce();
+    const linkedIds = entryCreate.mock.calls.map(
+      (call) => (call[0] as { data: { aiInteractionId: string | null } }).data
+        .aiInteractionId,
+    );
+    expect(linkedIds).toEqual(["ai-parse-99", "ai-1"]);
   });
 });

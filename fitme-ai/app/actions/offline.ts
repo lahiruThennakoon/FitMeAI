@@ -21,6 +21,11 @@ export type InstantFoodResult = Result<{
 export type ReconcileResult = Result<{
   saved: number;
   skipped: number;
+  failed: Array<{
+    clientKey: string;
+    foodSlug: string;
+    reason: "not_in_catalog" | "error";
+  }>;
 }>;
 
 /**
@@ -94,6 +99,11 @@ export async function reconcileOfflineQueueAction(
 
   let saved = 0;
   let skipped = 0;
+  const failed: Array<{
+    clientKey: string;
+    foodSlug: string;
+    reason: "not_in_catalog" | "error";
+  }> = [];
   for (const item of parsed.data.items) {
     try {
       const entry = await upsertInstantFoodEntry({
@@ -107,12 +117,22 @@ export async function reconcileOfflineQueueAction(
       });
       if (!entry) {
         skipped += 1;
+        failed.push({
+          clientKey: item.clientKey,
+          foodSlug: item.foodSlug,
+          reason: "not_in_catalog",
+        });
         continue;
       }
       if (entry.created) saved += 1;
       else skipped += 1;
     } catch {
       skipped += 1;
+      failed.push({
+        clientKey: item.clientKey,
+        foodSlug: item.foodSlug,
+        reason: "error",
+      });
     }
   }
 
@@ -120,6 +140,7 @@ export async function reconcileOfflineQueueAction(
     event: "offline_reconcile_ok",
     saved,
     skipped,
+    failed: failed.length,
   });
-  return ok({ saved, skipped });
+  return ok({ saved, skipped, failed });
 }

@@ -42,6 +42,8 @@ function row(overrides: Record<string, unknown> = {}) {
     fatG: 4.8,
     fibreG: 0,
     sugarG: 0.2,
+    sodiumMg: 140,
+    note: null,
     aiInteractionId: null,
     ...overrides,
   };
@@ -50,12 +52,17 @@ function row(overrides: Record<string, unknown> = {}) {
 const editPatch = {
   name: "Two eggs",
   quantity: 2,
+  unit: "piece",
+  mealType: "breakfast" as const,
+  loggedAt,
   energyKcal: 144,
   proteinG: 12.6,
   carbsG: 0.8,
   fatG: 9.6,
   fibreG: 0,
   sugarG: 0.4,
+  sodiumMg: 140,
+  note: null,
 };
 
 beforeEach(() => {
@@ -88,6 +95,8 @@ describe("getEditableFoodEntry (Story 5.2)", () => {
       fatG: 4.8,
       fibreG: 0,
       sugarG: 0.2,
+      sodiumMg: 140,
+      note: null,
       isAiOrigin: false,
     });
   });
@@ -129,16 +138,34 @@ describe("updateFoodEntry (Story 5.2 AC1)", () => {
       data: {
         name: "Two eggs",
         quantity: 2,
+        unit: "piece",
+        mealType: "breakfast",
+        loggedAt,
         energyKcal: 144,
         proteinG: 12.6,
         carbsG: 0.8,
         fatG: 9.6,
         fibreG: 0,
         sugarG: 0.4,
+        sodiumMg: 140,
+        note: null,
       },
     });
     expect(dto.name).toBe("Two eggs");
     expect(dto.quantity).toBe(2);
+  });
+
+  it("records a note edit in the audit trail for an AI-origin entry", async () => {
+    findFirstRow.mockResolvedValue(row({ aiInteractionId: "ai1" }));
+    const patch = { ...editPatch, note: "half portion, shared" };
+    updateRow.mockResolvedValue({ ...row({ aiInteractionId: "ai1" }), ...patch });
+
+    await updateFoodEntry("u1", "f1", patch);
+
+    const fields = createCorrection.mock.calls.map(
+      (c) => (c[0] as { data: { field: string } }).data.field,
+    );
+    expect(fields).toContain("note");
   });
 
   it("logs UserCorrection rows for an AI-origin entry with changed fields", async () => {
@@ -169,12 +196,17 @@ describe("updateFoodEntry (Story 5.2 AC1)", () => {
     const unchanged = {
       name: "Egg",
       quantity: 1,
+      unit: "piece",
+      mealType: "breakfast" as const,
+      loggedAt,
       energyKcal: 72,
       proteinG: 6.3,
       carbsG: 0.4,
       fatG: 4.8,
       fibreG: 0,
       sugarG: 0.2,
+      sodiumMg: 140,
+      note: null,
     };
     findFirstRow.mockResolvedValue(row({ aiInteractionId: "ai1" }));
     updateRow.mockResolvedValue({ ...row({ aiInteractionId: "ai1" }), ...unchanged });

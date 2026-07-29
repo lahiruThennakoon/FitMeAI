@@ -24,7 +24,16 @@ export type CreateExerciseEntryInput = {
   performedAt: Date;
 };
 
-export type ExerciseEntryDto = {
+/** Optional detail fields captured on create and editable afterwards. */
+export type ExerciseEntryDetails = {
+  distanceM: number | null;
+  sets: number | null;
+  reps: number | null;
+  weightG: number | null;
+  notes: string | null;
+};
+
+export type ExerciseEntryDto = ExerciseEntryDetails & {
   id: string;
   type: ExerciseType;
   customLabel: string | null;
@@ -38,17 +47,19 @@ export type ExerciseEntryDto = {
 /** Lean edit DTO for Home list/edit (Story 5.3) — same shape as list DTO. */
 export type ExerciseEntryEditableDto = ExerciseEntryDto;
 
-export type UpdateExerciseEntryInput = {
+export type UpdateExerciseEntryInput = ExerciseEntryDetails & {
   type: ExerciseType;
   customLabel?: string | null;
   durationMin: number;
   intensity: ExerciseIntensity;
+  /** Backdating is allowed so a forgotten workout can land on its own day. */
+  performedAt: Date;
   estimatedKcal: number;
   metUsed: number;
   weightKgUsed: number;
 };
 
-type EditableExerciseEntryRow = {
+type EditableExerciseEntryRow = ExerciseEntryDetails & {
   id: string;
   userId: string;
   type: ExerciseType;
@@ -59,15 +70,17 @@ type EditableExerciseEntryRow = {
   performedAt: Date;
 };
 
-function toDto(row: {
-  id: string;
-  type: ExerciseType;
-  customLabel: string | null;
-  durationMin: number;
-  intensity: ExerciseIntensity;
-  estimatedKcal: number;
-  performedAt: Date;
-}): ExerciseEntryDto {
+function toDto(
+  row: ExerciseEntryDetails & {
+    id: string;
+    type: ExerciseType;
+    customLabel: string | null;
+    durationMin: number;
+    intensity: ExerciseIntensity;
+    estimatedKcal: number;
+    performedAt: Date;
+  },
+): ExerciseEntryDto {
   const displayName =
     row.type === "custom"
       ? (row.customLabel?.trim() || "Custom")
@@ -80,6 +93,11 @@ function toDto(row: {
     intensity: row.intensity,
     estimatedKcal: row.estimatedKcal,
     performedAt: row.performedAt.toISOString(),
+    distanceM: row.distanceM,
+    sets: row.sets,
+    reps: row.reps,
+    weightG: row.weightG,
+    notes: row.notes,
     displayName,
   };
 }
@@ -99,6 +117,11 @@ async function findOwnedExerciseEntry(
       intensity: true,
       estimatedKcal: true,
       performedAt: true,
+      distanceM: true,
+      sets: true,
+      reps: true,
+      weightG: true,
+      notes: true,
     },
   });
   return requireOwnedResource(row, userId);
@@ -164,8 +187,9 @@ export async function getEditableExerciseEntry(
 }
 
 /**
- * Update type/duration/intensity (+ estimate columns) on an owned entry
- * (Story 5.3). Caller must recompute burn via `estimateExerciseBurn` first.
+ * Update an owned entry — type/duration/intensity, when it happened, and the
+ * optional detail fields (Story 5.3). Caller must recompute burn via
+ * `estimateExerciseBurn` first.
  */
 export async function updateExerciseEntry(
   userId: string,
@@ -180,9 +204,15 @@ export async function updateExerciseEntry(
       customLabel: patch.customLabel ?? null,
       durationMin: patch.durationMin,
       intensity: patch.intensity,
+      performedAt: patch.performedAt,
       estimatedKcal: patch.estimatedKcal,
       metUsed: patch.metUsed,
       weightKgUsed: patch.weightKgUsed,
+      distanceM: patch.distanceM,
+      sets: patch.sets,
+      reps: patch.reps,
+      weightG: patch.weightG,
+      notes: patch.notes,
     } satisfies Prisma.ExerciseEntryUpdateInput,
   });
   return toDto(row);
@@ -197,5 +227,21 @@ export async function softDeleteExerciseEntry(
   await prisma.exerciseEntry.update({
     where: { id: existing.id },
     data: { deletedAt: new Date() } satisfies Prisma.ExerciseEntryUpdateInput,
+  });
+}
+
+/** Restore a soft-deleted entry (undo path). */
+export async function restoreExerciseEntry(
+  userId: string,
+  id: string,
+): Promise<void> {
+  const row = await prisma.exerciseEntry.findFirst({
+    where: { id, deletedAt: { not: null } },
+    select: { id: true, userId: true },
+  });
+  const owned = requireOwnedResource(row, userId);
+  await prisma.exerciseEntry.update({
+    where: { id: owned.id },
+    data: { deletedAt: null } satisfies Prisma.ExerciseEntryUpdateInput,
   });
 }

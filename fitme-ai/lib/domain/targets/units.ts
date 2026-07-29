@@ -10,6 +10,8 @@ export type { PreferredUnits };
 const LB_PER_KG = 2.2046226218;
 const IN_PER_CM = 1 / 2.54;
 const ML_PER_FL_OZ = 29.5735295625;
+const M_PER_MILE = 1609.344;
+export const IN_PER_FOOT = 12;
 
 export function kgToG(kg: number): number {
   return Math.round(kg * 1000);
@@ -71,4 +73,61 @@ export function parseHeightToCm(value: number, units: PreferredUnits): number {
 
 export function parseWaterToMl(value: number, units: PreferredUnits): number {
   return units === "imperial" ? Math.round(flOzToMl(value)) : Math.round(value);
+}
+
+export type FeetInches = { feet: number; inches: number };
+
+/**
+ * Split total inches into feet + inches the way people say their height.
+ *
+ * Rounds to the nearest whole inch first, so 71.6 in reads as 6'0" rather than
+ * 5'11.6" — nobody enters a fractional inch, and carrying the rounding after
+ * the split would produce a 12" remainder.
+ */
+export function splitFeetInches(totalInches: number): FeetInches {
+  const whole = Math.round(totalInches);
+  return {
+    feet: Math.floor(whole / IN_PER_FOOT),
+    inches: whole % IN_PER_FOOT,
+  };
+}
+
+export function feetInchesToInches(feet: number, inches: number): number {
+  return feet * IN_PER_FOOT + inches;
+}
+
+/** Height as feet + inches for imperial; `null` when the user is on metric. */
+export function displayHeightParts(
+  cm: number,
+  units: PreferredUnits,
+): FeetInches | null {
+  return units === "imperial" ? splitFeetInches(cmToIn(cm)) : null;
+}
+
+export function mToKm(m: number): number {
+  return m / 1000;
+}
+
+export function kmToM(km: number): number {
+  return Math.round(km * 1000);
+}
+
+export function mToMi(m: number): number {
+  return m / M_PER_MILE;
+}
+
+export function miToM(mi: number): number {
+  return Math.round(mi * M_PER_MILE);
+}
+
+export function distanceUnitLabel(units: PreferredUnits): string {
+  return units === "imperial" ? "mi" : "km";
+}
+
+export function displayDistance(m: number, units: PreferredUnits): number {
+  return roundDisplay(units === "imperial" ? mToMi(m) : mToKm(m), 2);
+}
+
+export function parseDistanceToM(value: number, units: PreferredUnits): number {
+  return units === "imperial" ? miToM(value) : kmToM(value);
 }

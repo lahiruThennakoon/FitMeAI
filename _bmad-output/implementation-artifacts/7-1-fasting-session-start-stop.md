@@ -69,8 +69,8 @@ Cursor Grok 4.5
 
 ### Review Findings
 
-- [ ] [Review][Defer] History list → 7.3; Home status chip → 7.4.
-- [ ] [Review][Defer] Soft-delete UI for past sessions → 7.3.
+- [x] [Review][Resolved] History list → 7.3; Home status chip → 7.4.
+- [x] [Review][Resolved] Soft-delete UI for past sessions → 7.3.
 - [ ] [Review][Defer] No partial unique index in DB for one active fast — enforced in DAL transaction only.
 
 ## Verification

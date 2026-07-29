@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/db";
 import { deliverVerificationEmail } from "@/lib/email/verification-email";
 import { deliverPasswordResetEmail } from "@/lib/email/password-reset-email";
+import { deliverChangeEmailVerification } from "@/lib/email/change-email-email";
 import { purgeUserOrphanData } from "@/lib/dal/user";
 import { logger } from "@/lib/logging";
 
@@ -50,6 +51,27 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // refresh daily
   },
   user: {
+    changeEmail: {
+      enabled: true,
+      // Sent to the old address so losing a session can't lose the account.
+      // Params typed explicitly: this callback's argument is not inferred here.
+      sendChangeEmailVerification: async ({
+        user,
+        newEmail,
+        url,
+      }: {
+        user: { id: string; email: string };
+        newEmail: string;
+        url: string;
+      }) => {
+        await deliverChangeEmailVerification({
+          to: user.email,
+          newEmail,
+          url,
+          userId: user.id,
+        });
+      },
+    },
     deleteUser: {
       enabled: true,
       beforeDelete: async (user) => {

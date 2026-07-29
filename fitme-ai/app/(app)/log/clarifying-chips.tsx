@@ -48,7 +48,7 @@ export function ClarifyingChips({ groups, onSelect }: Props) {
                   key={option.id}
                   type="button"
                   onClick={() => onSelect(group.itemId, option)}
-                  className="inline-flex min-h-11 min-w-[4.5rem] items-center justify-center rounded-xl px-4 text-sm font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/35 transition hover:bg-brand-blue/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
+                  className="inline-flex min-h-11 min-w-[4.5rem] items-center justify-center rounded-xl px-4 text-sm font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/35 transition hover:bg-brand-blue/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:hover:bg-brand-blue/10"
                 >
                   {option.label}
                 </button>

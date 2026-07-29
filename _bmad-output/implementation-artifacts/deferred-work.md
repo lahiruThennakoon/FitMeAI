@@ -47,3 +47,22 @@ Issues triaged out of active stories during code review.
 - **Idempotent save** — double-click / retry can create duplicate FoodEntry rows; add request key or soft draft id later.
 - **Breakdown proportion corrections** — proportion edits recompute macros (captured), but ingredient-line diffs are not stored as separate UserCorrection fields.
 
+## Deferred from: code review of Epics 7–9 (2026-07-27)
+
+- **Scatter same-day fasting_duration** — join keeps last ended fast per calendar day; summing or plotting all sessions deferred.
+- **Glucose create time picker** — if product wants backdated log at create (not just edit), add measuredAt to create form.
+- **Partial unique index for one active fast** — DAL transaction only (carried from 7.1).
+- ~~**`preferredGlucoseUnit` on profile** — per-form unit selection in v1.~~ **Resolved
+  2026-07-29:** added `UserProfile.preferredGlucoseUnit` (migration
+  `20260729060000_profile_glucose_unit`); list, dashboard glance, and progress axis now
+  render the user's unit. Storage stays canonical mg/dL.
+- **Metric series Prisma integration tests** — parser tests only.
+
+## Deferred from: Epics 7–9 implementation (2026-07-27)
+
+- **Partial unique index for one active fast per user** — enforced in DAL transaction only; DB constraint optional hardening.
+- ~~**`preferredGlucoseUnit` on UserProfile** — unit chosen per log form in v1; profile display preference later.~~ **Resolved 2026-07-29** (see above).
+- **Recharts/Visx chart library** — v1 uses SVG; swap renderer when richer charts needed.
+- **Metric series integration tests** — parser/action tests only; mocked Prisma coverage for `buildChartPoints` later.
+- **Profile sparkline (Story 6.2)** — absorbed into `/progress` default; no duplicate widget.
+

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { RATE_LIMIT_ERROR } from "@/lib/auth/actions-shared";
+import { rateLimitMessage } from "@/lib/rate-limit";
 import { loginAction } from "@/app/actions/auth";
 
 afterEach(() => {
@@ -24,7 +24,9 @@ describe("loginAction rate limiting (Story 1.8)", () => {
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toBe(RATE_LIMIT_ERROR);
+      // Tells the user how long to wait rather than a vague "later".
+      expect(result.error).toBe(rateLimitMessage(30));
+      expect(result.error).toContain("30 seconds");
     }
     expect(signInEmail).not.toHaveBeenCalled();
     expect(rateLimit).toHaveBeenCalledWith("login", "ip:test");

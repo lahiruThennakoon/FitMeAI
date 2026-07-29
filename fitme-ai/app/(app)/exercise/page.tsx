@@ -19,7 +19,10 @@ export default async function ExercisePage() {
       title="Log a workout"
       description="Add type, duration, and intensity. Burn is an estimate — not an exact measurement."
     >
-      <ExerciseForm weightKg={weightKg} />
+      <ExerciseForm
+        weightKg={weightKg}
+        units={profile?.preferredUnits ?? "metric"}
+      />
     </AppPageShell>
   );
 }

@@ -22,13 +22,15 @@ export type MacroTotals = {
 };
 
 export type MacroProgress = {
-  key: keyof Omit<MacroTotals, "energyKcal" | "sodiumMg"> | "calories";
+  key: keyof Omit<MacroTotals, "energyKcal"> | "calories";
   label: string;
   consumed: number;
   target: number | null;
   /** 0–1 when target known; null otherwise. */
   ratio: number | null;
   unit: string;
+  /** Set when the target is a health guideline rather than the user's goal. */
+  targetNote?: string;
 };
 
 /** Plain-language energy balance for the dashboard (not a signed net alone). */
@@ -49,7 +51,19 @@ export type DailySummary = {
   baseline: BaselineBurnResult | null;
   netKcal: number | null;
   targetKcal: number | null;
+  /** Target plus any exercise credit — what "Remaining" counts down from. */
+  foodBudgetKcal: number | null;
   remainingKcal: number | null;
+  /** True when exercise burn is credited into the food budget. */
+  eatBackExercise: boolean;
+  /** One sentence reconciling Remaining with the energy balance panel. */
+  remainingBasis: string | null;
+  /** Minutes of logged exercise for the day. */
+  exerciseMinutes: number;
+  /** Daily aim from the user's goal, when set. */
+  exerciseMinutesTarget: number | null;
+  /** Daily step aim from the user's goal — no step logging exists yet. */
+  stepsTarget: number | null;
   macros: MacroTotals;
   waterMlConsumed: number;
   waterMlTarget: number;
@@ -80,26 +94,119 @@ export function sugarLimitFromCalories(caloriesKcal: number | null): number | nu
   return Math.round((caloriesKcal * 0.1) / 4);
 }
 
+/** WHO soft daily sodium ceiling (mg) — not derived from the user's goal. */
+export const SODIUM_LIMIT_MG = 2000;
+
+export type FoodBudgetOpts = {
+  /** Logged exercise burn for the day (kcal). */
+  exerciseKcal?: number;
+  /** When true, exercise burn is added to the budget ("eat back"). */
+  eatBackExercise?: boolean;
+};
+
 /**
- * Translate signed net into plain status language.
- * Negative net = food below burn (room left) — not a failure.
+ * The day's food budget in kcal.
+ *
+ * By default this is just the calorie target: the target already assumes the
+ * user's usual activity level, so crediting logged workouts on top would
+ * double-count. Users who log exercise deliberately can opt in to eating it
+ * back, which is what competing apps do by default.
  */
-export function describeEnergyBalance(netKcal: number): EnergyBalanceStatus {
-  const gap = Math.abs(Math.round(netKcal));
-  if (gap < 50) {
+export function computeFoodBudgetKcal(
+  targetKcal: number | null,
+  opts: FoodBudgetOpts = {},
+): number | null {
+  if (targetKcal == null || !Number.isFinite(targetKcal)) return null;
+  const credit = opts.eatBackExercise ? Math.round(opts.exerciseKcal ?? 0) : 0;
+  return Math.round(targetKcal) + credit;
+}
+
+/**
+ * Food budget left for the day.
+ * Positive = kcal left to eat; negative = kcal over budget.
+ */
+export function computeRemainingKcal(
+  targetKcal: number | null,
+  intakeKcal: number,
+  opts: FoodBudgetOpts = {},
+): number | null {
+  const budget = computeFoodBudgetKcal(targetKcal, opts);
+  if (budget == null) return null;
+  return Math.round(budget - intakeKcal);
+}
+
+/**
+ * One sentence bridging the two numbers users compare and find contradictory:
+ * "Remaining" (food vs budget) and "Energy balance" (food vs total burn).
+ */
+export function describeRemainingBasis(input: {
+  exerciseKcal: number;
+  eatBackExercise: boolean;
+  hasTarget: boolean;
+}): string | null {
+  if (!input.hasTarget) return null;
+  const exercise = Math.round(input.exerciseKcal);
+
+  if (input.eatBackExercise) {
+    return exercise > 0
+      ? `Budget = target + today's ${exercise} kcal of exercise. Energy balance below compares food against your full burn.`
+      : "Budget = target, plus any exercise you log today. Energy balance below compares food against your full burn.";
+  }
+  return exercise > 0
+    ? `Budget = target only — your target already assumes your activity level, so today's ${exercise} kcal of exercise doesn't raise it. Energy balance below does count it.`
+    : "Budget = target only; your target already assumes your usual activity. Energy balance below compares food against your full burn.";
+}
+
+/** Small gap (kcal) we still treat as "close" — never "matches" unless zero. */
+export const ENERGY_BALANCE_CLOSE_MAX = 10;
+
+export type DescribeEnergyBalanceOpts = {
+  /** When set with burnKcal, net uses displayed rounded totals (UI source of truth). */
+  intakeKcal?: number;
+  burnKcal?: number;
+};
+
+/**
+ * Translate signed net (intake − burn) into plain status language.
+ * Negative net = food below estimated burn — distinct from food-budget remaining.
+ */
+export function describeEnergyBalance(
+  netKcal: number,
+  opts?: DescribeEnergyBalanceOpts,
+): EnergyBalanceStatus {
+  const net =
+    opts?.intakeKcal != null && opts?.burnKcal != null
+      ? Math.round(opts.intakeKcal) - Math.round(opts.burnKcal)
+      : Math.round(netKcal);
+  const gap = Math.abs(net);
+
+  if (gap === 0) {
+    return {
+      kind: "even",
+      gapKcal: 0,
+      statusLabel: "On track",
+      explanation: "Food and burn match today.",
+    };
+  }
+
+  if (gap <= ENERGY_BALANCE_CLOSE_MAX) {
     return {
       kind: "even",
       gapKcal: gap,
-      statusLabel: "On track",
-      explanation: "Food and burn are about even.",
+      statusLabel: "Close",
+      explanation:
+        net < 0
+          ? `Food is ${gap} kcal below burn — close for today.`
+          : `Food is ${gap} kcal above burn — close for today.`,
     };
   }
-  if (netKcal < 0) {
+
+  if (net < 0) {
     return {
       kind: "under",
       gapKcal: gap,
-      statusLabel: "Room left",
-      explanation: `You still have ${gap} kcal to eat.`,
+      statusLabel: "Below burn",
+      explanation: `Food is ${gap} kcal below estimated burn.`,
     };
   }
   return {
@@ -178,6 +285,8 @@ export function buildDailySummary(input: {
   dayKey: string;
   entries: FoodEntryLike[];
   exerciseKcal: number;
+  /** Logged exercise minutes for the day, for the movement aim. */
+  exerciseMinutes?: number;
   waterMlConsumed?: number;
   profile: ProfileDto | null;
   goal: GoalDto | null;
@@ -204,8 +313,10 @@ export function buildDailySummary(input: {
       : null;
 
   const targetKcal = input.goal?.caloriesKcal ?? null;
-  const remainingKcal =
-    targetKcal != null ? Math.round(targetKcal - intakeKcal) : null;
+  const eatBackExercise = input.profile?.eatBackExercise ?? false;
+  const budgetOpts = { exerciseKcal: input.exerciseKcal, eatBackExercise };
+  const foodBudgetKcal = computeFoodBudgetKcal(targetKcal, budgetOpts);
+  const remainingKcal = computeRemainingKcal(targetKcal, intakeKcal, budgetOpts);
   /** Soft daily sugar aim from calorie target (WHO ~10% energy as free sugars). */
   const sugarLimitG = sugarLimitFromCalories(targetKcal);
 
@@ -214,8 +325,8 @@ export function buildDailySummary(input: {
       key: "calories",
       label: "Calories",
       consumed: intakeKcal,
-      target: targetKcal,
-      ratio: ratio(intakeKcal, targetKcal),
+      target: foodBudgetKcal,
+      ratio: ratio(intakeKcal, foodBudgetKcal),
       unit: "kcal",
     },
     {
@@ -257,6 +368,16 @@ export function buildDailySummary(input: {
       target: sugarLimitG,
       ratio: ratio(macros.sugarG, sugarLimitG),
       unit: "g",
+      targetNote: "WHO soft aim: ~10% of calories as free sugars",
+    },
+    {
+      key: "sodiumMg",
+      label: "Sodium",
+      consumed: Math.round(macros.sodiumMg),
+      target: SODIUM_LIMIT_MG,
+      ratio: ratio(macros.sodiumMg, SODIUM_LIMIT_MG),
+      unit: "mg",
+      targetNote: "WHO soft aim, not from your goal",
     },
   ];
 
@@ -272,7 +393,17 @@ export function buildDailySummary(input: {
     baseline,
     netKcal,
     targetKcal,
+    foodBudgetKcal,
     remainingKcal,
+    eatBackExercise,
+    remainingBasis: describeRemainingBasis({
+      exerciseKcal: input.exerciseKcal,
+      eatBackExercise,
+      hasTarget: targetKcal != null,
+    }),
+    exerciseMinutes: Math.round(input.exerciseMinutes ?? 0),
+    exerciseMinutesTarget: input.goal?.exerciseMinutes ?? null,
+    stepsTarget: input.goal?.steps ?? null,
     macros: {
       ...macros,
       energyKcal: intakeKcal,

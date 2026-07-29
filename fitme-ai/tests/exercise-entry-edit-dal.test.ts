@@ -31,15 +31,28 @@ function row(overrides: Record<string, unknown> = {}) {
     intensity: "moderate",
     estimatedKcal: 123,
     performedAt,
+    distanceM: null,
+    sets: null,
+    reps: null,
+    weightG: null,
+    notes: null,
     ...overrides,
   };
 }
+
+const editedAt = new Date("2026-07-25T18:30:00.000Z");
 
 const editPatch = {
   type: "running" as const,
   customLabel: null,
   durationMin: 45,
   intensity: "high" as const,
+  performedAt: editedAt,
+  distanceM: 8000,
+  sets: null,
+  reps: null,
+  weightG: null,
+  notes: "Felt easy",
   estimatedKcal: 400,
   metUsed: 11.5,
   weightKgUsed: 70,
@@ -63,6 +76,11 @@ describe("getEditableExerciseEntry (Story 5.3)", () => {
       intensity: "moderate",
       estimatedKcal: 123,
       performedAt: performedAt.toISOString(),
+      distanceM: null,
+      sets: null,
+      reps: null,
+      weightG: null,
+      notes: null,
       displayName: "Walking",
     });
   });
@@ -85,7 +103,7 @@ describe("getEditableExerciseEntry (Story 5.3)", () => {
 });
 
 describe("updateExerciseEntry (Story 5.3)", () => {
-  it("persists type/duration/intensity and estimate columns", async () => {
+  it("persists core fields, performedAt, details and estimate columns", async () => {
     findFirstRow.mockResolvedValue(row());
     updateRow.mockResolvedValue(
       row({
@@ -105,9 +123,15 @@ describe("updateExerciseEntry (Story 5.3)", () => {
         customLabel: null,
         durationMin: 45,
         intensity: "high",
+        performedAt: editedAt,
         estimatedKcal: 400,
         metUsed: 11.5,
         weightKgUsed: 70,
+        distanceM: 8000,
+        sets: null,
+        reps: null,
+        weightG: null,
+        notes: "Felt easy",
       },
     });
     expect(dto.estimatedKcal).toBe(400);

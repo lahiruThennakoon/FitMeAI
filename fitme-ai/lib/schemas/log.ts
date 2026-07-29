@@ -81,6 +81,12 @@ export const saveMealDraftItemSchema = z.object({
   kind: z.enum(["simple", "composite", "estimated"]),
   origin: z.enum(["ai_parse", "manual"]),
   aiSnapshot: aiSnapshotSchema.nullable(),
+  note: z
+    .string()
+    .trim()
+    .max(500, "Keep the note under 500 characters")
+    .optional()
+    .nullable(),
 });
 
 /**

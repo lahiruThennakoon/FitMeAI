@@ -47,7 +47,7 @@ export default function Home() {
         </Link>
         <Link
           href="/login"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 transition hover:bg-brand-teal/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:text-teal-200"
+          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 transition hover:bg-brand-teal/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:text-teal-200 dark:hover:bg-brand-teal/15"
         >
           I already have an account
         </Link>

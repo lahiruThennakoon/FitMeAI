@@ -71,7 +71,7 @@ Cursor Grok 4.5
 
 - [ ] [Review][Defer] Goal/BMR not recomputed on weigh-in — user re-saves Profile to refresh targets (documented).
 - [ ] [Review][Defer] No soft-delete UI for weigh-ins yet (column present).
-- [ ] [Review][Defer] Trend sparkline → Story 6.2.
+- [x] [Review][Resolved] Trend sparkline → absorbed into Epic 9.5 (`/progress?x=time&y=weight`).
 
 ## Verification
 

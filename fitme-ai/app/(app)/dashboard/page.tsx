@@ -6,10 +6,17 @@ import {
 } from "@/lib/dal/exercise-entry";
 import { listActiveFoodEntriesForUser } from "@/lib/dal/food-entry";
 import { getGoalForUser, getProfileForUser } from "@/lib/dal/profile";
-import { sumWaterMlForUserBetween } from "@/lib/dal/water-entry";
+import {
+  listWaterEntriesForUserBetween,
+  sumWaterMlForUserBetween,
+} from "@/lib/dal/water-entry";
+import { getActiveFastingSession } from "@/lib/dal/fasting-session";
+import { getLatestGlucoseEntry } from "@/lib/dal/glucose-entry";
 import { buildDailySummary } from "@/lib/domain/dashboard/daily-summary";
 import {
   isWithinDay,
+  nextZonedDayKey,
+  previousZonedDayKey,
   resolveHomeDaySelection,
 } from "@/lib/domain/dashboard/day-bounds";
 import { gToKg } from "@/lib/domain/targets/units";
@@ -17,6 +24,9 @@ import { DailySummaryPanel } from "./daily-summary-panel";
 import { DaySwitcher } from "./day-switcher";
 import { TodayExercisesList } from "./today-exercises-list";
 import { TodayMealsList } from "./today-meals-list";
+import { FastingStatusChip } from "./fasting-status-chip";
+import { GlucoseGlance } from "./glucose-glance";
+import { ProfileSetupNudge } from "./profile-setup-nudge";
 import { SignOutButton } from "../sign-out-button";
 
 type PageProps = {
@@ -25,7 +35,7 @@ type PageProps = {
 
 /**
  * Home dashboard (FR-15 / Stories 3.1–3.3, 5.1–5.4).
- * Day bounds use profile timezone (AD-10); `?day=` selects today or yesterday.
+ * Day bounds use profile timezone (AD-10); `?day=` selects any past day (not future).
  */
 export default async function DashboardPage({ searchParams }: PageProps) {
   const user = await getSession();
@@ -34,39 +44,60 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const rawDay = params.day;
   const requestedDay = Array.isArray(rawDay) ? rawDay[0] : rawDay;
 
-  const [goal, profile, entries, exerciseEntries] = userId
+  const [goal, profile, entries, exerciseEntries, activeFast, latestGlucose] =
+    userId
     ? await Promise.all([
         getGoalForUser(userId),
         getProfileForUser(userId),
         listActiveFoodEntriesForUser(userId),
         listActiveExerciseEntriesForUser(userId),
+        getActiveFastingSession(userId),
+        getLatestGlucoseEntry(userId),
       ])
-    : [null, null, [], []];
+    : [null, null, [], [], null, null];
 
+  const now = new Date();
   const selection = resolveHomeDaySelection({
-    now: new Date(),
+    now,
     timeZone: profile?.timezone ?? "UTC",
     requestedDay,
   });
-  const { bounds, todayKey, yesterdayKey, isToday } = selection;
+  const { bounds, todayKey, yesterdayKey, isToday, labels } = selection;
+  const timeZone = profile?.timezone ?? "UTC";
+  const previousKey = previousZonedDayKey(bounds.dayKey, timeZone);
+  const nextKey = isToday ? null : nextZonedDayKey(bounds.dayKey, timeZone);
 
-  const [dayExerciseKcal, dayWaterMl] = userId
+  const [dayExerciseKcal, dayWaterMl, dayWaterEntries] = userId
     ? await Promise.all([
         sumExerciseKcalForUserBetween(userId, bounds.start, bounds.end),
         sumWaterMlForUserBetween(userId, bounds.start, bounds.end),
+        listWaterEntriesForUserBetween(userId, bounds.start, bounds.end),
       ])
-    : [0, 0];
+    : [0, 0, []];
+
+  /**
+   * Quick-adds while viewing a past day are stamped at that day's local midday
+   * — safely inside its bounds and never in the future.
+   */
+  const waterLogAtIso = isToday
+    ? null
+    : new Date(bounds.start.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
   const dayEntries = entries.filter((e) => isWithinDay(e.loggedAt, bounds));
   const dayExerciseRows = exerciseEntries.filter((e) =>
     isWithinDay(new Date(e.performedAt), bounds),
   );
   const weightKg = profile ? gToKg(profile.currentWeightG) : null;
+  const dayExerciseMinutes = dayExerciseRows.reduce(
+    (sum, e) => sum + e.durationMin,
+    0,
+  );
 
   const summary = buildDailySummary({
     dayKey: bounds.dayKey,
     entries: dayEntries,
     exerciseKcal: dayExerciseKcal,
+    exerciseMinutes: dayExerciseMinutes,
     waterMlConsumed: dayWaterMl,
     profile,
     goal,
@@ -85,11 +116,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     fatG: e.fatG,
     fibreG: e.fibreG,
     sugarG: e.sugarG,
+    sodiumMg: e.sodiumMg,
+    note: e.note,
     isAiOrigin: e.aiInteractionId != null,
   }));
   const displayName = user?.name?.trim() || "there";
-  const mealsHeading = isToday ? "Meals today" : "Meals yesterday";
-  const exerciseHeading = isToday ? "Exercise today" : "Exercise yesterday";
+  const mealsHeading = labels.mealsHeading;
+  const exerciseHeading = labels.exerciseHeading;
 
   return (
     <main className="relative mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-5 py-10">
@@ -105,21 +138,43 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 dark:text-white">
           Hi, {displayName}
         </h1>
-        <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
-          {isToday
-            ? "A calm look at today — use it to decide your next move."
-            : "A calm look at yesterday — every day is just a chapter."}
+        <p
+          className="dashboard-helper-text text-sm leading-relaxed text-neutral-600 dark:text-neutral-300"
+          data-testid="dashboard-header-blurb"
+        >
+          {labels.headerBlurb}
         </p>
       </header>
+
+      {!profile ? <ProfileSetupNudge /> : null}
 
       <DaySwitcher
         todayKey={todayKey}
         yesterdayKey={yesterdayKey}
         selectedKey={bounds.dayKey}
+        switcherLabel={labels.switcherLabel}
         isToday={isToday}
+        previousKey={previousKey}
+        nextKey={nextKey}
       />
 
-      <DailySummaryPanel summary={summary} isToday={isToday} />
+      <DailySummaryPanel
+        summary={summary}
+        labels={labels}
+        waterEntries={dayWaterEntries}
+        waterLogAtIso={waterLogAtIso}
+      />
+
+      {activeFast ? (
+        <FastingStatusChip active={activeFast} nowMs={now.getTime()} />
+      ) : null}
+
+      {isToday ? (
+        <GlucoseGlance
+          latest={latestGlucose}
+          displayUnit={profile?.preferredGlucoseUnit ?? "mg_dl"}
+        />
+      ) : null}
 
       <section
         className="rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
@@ -136,7 +191,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <TodayMealsList entries={mealRows} isToday={isToday} />
+        <TodayMealsList entries={mealRows} labels={labels} />
       </section>
 
       <section
@@ -160,7 +215,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <TodayExercisesList
           entries={dayExerciseRows}
           weightKg={weightKg}
-          isToday={isToday}
+          labels={labels}
+          units={profile?.preferredUnits ?? "metric"}
         />
       </section>
 
@@ -188,15 +244,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </Link>
         <Link
           href="/exercise"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm shadow-brand-teal/15 transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:ring-brand-teal/50"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm shadow-brand-teal/15 transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:ring-brand-teal/50 dark:hover:bg-brand-teal/20"
         >
           Log exercise
         </Link>
         <Link
           href="/fasting"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600 dark:hover:bg-neutral-100/10"
         >
           Fasting timer
+        </Link>
+        <Link
+          href="/glucose"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600 dark:hover:bg-neutral-100/10"
+        >
+          Log glucose
+        </Link>
+        <Link
+          href="/progress"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:hover:bg-brand-teal/20"
+        >
+          Progress charts
         </Link>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1">
           <Link

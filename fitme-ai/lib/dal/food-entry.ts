@@ -55,7 +55,12 @@ export async function saveConfirmedFoodEntries(
   const saved: SavedFoodEntryDto[] = [];
 
   await prisma.$transaction(async (tx) => {
-    let sharedInteractionId: string | null = input.aiInteractionId ?? null;
+    const parseInteractionId = input.aiInteractionId ?? null;
+    /**
+     * Drafts that need an audit row but did not come from this parse (manual
+     * entries, re-logged templates) must not borrow the parse's audit id.
+     */
+    let stubInteractionId: string | null = null;
 
     for (const item of input.items) {
       let foodId: string | null = null;
@@ -73,25 +78,28 @@ export async function saveConfirmedFoodEntries(
 
       let aiInteractionId: string | null = null;
       if (needsAudit) {
-        if (!sharedInteractionId) {
-          // Fallback stub when client omitted parse audit id.
-          const interaction = await tx.aIInteraction.create({
-            data: {
-              userId: input.userId,
-              providerId: input.providerId ?? "unknown",
-              model: input.model ?? null,
-              purpose: "food_parse",
-              status: "succeeded",
-              confidence: item.confidence,
-              requestMeta: {
+        if (isAi && parseInteractionId) {
+          aiInteractionId = parseInteractionId;
+        } else {
+          if (!stubInteractionId) {
+            const interaction = await tx.aIInteraction.create({
+              data: {
+                userId: input.userId,
+                providerId: input.providerId ?? "unknown",
+                model: input.model ?? null,
                 purpose: "food_parse",
-                promptCharLength: 0,
+                status: "succeeded",
+                confidence: item.confidence,
+                requestMeta: {
+                  purpose: "food_parse",
+                  promptCharLength: 0,
+                },
               },
-            },
-          });
-          sharedInteractionId = interaction.id;
+            });
+            stubInteractionId = interaction.id;
+          }
+          aiInteractionId = stubInteractionId;
         }
-        aiInteractionId = sharedInteractionId;
       }
 
       const entry = await tx.foodEntry.create({
@@ -112,6 +120,7 @@ export async function saveConfirmedFoodEntries(
           fibreG: item.nutrition.fibreG,
           sugarG: item.nutrition.sugarG,
           sodiumMg: item.nutrition.sodiumMg,
+          note: item.note?.trim() || null,
           aiInteractionId,
           items: { create: itemRows(item.breakdown) },
         },
@@ -156,9 +165,8 @@ export async function listActiveFoodEntriesForUser(userId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Edit / soft-delete today's meals (Story 5.2 / FR-9 correction path).
-// Scope is deliberately name/quantity/macros only — the ingredient
-// `items` breakdown (composite dishes) is not editable here.
+// Edit / soft-delete logged meals (Story 5.2 / FR-9 correction path).
+// The ingredient `items` breakdown (composite dishes) is not editable here.
 // ---------------------------------------------------------------------------
 
 export type FoodEntryEditableDto = {
@@ -174,6 +182,8 @@ export type FoodEntryEditableDto = {
   fatG: number | null;
   fibreG: number | null;
   sugarG: number | null;
+  sodiumMg: number | null;
+  note: string | null;
   /** True when this entry has an AI audit trail (edits get logged as UserCorrection). */
   isAiOrigin: boolean;
 };
@@ -181,12 +191,17 @@ export type FoodEntryEditableDto = {
 export type UpdateFoodEntryInput = {
   name: string;
   quantity: number;
+  unit: string;
+  mealType: MealType;
+  loggedAt: Date;
   energyKcal: number | null;
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
   fibreG: number | null;
   sugarG: number | null;
+  sodiumMg: number | null;
+  note: string | null;
 };
 
 type EditableFoodEntryRow = {
@@ -203,6 +218,8 @@ type EditableFoodEntryRow = {
   fatG: number | null;
   fibreG: number | null;
   sugarG: number | null;
+  sodiumMg: number | null;
+  note: string | null;
   aiInteractionId: string | null;
 };
 
@@ -220,6 +237,8 @@ function toEditableDto(row: EditableFoodEntryRow): FoodEntryEditableDto {
     fatG: row.fatG,
     fibreG: row.fibreG,
     sugarG: row.sugarG,
+    sodiumMg: row.sodiumMg,
+    note: row.note,
     isAiOrigin: row.aiInteractionId != null,
   };
 }
@@ -247,12 +266,21 @@ function diffEditableFields(
   }> = [
     { field: "name", before: before.name, after: after.name },
     { field: "quantity", before: before.quantity, after: after.quantity },
+    { field: "unit", before: before.unit, after: after.unit },
+    { field: "mealType", before: before.mealType, after: after.mealType },
+    {
+      field: "loggedAt",
+      before: before.loggedAt.toISOString(),
+      after: after.loggedAt.toISOString(),
+    },
     { field: "energyKcal", before: before.energyKcal, after: after.energyKcal },
     { field: "proteinG", before: before.proteinG, after: after.proteinG },
     { field: "carbsG", before: before.carbsG, after: after.carbsG },
     { field: "fatG", before: before.fatG, after: after.fatG },
     { field: "fibreG", before: before.fibreG, after: after.fibreG },
     { field: "sugarG", before: before.sugarG, after: after.sugarG },
+    { field: "sodiumMg", before: before.sodiumMg, after: after.sodiumMg },
+    { field: "note", before: before.note, after: after.note },
   ];
   return pairs
     .filter((p) => !editableValuesEqual(p.before, p.after))
@@ -279,6 +307,8 @@ async function findOwnedFoodEntry(
       fatG: true,
       fibreG: true,
       sugarG: true,
+      sodiumMg: true,
+      note: true,
       aiInteractionId: true,
     },
   });
@@ -313,12 +343,17 @@ export async function updateFoodEntry(
       data: {
         name: patch.name,
         quantity: patch.quantity,
+        unit: patch.unit,
+        mealType: patch.mealType,
+        loggedAt: patch.loggedAt,
         energyKcal: patch.energyKcal,
         proteinG: patch.proteinG,
         carbsG: patch.carbsG,
         fatG: patch.fatG,
         fibreG: patch.fibreG,
         sugarG: patch.sugarG,
+        sodiumMg: patch.sodiumMg,
+        note: patch.note,
       },
     });
 
@@ -352,5 +387,21 @@ export async function softDeleteFoodEntry(
   await prisma.foodEntry.update({
     where: { id: existing.id },
     data: { deletedAt: new Date() } satisfies Prisma.FoodEntryUpdateInput,
+  });
+}
+
+/** Restore a soft-deleted entry (undo path). */
+export async function restoreFoodEntry(
+  userId: string,
+  id: string,
+): Promise<void> {
+  const row = await prisma.foodEntry.findFirst({
+    where: { id, deletedAt: { not: null } },
+    select: { id: true, userId: true },
+  });
+  const owned = requireOwnedResource(row, userId);
+  await prisma.foodEntry.update({
+    where: { id: owned.id },
+    data: { deletedAt: null } satisfies Prisma.FoodEntryUpdateInput,
   });
 }

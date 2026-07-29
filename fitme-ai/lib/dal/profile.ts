@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   ActivityLevel,
+  GlucoseUnit,
   Goal,
   GoalType,
   PreferredUnits,
@@ -11,6 +12,7 @@ import type {
 import { prisma } from "@/lib/db";
 import { assertOwnership } from "@/lib/dal/guards";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
+import type { NotificationPreferencesInput } from "@/lib/schemas/profile";
 
 export type { GoalDto, ProfileDto };
 
@@ -26,6 +28,10 @@ function toProfileDto(row: UserProfile): ProfileDto {
     dietaryPreferences: row.dietaryPreferences,
     goalType: row.goalType,
     preferredUnits: row.preferredUnits,
+    preferredGlucoseUnit: row.preferredGlucoseUnit,
+    eatBackExercise: row.eatBackExercise,
+    notifyFastingEnd: row.notifyFastingEnd,
+    notifyWeeklyDigest: row.notifyWeeklyDigest,
     country: row.country,
     timezone: row.timezone,
   };
@@ -82,6 +88,8 @@ export type UpsertProfileGoalInput = {
     dietaryPreferences: string[];
     goalType: GoalType;
     preferredUnits: PreferredUnits;
+    preferredGlucoseUnit: GlucoseUnit;
+    eatBackExercise: boolean;
     country: string;
     timezone: string;
   };
@@ -129,4 +137,49 @@ export async function upsertProfileAndGoal(
   assertOwnership(profile.userId, userId);
   assertOwnership(goal.userId, userId);
   return { profile: toProfileDto(profile), goal: toGoalDto(goal) };
+}
+
+export type DisplayPreferencesInput = {
+  preferredUnits: PreferredUnits;
+  preferredGlucoseUnit: GlucoseUnit;
+  timezone: string;
+};
+
+/**
+ * Patch the display-only fields without re-running target maths.
+ *
+ * These three change how existing numbers are *shown* (and which calendar day
+ * an entry falls in), never what is stored, so they don't need the full profile
+ * round-trip. Returns `null` when there's no profile yet — units have nowhere
+ * to live until the profile exists.
+ */
+export async function updateDisplayPreferences(
+  userId: string,
+  input: DisplayPreferencesInput,
+): Promise<ProfileDto | null> {
+  const existing = await prisma.userProfile.findUnique({ where: { userId } });
+  if (!existing) return null;
+  assertOwnership(existing.userId, userId);
+
+  const row = await prisma.userProfile.update({
+    where: { userId },
+    data: input,
+  });
+  return toProfileDto(row);
+}
+
+/** Patch reminder prefs (stored now; delivery comes later). */
+export async function updateNotificationPreferences(
+  userId: string,
+  input: NotificationPreferencesInput,
+): Promise<ProfileDto | null> {
+  const existing = await prisma.userProfile.findUnique({ where: { userId } });
+  if (!existing) return null;
+  assertOwnership(existing.userId, userId);
+
+  const row = await prisma.userProfile.update({
+    where: { userId },
+    data: input,
+  });
+  return toProfileDto(row);
 }

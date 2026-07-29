@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { RATE_LIMIT_ERROR } from "@/lib/auth/actions-shared";
+import { rateLimitMessage } from "@/lib/rate-limit";
 import {
   registerAction,
   requestPasswordResetAction,
@@ -16,6 +17,9 @@ const denyLimit = {
   rateLimit: () => ({ ok: false as const, retryAfterSec: 30 }),
 };
 
+/** A throttled call names the wait; only the fail-closed path stays vague. */
+const DENIED_MESSAGE = rateLimitMessage(30);
+
 describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
   it("blocks register without calling Better Auth", async () => {
     const signUpEmail = vi.fn();
@@ -25,7 +29,7 @@ describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
       { signUpEmail, sendVerificationEmail, ...denyLimit },
     );
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(RATE_LIMIT_ERROR);
+    if (!result.ok) expect(result.error).toBe(DENIED_MESSAGE);
     expect(signUpEmail).not.toHaveBeenCalled();
     expect(sendVerificationEmail).not.toHaveBeenCalled();
   });
@@ -37,7 +41,7 @@ describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
       { requestPasswordReset, ...denyLimit },
     );
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(RATE_LIMIT_ERROR);
+    if (!result.ok) expect(result.error).toBe(DENIED_MESSAGE);
     expect(requestPasswordReset).not.toHaveBeenCalled();
   });
 
@@ -48,7 +52,7 @@ describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
       { resetPassword, ...denyLimit },
     );
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(RATE_LIMIT_ERROR);
+    if (!result.ok) expect(result.error).toBe(DENIED_MESSAGE);
     expect(resetPassword).not.toHaveBeenCalled();
   });
 
@@ -63,7 +67,7 @@ describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
       },
     );
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(RATE_LIMIT_ERROR);
+    if (!result.ok) expect(result.error).toBe(DENIED_MESSAGE);
     expect(deleteUser).not.toHaveBeenCalled();
   });
 
@@ -81,6 +85,7 @@ describe("auth Server Action rate-limit deny paths (Story 1.8)", () => {
       },
     );
     expect(result.ok).toBe(false);
+    // No window to report when we never got a client key.
     if (!result.ok) expect(result.error).toBe(RATE_LIMIT_ERROR);
     expect(signIn).not.toHaveBeenCalled();
   });

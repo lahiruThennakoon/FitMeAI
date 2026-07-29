@@ -8,6 +8,9 @@ describe("registerSchema (field-keyed validation for registration)", () => {
       password: "securepass",
     });
     expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.email).toBe("nimali@example.com");
+    }
   });
 
   it("rejects a malformed email with an email field error", () => {
@@ -36,18 +39,47 @@ describe("registerSchema (field-keyed validation for registration)", () => {
     }
   });
 
-  it("rejects whitespace-only passwords and trims emails", () => {
-    expect(
-      registerSchema.safeParse({
-        email: "  nimali@example.com  ",
-        password: "securepass",
-      }).success,
-    ).toBe(true);
+  it("rejects passwords longer than 128 characters", () => {
+    const parsed = registerSchema.safeParse({
+      email: "nimali@example.com",
+      password: "a".repeat(129),
+    });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      const passwordIssue = parsed.error.issues.find(
+        (i) => i.path[0] === "password",
+      );
+      expect(passwordIssue?.message).toBe(
+        "Password must be at most 128 characters.",
+      );
+    }
+  });
+
+  it("rejects whitespace-only passwords and normalizes emails", () => {
+    const parsed = registerSchema.safeParse({
+      email: "  nimali@example.com  ",
+      password: "securepass",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.email).toBe("nimali@example.com");
+    }
     expect(
       registerSchema.safeParse({
         email: "nimali@example.com",
         password: "        ",
       }).success,
     ).toBe(false);
+  });
+
+  it("lowercases mixed-case emails on output", () => {
+    const parsed = registerSchema.safeParse({
+      email: "Nimali+Fit@Example.COM",
+      password: "securepass",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.email).toBe("nimali+fit@example.com");
+    }
   });
 });

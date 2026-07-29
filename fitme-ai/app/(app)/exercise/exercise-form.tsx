@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { saveExerciseEntryAction } from "@/app/actions/exercise";
+import { DatetimeLocalField } from "@/components/datetime-local-field";
+import {
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/domain/datetime-local";
+import {
+  FUTURE_TIME_MESSAGE,
+  INVALID_TIME_MESSAGE,
+  isFutureInstant,
+} from "@/lib/domain/log-time";
 import {
   EXERCISE_ESTIMATE_LIMITATION,
   EXERCISE_INTENSITIES,
@@ -12,10 +22,17 @@ import {
   type ExerciseIntensity,
   type ExerciseType,
 } from "@/lib/domain/burn/exercise-estimate";
+import {
+  distanceUnitLabel,
+  parseDistanceToM,
+  parseMassToG,
+  type PreferredUnits,
+} from "@/lib/domain/targets/units";
 
 type Props = {
   /** Profile body weight in kg when available. */
   weightKg: number | null;
+  units: PreferredUnits;
 };
 
 function numOrNull(raw: string): number | null {
@@ -25,18 +42,21 @@ function numOrNull(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function ExerciseForm({ weightKg }: Props) {
+export function ExerciseForm({ weightKg, units }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState<ExerciseType>("walking");
   const [customLabel, setCustomLabel] = useState("");
   const [durationMin, setDurationMin] = useState("30");
   const [intensity, setIntensity] = useState<ExerciseIntensity>("moderate");
-  const [distanceKm, setDistanceKm] = useState("");
+  /** Entered in the user's units (km or mi); converted to metres on submit. */
+  const [distance, setDistance] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
-  const [weightKgLoad, setWeightKgLoad] = useState("");
+  const [load, setLoad] = useState("");
   const [notes, setNotes] = useState("");
+  /** Empty until touched, so a workout logged now needs no interaction. */
+  const [performedAt, setPerformedAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -59,13 +79,27 @@ export function ExerciseForm({ weightKg }: Props) {
     setSavedMsg(null);
 
     const distanceM = (() => {
-      const km = numOrNull(distanceKm);
-      return km == null ? null : Math.round(km * 1000);
+      const entered = numOrNull(distance);
+      return entered == null ? null : parseDistanceToM(entered, units);
     })();
     const loadG = (() => {
-      const kg = numOrNull(weightKgLoad);
-      return kg == null ? null : Math.round(kg * 1000);
+      const entered = numOrNull(load);
+      return entered == null ? null : parseMassToG(entered, units);
     })();
+
+    let performedAtIso: string | undefined;
+    if (performedAt) {
+      const at = fromDatetimeLocalValue(performedAt);
+      if (Number.isNaN(at.getTime())) {
+        setError(INVALID_TIME_MESSAGE);
+        return;
+      }
+      if (isFutureInstant(at)) {
+        setError(FUTURE_TIME_MESSAGE);
+        return;
+      }
+      performedAtIso = at.toISOString();
+    }
 
     startTransition(async () => {
       try {
@@ -79,6 +113,7 @@ export function ExerciseForm({ weightKg }: Props) {
           reps: numOrNull(reps),
           weightG: loadG,
           notes: notes.trim() || null,
+          performedAt: performedAtIso,
         });
         if (!result.ok) {
           setError(result.error);
@@ -190,6 +225,18 @@ export function ExerciseForm({ weightKg }: Props) {
             ))}
           </select>
         </div>
+        <div className="col-span-2">
+          <DatetimeLocalField
+            id="exercise-performed-at"
+            label="When"
+            value={performedAt || toDatetimeLocalValue(new Date())}
+            onChange={setPerformedAt}
+            max={toDatetimeLocalValue(new Date())}
+          />
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            Defaults to now — change it to log a workout you did earlier.
+          </p>
+        </div>
       </div>
 
       <fieldset className="space-y-3">
@@ -199,7 +246,7 @@ export function ExerciseForm({ weightKg }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="distance" className="block text-sm font-medium">
-              Distance (km)
+              Distance ({distanceUnitLabel(units)})
             </label>
             <input
               id="distance"
@@ -207,14 +254,14 @@ export function ExerciseForm({ weightKg }: Props) {
               inputMode="decimal"
               min={0}
               step="0.1"
-              value={distanceKm}
-              onChange={(e) => setDistanceKm(e.target.value)}
+              value={distance}
+              onChange={(e) => setDistance(e.target.value)}
               className={inputClass}
             />
           </div>
           <div>
             <label htmlFor="load" className="block text-sm font-medium">
-              Load (kg)
+              Load ({units === "imperial" ? "lb" : "kg"})
             </label>
             <input
               id="load"
@@ -222,8 +269,8 @@ export function ExerciseForm({ weightKg }: Props) {
               inputMode="decimal"
               min={0}
               step="0.5"
-              value={weightKgLoad}
-              onChange={(e) => setWeightKgLoad(e.target.value)}
+              value={load}
+              onChange={(e) => setLoad(e.target.value)}
               className={inputClass}
             />
           </div>

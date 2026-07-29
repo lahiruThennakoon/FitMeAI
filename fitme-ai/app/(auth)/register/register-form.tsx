@@ -3,8 +3,23 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { registerAction } from "@/app/actions/auth";
+import { clientFieldErrors } from "@/lib/auth/client-validation";
+import { validateEmail } from "@/lib/domain/auth/email";
+import {
+  PASSWORD_MAX_MESSAGE,
+  PASSWORD_MIN_MESSAGE,
+  registerSchema,
+} from "@/lib/schemas/auth";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
+
+function validateRegisterPassword(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return PASSWORD_MIN_MESSAGE;
+  if (trimmed.length < 8) return PASSWORD_MIN_MESSAGE;
+  if (trimmed.length > 128) return PASSWORD_MAX_MESSAGE;
+  return undefined;
+}
 
 export function RegisterForm() {
   const [pending, startTransition] = useTransition();
@@ -18,6 +33,12 @@ export function RegisterForm() {
     event.preventDefault();
     setFieldErrors({});
     setFormError(null);
+
+    const clientErrors = clientFieldErrors(registerSchema, { email, password });
+    if (clientErrors) {
+      setFieldErrors(clientErrors);
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -75,9 +96,19 @@ export function RegisterForm() {
           type="email"
           autoComplete="email"
           inputMode="email"
-          required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (fieldErrors.email) {
+              setFieldErrors((prev) => ({ ...prev, email: undefined }));
+            }
+          }}
+          onBlur={() => {
+            const result = validateEmail(email);
+            if (!result.ok) {
+              setFieldErrors((prev) => ({ ...prev, email: result.message }));
+            }
+          }}
           aria-invalid={Boolean(fieldErrors.email)}
           aria-describedby={fieldErrors.email ? "email-error" : undefined}
           className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
@@ -101,10 +132,19 @@ export function RegisterForm() {
           name="password"
           type="password"
           autoComplete="new-password"
-          required
-          minLength={8}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (fieldErrors.password) {
+              setFieldErrors((prev) => ({ ...prev, password: undefined }));
+            }
+          }}
+          onBlur={() => {
+            const message = validateRegisterPassword(password);
+            if (message) {
+              setFieldErrors((prev) => ({ ...prev, password: message }));
+            }
+          }}
           aria-invalid={Boolean(fieldErrors.password)}
           aria-describedby={
             fieldErrors.password ? "password-error" : "password-hint"

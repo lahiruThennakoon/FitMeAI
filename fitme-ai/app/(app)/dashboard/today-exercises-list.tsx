@@ -4,8 +4,21 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteExerciseEntryAction,
+  restoreExerciseEntryAction,
   updateExerciseEntryAction,
 } from "@/app/actions/exercise";
+import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { UndoNotice } from "@/components/undo-notice";
+import {
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/domain/datetime-local";
+import {
+  FUTURE_TIME_MESSAGE,
+  INVALID_TIME_MESSAGE,
+  isFutureInstant,
+} from "@/lib/domain/log-time";
+import type { HomeDayLabels } from "@/lib/domain/dashboard/day-bounds";
 import type { ExerciseEntryEditableDto } from "@/lib/dal/exercise-entry";
 import {
   EXERCISE_INTENSITIES,
@@ -14,6 +27,14 @@ import {
   type ExerciseIntensity,
   type ExerciseType,
 } from "@/lib/domain/burn/exercise-estimate";
+import {
+  displayDistance,
+  displayMass,
+  distanceUnitLabel,
+  parseDistanceToM,
+  parseMassToG,
+  type PreferredUnits,
+} from "@/lib/domain/targets/units";
 
 function fmtEstimateKcal(v: number): string {
   if (!Number.isFinite(v)) return "—";
@@ -69,22 +90,61 @@ type EditFormState = {
   customLabel: string;
   durationMin: string;
   intensity: ExerciseIntensity;
+  performedAt: string;
+  /** Distance and load are held in the user's units; converted on save. */
+  distance: string;
+  sets: string;
+  reps: string;
+  load: string;
+  notes: string;
 };
 
-function toFormState(entry: ExerciseEntryEditableDto): EditFormState {
+function toFormState(
+  entry: ExerciseEntryEditableDto,
+  units: PreferredUnits,
+): EditFormState {
   return {
     type: entry.type as ExerciseType,
     customLabel: entry.customLabel ?? "",
     durationMin: String(entry.durationMin),
     intensity: entry.intensity as ExerciseIntensity,
+    performedAt: toDatetimeLocalValue(entry.performedAt),
+    distance:
+      entry.distanceM == null
+        ? ""
+        : String(displayDistance(entry.distanceM, units)),
+    sets: entry.sets == null ? "" : String(entry.sets),
+    reps: entry.reps == null ? "" : String(entry.reps),
+    load:
+      entry.weightG == null ? "" : String(displayMass(entry.weightG, units)),
+    notes: entry.notes ?? "",
   };
+}
+
+function numOrNull(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** True when the entry carries any optional detail worth revealing up front. */
+function hasDetails(entry: ExerciseEntryEditableDto): boolean {
+  return (
+    entry.distanceM != null ||
+    entry.sets != null ||
+    entry.reps != null ||
+    entry.weightG != null ||
+    Boolean(entry.notes)
+  );
 }
 
 type Props = {
   entries: ExerciseEntryEditableDto[];
   /** Profile body weight in kg when available — live preview only. */
   weightKg: number | null;
-  isToday?: boolean;
+  labels: HomeDayLabels;
+  units: PreferredUnits;
 };
 
 /**
@@ -94,30 +154,73 @@ type Props = {
 export function TodayExercisesList({
   entries,
   weightKg,
-  isToday = true,
+  labels,
+  units,
 }: Props) {
+  const router = useRouter();
+  const [removedId, setRemovedId] = useState<string | null>(null);
+  const [undoError, setUndoError] = useState<string | null>(null);
+  const [undoPending, startUndo] = useTransition();
+
+  function undoRemove(id: string) {
+    setUndoError(null);
+    startUndo(async () => {
+      const result = await restoreExerciseEntryAction(id);
+      if (!result.ok) {
+        setUndoError(result.error);
+        return;
+      }
+      setRemovedId(null);
+      router.refresh();
+    });
+  }
+
+  const undo = removedId ? (
+    <div className="mt-2">
+      <UndoNotice
+        message="Workout removed."
+        onUndo={() => undoRemove(removedId)}
+        disabled={undoPending}
+      />
+      {undoError ? (
+        <p className="mt-1 text-xs text-red-600" role="alert">
+          {undoError}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
+
   if (entries.length === 0) {
     return (
-      <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-        {isToday
-          ? "No workouts yet today — a short log keeps energy balance honest."
-          : "No workouts logged yesterday — rest days count too."}
-      </p>
+      <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-700">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          {labels.exerciseEmpty}
+        </p>
+        {undo}
+      </div>
     );
   }
 
   return (
-    <ul
-      className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
-      data-testid="today-exercises-list"
-      aria-label={
-        isToday ? "Today's workouts, scrollable" : "Yesterday's workouts, scrollable"
-      }
-    >
-      {entries.map((entry) => (
-        <ExerciseRow key={entry.id} entry={entry} weightKg={weightKg} />
-      ))}
-    </ul>
+    <>
+      <ul
+        className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
+        data-testid="today-exercises-list"
+        aria-label={labels.exerciseAria}
+      >
+        {entries.map((entry) => (
+          <ExerciseRow
+            key={entry.id}
+            entry={entry}
+            weightKg={weightKg}
+            removeScopeLabel={labels.removeScopeLabel}
+            onRemoved={setRemovedId}
+            units={units}
+          />
+        ))}
+      </ul>
+      {undo}
+    </>
   );
 }
 
@@ -129,16 +232,25 @@ const inputClass =
 function ExerciseRow({
   entry,
   weightKg,
+  removeScopeLabel,
+  onRemoved,
+  units,
 }: {
   entry: ExerciseEntryEditableDto;
   weightKg: number | null;
+  removeScopeLabel: string;
+  onRemoved: (id: string) => void;
+  units: PreferredUnits;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<RowMode>("view");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<EditFormState>(() => toFormState(entry));
+  const [form, setForm] = useState<EditFormState>(() =>
+    toFormState(entry, units),
+  );
+  const [showDetails, setShowDetails] = useState(() => hasDetails(entry));
 
   const durationNum = Number(form.durationMin);
   const liveEstimate = useMemo(() => {
@@ -152,7 +264,8 @@ function ExerciseRow({
   }, [form.type, form.intensity, durationNum, weightKg]);
 
   function startEdit() {
-    setForm(toFormState(entry));
+    setForm(toFormState(entry, units));
+    setShowDetails(hasDetails(entry));
     setError(null);
     setFieldErrors({});
     setMode("editing");
@@ -168,12 +281,32 @@ function ExerciseRow({
     event.preventDefault();
     setError(null);
     setFieldErrors({});
+
+    const performedAtDate = fromDatetimeLocalValue(form.performedAt);
+    if (Number.isNaN(performedAtDate.getTime())) {
+      setError(INVALID_TIME_MESSAGE);
+      return;
+    }
+    if (isFutureInstant(performedAtDate)) {
+      setError(FUTURE_TIME_MESSAGE);
+      return;
+    }
+
+    const distance = numOrNull(form.distance);
+    const load = numOrNull(form.load);
+
     startTransition(async () => {
       const result = await updateExerciseEntryAction(entry.id, {
         type: form.type,
         customLabel: form.type === "custom" ? form.customLabel : null,
         durationMin: Number(form.durationMin),
         intensity: form.intensity,
+        performedAt: performedAtDate.toISOString(),
+        distanceM: distance == null ? null : parseDistanceToM(distance, units),
+        sets: numOrNull(form.sets),
+        reps: numOrNull(form.reps),
+        weightG: load == null ? null : parseMassToG(load, units),
+        notes: form.notes.trim() || null,
       });
       if (!result.ok) {
         setError(result.error);
@@ -195,6 +328,7 @@ function ExerciseRow({
         setMode("view");
         return;
       }
+      onRemoved(entry.id);
       router.refresh();
     });
   }
@@ -206,7 +340,7 @@ function ExerciseRow({
         data-testid="exercise-row-confirm-delete"
       >
         <span className="text-red-900 dark:text-red-100">
-          Remove &ldquo;{entry.displayName}&rdquo; from today?
+          Remove &ldquo;{entry.displayName}&rdquo; from {removeScopeLabel}?
         </span>
         <span className="flex shrink-0 items-center gap-2">
           <button
@@ -358,7 +492,125 @@ function ExerciseRow({
                 ))}
               </select>
             </div>
+            <DatetimeLocalField
+              id={`ex-performed-at-${entry.id}`}
+              label="When"
+              value={form.performedAt}
+              onChange={(value) => setForm({ ...form, performedAt: value })}
+              max={toDatetimeLocalValue(new Date())}
+              className="col-span-2"
+              compact
+              required
+            />
           </div>
+
+          {showDetails ? (
+            <fieldset className="space-y-2.5 rounded-lg border border-dashed border-neutral-300 p-3 dark:border-neutral-600">
+              <legend className="px-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
+                Details
+              </legend>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor={`ex-distance-${entry.id}`}
+                    className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                  >
+                    Distance ({distanceUnitLabel(units)})
+                  </label>
+                  <input
+                    id={`ex-distance-${entry.id}`}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={form.distance}
+                    onChange={(e) =>
+                      setForm({ ...form, distance: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`ex-load-${entry.id}`}
+                    className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                  >
+                    Load ({units === "imperial" ? "lb" : "kg"})
+                  </label>
+                  <input
+                    id={`ex-load-${entry.id}`}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.5"
+                    value={form.load}
+                    onChange={(e) => setForm({ ...form, load: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`ex-sets-${entry.id}`}
+                    className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                  >
+                    Sets
+                  </label>
+                  <input
+                    id={`ex-sets-${entry.id}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    value={form.sets}
+                    onChange={(e) => setForm({ ...form, sets: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`ex-reps-${entry.id}`}
+                    className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                  >
+                    Reps
+                  </label>
+                  <input
+                    id={`ex-reps-${entry.id}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    value={form.reps}
+                    onChange={(e) => setForm({ ...form, reps: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div>
+                <label
+                  htmlFor={`ex-notes-${entry.id}`}
+                  className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                >
+                  Notes
+                </label>
+                <textarea
+                  id={`ex-notes-${entry.id}`}
+                  rows={2}
+                  maxLength={500}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </fieldset>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowDetails(true)}
+              className="text-xs font-medium text-brand-blue underline-offset-2 hover:underline"
+            >
+              Add distance, sets, reps or notes
+            </button>
+          )}
 
           {liveEstimate ? (
             <p className="text-xs text-neutral-500 dark:text-neutral-400">

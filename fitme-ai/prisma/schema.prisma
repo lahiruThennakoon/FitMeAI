@@ -34,6 +34,7 @@ model User {
   waterEntries   WaterEntry[]
   weightEntries  WeightEntry[]
   fastingSessions FastingSession[]
+  glucoseEntries GlucoseEntry[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
 
@@ -83,12 +84,24 @@ model UserProfile {
   dietaryPreferences String[]       @default([])
   goalType           GoalType
   preferredUnits     PreferredUnits @default(metric)
-  country            String
+  /// Display unit for blood sugar; storage stays canonical mg/dL.
+  preferredGlucoseUnit GlucoseUnit  @default(mg_dl)
+  /// When true, exercise burn is added to the day's food budget ("Remaining").
+  eatBackExercise    Boolean        @default(false)
+  /// Placeholder prefs until push/email delivery ships (Tier 3).
+  notifyFastingEnd   Boolean        @default(false)
+  notifyWeeklyDigest Boolean        @default(false)
+  country            String         @default("")
   timezone           String
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   @@map("user_profile")
+}
+
+enum GlucoseUnit {
+  mg_dl
+  mmol_l
 }
 
 enum SafetyLevel {
@@ -298,6 +311,8 @@ model FoodEntry {
   fibreG      Float?
   sugarG      Float?
   sodiumMg    Float?
+  /// Free-text context the user typed while logging ("shared with Amma").
+  note        String?
   /// Client idempotency key for offline reconcile (Story 4.2 / AD-12).
   clientKey   String?
   /// Soft-delete (AD-8). Null = active.
@@ -438,11 +453,14 @@ model ExerciseEntry {
   metUsed         Float
   weightKgUsed    Float
   performedAt     DateTime
+  /// Client idempotency key for offline reconcile (AD-12).
+  clientKey       String?
   /// Soft-delete (AD-8). Null = active.
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  @@unique([userId, clientKey])
   @@index([userId, performedAt])
   @@index([userId, deletedAt])
   @@map("exercise_entry")
@@ -458,11 +476,14 @@ model WaterEntry {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   amountMl  Int
   loggedAt  DateTime
+  /// Client idempotency key for offline reconcile (AD-12).
+  clientKey String?
   /// Soft-delete (AD-8). Null = active.
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  @@unique([userId, clientKey])
   @@index([userId, loggedAt])
   @@index([userId, deletedAt])
   @@map("water_entry")
@@ -480,11 +501,14 @@ model WeightEntry {
   weightG    Int
   recordedAt DateTime
   note       String?
+  /// Client idempotency key for offline reconcile (AD-12).
+  clientKey  String?
   /// Soft-delete (AD-8). Null = active.
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  @@unique([userId, clientKey])
   @@index([userId, recordedAt])
   @@index([userId, deletedAt])
   @@map("weight_entry")
@@ -515,4 +539,37 @@ model FastingSession {
   @@index([userId, endedAt])
   @@index([userId, deletedAt])
   @@map("fasting_session")
+}
+
+// ---------------------------------------------------------------------------
+// Glucose readings (Epic 8) — canonical mg/dL (AD-11)
+// ---------------------------------------------------------------------------
+
+enum GlucoseContext {
+  fasting
+  before_meal
+  after_meal
+  bedtime
+  other
+}
+
+model GlucoseEntry {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Canonical mg/dL.
+  valueMgDl   Float
+  measuredAt  DateTime
+  context     GlucoseContext  @default(other)
+  note        String?
+  /// Client idempotency key for offline reconcile (AD-12).
+  clientKey   String?
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([userId, clientKey])
+  @@index([userId, measuredAt])
+  @@index([userId, deletedAt])
+  @@map("glucose_entry")
 }

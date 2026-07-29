@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+  useTransition,
+} from "react";
 import {
   parseMealAction,
   rematchFoodDraftAction,
   saveMealDraftAction,
 } from "@/app/actions/log";
 import {
+  PARSE_QUEUE_EVENT,
   appendParseQueue,
   isBrowserOffline,
+  loadParseQueue,
+  removeParseQueueItem,
 } from "@/lib/offline/browser-store";
+import type { OfflineParseQueueItem } from "@/lib/offline/types";
 import { newClientKey } from "@/lib/offline/food-cache";
 import {
   applyClarifyingChip,
@@ -19,6 +29,17 @@ import {
 } from "@/lib/domain/nutrition/clarifying-chips";
 import { applyProportionEdit } from "@/lib/domain/nutrition/decompose";
 import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute";
+import { DatetimeLocalField } from "@/components/datetime-local-field";
+import {
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/domain/datetime-local";
+import {
+  FUTURE_TIME_MESSAGE,
+  INVALID_TIME_MESSAGE,
+  isFutureInstant,
+} from "@/lib/domain/log-time";
+import { FOOD_PARSE_UNITS, MEAL_TYPE_OPTIONS } from "@/lib/domain/nutrition/food-options";
 import type {
   ParsedFoodItemDraft,
 } from "@/lib/domain/nutrition/parse-types";
@@ -46,23 +67,114 @@ const MACRO_FIELDS: Array<{
   { key: "sodiumMg", label: "Sodium (mg)", step: "1" },
 ];
 
-export function LogMealForm() {
+/** One save is one review list; the save schema accepts no more than this. */
+const MAX_REVIEW_ITEMS = 20;
+
+function scrollToReview() {
+  requestAnimationFrame(() => {
+    document
+      .getElementById("log-review-section")
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+}
+
+/** Lets sibling components push drafts straight into the review list. */
+export type LogMealFormHandle = {
+  addDraft: (draft: ParsedFoodItemDraft) => void;
+  /** Returns how many fit — the rest would overflow one save. */
+  addDrafts: (drafts: ParsedFoodItemDraft[]) => { added: number; skipped: number };
+};
+
+type Props = {
+  ref?: React.Ref<LogMealFormHandle>;
+};
+
+export function LogMealForm({ ref }: Props) {
   const [pending, startTransition] = useTransition();
   const [saving, startSaveTransition] = useTransition();
   const [text, setText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [items, setItems] = useState<ParsedFoodItemDraft[] | null>(null);
+  /** Null until the user picks a time — falls back to the drafts' own stamp. */
+  const [mealTime, setMealTime] = useState<string | null>(null);
   const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualQty, setManualQty] = useState("1");
+  const [queuedParses, setQueuedParses] = useState<OfflineParseQueueItem[]>([]);
+
+  useEffect(() => {
+    function sync() {
+      setQueuedParses(loadParseQueue());
+    }
+    sync();
+    window.addEventListener(PARSE_QUEUE_EVENT, sync);
+    window.addEventListener("online", sync);
+    return () => {
+      window.removeEventListener(PARSE_QUEUE_EVENT, sync);
+      window.removeEventListener("online", sync);
+    };
+  }, []);
+
+  function discardQueuedParse(clientKey: string) {
+    removeParseQueueItem(clientKey);
+    setQueuedParses(loadParseQueue());
+  }
+
+  function restoreQueuedParse(item: OfflineParseQueueItem) {
+    setText(item.text);
+    setFormError(null);
+    setSaveMessage(null);
+    discardQueuedParse(item.clientKey);
+    requestAnimationFrame(() => {
+      document.getElementById("meal-text")?.focus();
+    });
+  }
+
+  const addDraft = useCallback((draft: ParsedFoodItemDraft) => {
+    setItems((prev) => [...(prev ?? []), draft]);
+    setFormError(null);
+    setSaveMessage(null);
+    setShowManual(false);
+    scrollToReview();
+  }, []);
+
+  const addDrafts = useCallback(
+    (drafts: ParsedFoodItemDraft[]) => {
+      const room = Math.max(0, MAX_REVIEW_ITEMS - (items?.length ?? 0));
+      const fitting = drafts.slice(0, room);
+      if (fitting.length > 0) {
+        setItems((prev) => [...(prev ?? []), ...fitting]);
+        setFormError(null);
+        setSaveMessage(null);
+        setShowManual(false);
+        scrollToReview();
+      }
+      return {
+        added: fitting.length,
+        skipped: drafts.length - fitting.length,
+      };
+    },
+    [items],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({ addDraft, addDrafts }),
+    [addDraft, addDrafts],
+  );
 
   function onParse(event: React.FormEvent) {
     event.preventDefault();
     setFormError(null);
     setSaveMessage(null);
-    setItems(null);
+    // Keep drafts the user already staged (manual adds, re-logged favourites);
+    // only this parse's own previous results are replaced.
+    setItems((prev) => {
+      const kept = (prev ?? []).filter((i) => i.origin !== "ai_parse");
+      return kept.length > 0 ? kept : null;
+    });
     setAiInteractionId(null);
     setShowManual(false);
 
@@ -74,6 +186,7 @@ export function LogMealForm() {
           text,
           queuedAt: new Date().toISOString(),
         });
+        setQueuedParses(loadParseQueue());
         setFormError(
           "You're offline — we queued this for smart parse when you're back. Use Quick log for cached foods now.",
         );
@@ -83,7 +196,7 @@ export function LogMealForm() {
       try {
         const result = await parseMealAction({ text });
         if (result.ok) {
-          setItems(result.data.items);
+          setItems((prev) => [...(prev ?? []), ...result.data.items]);
           setAiInteractionId(result.data.aiInteractionId);
           return;
         }
@@ -237,15 +350,72 @@ export function LogMealForm() {
     );
   }
 
+  /**
+   * Shown in the picker: the user's choice if they made one, else the time the
+   * first draft carries (now, for a fresh parse). Derived rather than synced in
+   * an effect so drafts arriving later can't clobber an explicit choice.
+   */
+  const mealTimeValue =
+    mealTime ??
+    (items && items.length > 0
+      ? toDatetimeLocalValue(items[0].loggedAt)
+      : toDatetimeLocalValue(new Date()));
+
+  /** Copied days arrive spread across the day; a fresh parse shares one stamp. */
+  const mixedTimes =
+    mealTime === null &&
+    items != null &&
+    new Set(items.map((item) => item.loggedAt)).size > 1;
+
+  function removeItem(id: string) {
+    setFormError(null);
+    setSaveMessage(null);
+    setItems((prev) => {
+      const next = (prev ?? []).filter((item) => item.id !== id);
+      return next.length > 0 ? next : null;
+    });
+  }
+
   function onSave() {
     if (!items || items.length === 0) return;
     setFormError(null);
     setSaveMessage(null);
+
+    /**
+     * An explicit pick applies to every item. Left alone, each item keeps the
+     * time it arrived with — a copied day would otherwise collapse breakfast,
+     * lunch and dinner onto one timestamp.
+     */
+    let itemsToSave = items;
+    if (mealTime !== null) {
+      const loggedAt = fromDatetimeLocalValue(mealTime);
+      if (Number.isNaN(loggedAt.getTime())) {
+        setFormError(INVALID_TIME_MESSAGE);
+        return;
+      }
+      if (isFutureInstant(loggedAt)) {
+        setFormError(FUTURE_TIME_MESSAGE);
+        return;
+      }
+      const loggedAtIso = loggedAt.toISOString();
+      itemsToSave = items.map((item) => ({ ...item, loggedAt: loggedAtIso }));
+    } else {
+      const own = items.map((item) => new Date(item.loggedAt));
+      if (own.some((d) => Number.isNaN(d.getTime()))) {
+        setFormError(INVALID_TIME_MESSAGE);
+        return;
+      }
+      if (own.some(isFutureInstant)) {
+        setFormError(FUTURE_TIME_MESSAGE);
+        return;
+      }
+    }
+
     startSaveTransition(async () => {
       try {
         const result = await saveMealDraftAction({
           confirmed: true,
-          items,
+          items: itemsToSave,
           aiInteractionId,
         });
         if (result.ok) {
@@ -257,6 +427,7 @@ export function LogMealForm() {
               : `Saved ${n} item${n === 1 ? "" : "s"}.`,
           );
           setItems(null);
+          setMealTime(null);
           setAiInteractionId(null);
           setText("");
           return;
@@ -270,6 +441,7 @@ export function LogMealForm() {
 
   function onDiscard() {
     setItems(null);
+    setMealTime(null);
     setAiInteractionId(null);
     setFormError(null);
     setSaveMessage(null);
@@ -306,6 +478,49 @@ export function LogMealForm() {
 
   return (
     <div className="space-y-6">
+      {queuedParses.length > 0 ? (
+        <section
+          className="rounded-2xl border border-amber-300/70 bg-amber-50/70 p-4 dark:border-amber-800/60 dark:bg-amber-950/20"
+          aria-label="Saved while offline"
+          data-testid="queued-parses"
+        >
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+            Saved while you were offline
+          </p>
+          <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+            These descriptions are still waiting — nothing was logged yet.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {queuedParses.map((item) => (
+              <li
+                key={item.clientKey}
+                className="flex items-start justify-between gap-3 rounded-lg bg-white/70 px-3 py-2 dark:bg-neutral-900/50"
+              >
+                <span className="min-w-0 break-words text-sm text-neutral-800 dark:text-neutral-200">
+                  {item.text}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => restoreQueuedParse(item)}
+                    className="text-xs font-medium text-brand-blue underline-offset-2 hover:underline"
+                  >
+                    Use
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => discardQueuedParse(item.clientKey)}
+                    className="text-xs font-medium text-neutral-500 underline-offset-2 hover:text-red-600 hover:underline"
+                  >
+                    Discard
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <form
         onSubmit={onParse}
         className="space-y-4 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60"
@@ -334,7 +549,7 @@ export function LogMealForm() {
         <button
           type="submit"
           disabled={pending || !text.trim()}
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
+          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
         >
           {pending ? "Parsing…" : "Parse meal"}
         </button>
@@ -365,10 +580,31 @@ export function LogMealForm() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <section className="space-y-3" aria-label="Parsed foods">
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Review items
-          </h2>
+        <section
+          id="log-review-section"
+          className="space-y-3"
+          aria-label="Parsed foods"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              Review items
+            </h2>
+            <DatetimeLocalField
+              id="log-meal-time"
+              label="When did you eat this?"
+              value={mealTimeValue}
+              onChange={setMealTime}
+              max={toDatetimeLocalValue(new Date())}
+              className="w-full sm:w-64"
+              compact
+              required
+            />
+          </div>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {mixedTimes
+              ? "These items keep their own times. Pick a time here to put them all at the same moment instead."
+              : "Defaults to now. Change it to log a meal you ate earlier — it lands on that day’s totals."}
+          </p>
           <ul className="space-y-3">
             {items.map((item) => (
               <li
@@ -421,17 +657,7 @@ export function LogMealForm() {
                     }
                     className="rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700"
                   >
-                    {(
-                      [
-                        "g",
-                        "piece",
-                        "cup",
-                        "tablespoon",
-                        "bowl",
-                        "plate",
-                        "serving",
-                      ] as const
-                    ).map((u) => (
+                    {FOOD_PARSE_UNITS.map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
@@ -448,15 +674,7 @@ export function LogMealForm() {
                     }
                     className="rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700"
                   >
-                    {(
-                      [
-                        ["breakfast", "Breakfast"],
-                        ["lunch", "Lunch"],
-                        ["dinner", "Dinner"],
-                        ["snack", "Snack"],
-                        ["unknown", "Not sure"],
-                      ] as const
-                    ).map(([value, label]) => (
+                    {MEAL_TYPE_OPTIONS.map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
@@ -499,13 +717,39 @@ export function LogMealForm() {
                     ))}
                   </div>
                 </fieldset>
-                <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                  {new Date(item.loggedAt).toLocaleString()}
-                  {item.needsClarification ? " · needs clarification" : ""}
-                  {item.dataSource === "ai_estimated"
-                    ? " · estimate, not medical advice"
-                    : ""}
-                </p>
+                <label className="mt-3 block text-xs text-neutral-600 dark:text-neutral-400">
+                  Note (optional)
+                  <input
+                    aria-label={`Note for ${item.name}`}
+                    value={item.note ?? ""}
+                    maxLength={500}
+                    disabled={saving}
+                    placeholder="e.g. shared half, home cooked, felt heavy after"
+                    onChange={(e) =>
+                      updateItem(item.id, { note: e.target.value })
+                    }
+                    className="mt-1 w-full rounded-lg border border-neutral-300 bg-white/80 px-2 py-1.5 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950/60 dark:text-neutral-100"
+                  />
+                </label>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {item.needsClarification ? "Needs clarification" : null}
+                    {item.needsClarification && item.dataSource === "ai_estimated"
+                      ? " · "
+                      : null}
+                    {item.dataSource === "ai_estimated"
+                      ? "Estimate, not medical advice"
+                      : null}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => removeItem(item.id)}
+                    className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-neutral-500 underline-offset-2 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-neutral-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
                 {item.breakdown && item.breakdown.length > 0 ? (
                   <IngredientBreakdown
                     itemId={item.id}

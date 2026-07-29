@@ -101,4 +101,34 @@ describe("saveMealDraftSchema", () => {
         .success,
     ).toBe(true);
   });
+
+  it("accepts a note and trims it", () => {
+    const parsed = saveMealDraftSchema.safeParse({
+      confirmed: true,
+      items: [item({ note: "  shared with Amma  " })],
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.items[0].note).toBe("shared with Amma");
+    }
+  });
+
+  it("treats a note as optional", () => {
+    const parsed = saveMealDraftSchema.safeParse({
+      confirmed: true,
+      items: [item(), item({ id: "b", note: null })],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects a note long enough to be a diary entry", () => {
+    const parsed = saveMealDraftSchema.safeParse({
+      confirmed: true,
+      items: [item({ note: "x".repeat(501) })],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
 });

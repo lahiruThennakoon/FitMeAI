@@ -20,11 +20,11 @@ vi.mock("@/lib/db", () => ({
 
 import {
   listFavoriteFoodTemplates,
+  listFoodEntryDraftsForRange,
   listRecentFoodTemplates,
-  relogFromFoodEntry,
   setFoodEntryFavorite,
 } from "@/lib/dal/food-template";
-import { NotFoundError, UnauthorizedError } from "@/lib/dal/guards";
+import { UnauthorizedError } from "@/lib/dal/guards";
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
@@ -110,71 +110,57 @@ describe("setFoodEntryFavorite (Story 5.5)", () => {
   });
 });
 
-describe("relogFromFoodEntry (Story 5.5)", () => {
-  it("creates a new entry copying macros and dataSource", async () => {
-    findFirst.mockResolvedValue({
-      ...row(),
-      confidence: 1,
-      proteinG: 5,
-      carbsG: 27,
-      fatG: 3,
-      fibreG: 4,
-      sugarG: 1,
-      sodiumMg: 0,
-    });
-    findUnique.mockResolvedValue(null);
-    createRow.mockResolvedValue({
-      id: "new1",
-      name: "Oats",
-      energyKcal: 150,
-    });
+describe("listFoodEntryDraftsForRange (Tier 3 copy a past day)", () => {
+  const start = new Date("2026-07-27T00:00:00.000Z");
+  const end = new Date("2026-07-28T00:00:00.000Z");
 
-    const result = await relogFromFoodEntry("u1", "e1", "ck-1");
+  it("reads one day, oldest first, skipping removed meals", async () => {
+    findMany.mockResolvedValue([]);
 
-    expect(result.created).toBe(true);
-    expect(createRow).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        userId: "u1",
-        name: "Oats",
-        dataSource: "database",
-        energyKcal: 150,
-        clientKey: "ck-1",
-        isFavorite: false,
-        aiInteractionId: null,
+    await listFoodEntryDraftsForRange("u1", start, end);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: "u1",
+          deletedAt: null,
+          loggedAt: { gte: start, lt: end },
+        },
+        orderBy: { loggedAt: "asc" },
+        take: 20,
       }),
-    });
+    );
   });
 
-  it("is idempotent for the same clientKey", async () => {
-    findFirst.mockResolvedValue({
-      ...row(),
-      confidence: 1,
-      proteinG: 5,
-      carbsG: 27,
-      fatG: 3,
-      fibreG: 4,
-      sugarG: 1,
-      sodiumMg: 0,
-    });
-    findUnique.mockResolvedValue({
-      id: "existing",
-      name: "Oats",
-      energyKcal: 150,
-      deletedAt: null,
-    });
+  it("flattens the catalog slug and keeps the original time", async () => {
+    findMany.mockResolvedValue([
+      {
+        ...row(),
+        confidence: 1,
+        proteinG: 5,
+        carbsG: 27,
+        fatG: 3,
+        fibreG: 4,
+        sugarG: 1,
+        sodiumMg: 0,
+        loggedAt: new Date("2026-07-27T07:30:00.000Z"),
+      },
+    ]);
 
-    const result = await relogFromFoodEntry("u1", "e1", "ck-1");
+    const rows = await listFoodEntryDraftsForRange("u1", start, end);
 
-    expect(result.created).toBe(false);
-    expect(result.id).toBe("existing");
-    expect(createRow).not.toHaveBeenCalled();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].foodSlug).toBe("oats");
+    expect(rows[0].loggedAt.toISOString()).toBe("2026-07-27T07:30:00.000Z");
   });
 
-  it("throws NotFoundError when source is missing", async () => {
-    findFirst.mockResolvedValue(null);
+  it("caps a single copy at one reviewable batch", async () => {
+    findMany.mockResolvedValue([]);
 
-    await expect(relogFromFoodEntry("u1", "missing")).rejects.toThrow(
-      NotFoundError,
+    await listFoodEntryDraftsForRange("u1", start, end, 5);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 5 }),
     );
   });
 });

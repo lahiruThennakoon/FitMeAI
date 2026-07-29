@@ -117,6 +117,58 @@ export async function findFoodBySlugOrAlias(
   return match ? toFoodDetail(match) : null;
 }
 
+export type FoodSearchHit = {
+  slug: string;
+  name: string;
+  energyKcal: number | null;
+};
+
+/**
+ * Case-insensitive catalog search by name, alias, or slug prefix.
+ * MVP catalog is small — scored in memory after one DB fetch.
+ */
+export async function searchFoodsByQuery(
+  query: string,
+  limit = 12,
+): Promise<FoodSearchHit[]> {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+
+  const rows = await prisma.food.findMany({
+    orderBy: { slug: "asc" },
+    include: foodInclude,
+  });
+
+  type Scored = FoodSearchHit & { score: number };
+  const scored: Scored[] = [];
+
+  for (const row of rows) {
+    const detail = toFoodDetail(row);
+    const slug = detail.slug.toLowerCase();
+    const name = detail.name.toLowerCase();
+    const aliases = detail.aliases.map((a) => a.toLowerCase());
+
+    let score = 0;
+    if (slug === q || name === q) score = 100;
+    else if (aliases.includes(q)) score = 90;
+    else if (slug.startsWith(q)) score = 70;
+    else if (name.startsWith(q)) score = 65;
+    else if (name.includes(q)) score = 50;
+    else if (aliases.some((a) => a.includes(q))) score = 40;
+    else continue;
+
+    scored.push({
+      slug: detail.slug,
+      name: detail.name,
+      energyKcal: detail.nutrition.energyKcal,
+      score,
+    });
+  }
+
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  return scored.slice(0, Math.min(24, Math.max(1, limit))).map(({ score: _s, ...hit }) => hit);
+}
+
 export async function listFoodSlugs(): Promise<string[]> {
   const rows = await prisma.food.findMany({
     select: { slug: true },

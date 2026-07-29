@@ -1,7 +1,8 @@
 ---
 title: Epic 7 — Fasting Time Tracker
-status: in-progress
+status: done
 updated: 2026-07-27
+implemented: 2026-07-27
 owner: product + UX
 dependsOn:
   - Epic 5 (Home habit loop)
@@ -27,6 +28,27 @@ After this epic a user can:
 3. End a fast and save duration  
 4. View recent fasting sessions on a dedicated surface (and glanceable status on Home)  
 
+**Status:** All stories implemented (2026-07-27). Local polish/review pending user test pass.
+
+## Story sequence
+
+| ID | Story | Status | Implementation artifact |
+|----|--------|--------|-------------------------|
+| 7.1 | Fasting session model + start/stop | review | `7-1-fasting-session-start-stop.md` |
+| 7.2 | Active fast UI (timer + progress) | review | `7-2-active-fast-ui-timer-progress.md` |
+| 7.3 | Fasting history list + soft-delete | review | `7-3-fasting-history-soft-delete.md` |
+| 7.4 | Home glance: fasting status chip | review | `7-4-home-fasting-status-chip.md` |
+
+## Implementation summary
+
+| Area | Location |
+|------|----------|
+| Model | `FastingSession` — migration `20260727150000_fasting_session` |
+| DAL | `lib/dal/fasting-session.ts` |
+| Actions | `app/actions/fasting.ts` (start, end, delete) |
+| UI | `/fasting`, Home `FastingStatusChip` |
+| Tests | `tests/fasting-*.test.ts` |
+
 ## UX invariants
 
 - Calm, supportive copy (UX-DR2) — never shame for breaking a fast early  
@@ -34,15 +56,6 @@ After this epic a user can:
 - Soft-delete sessions (AD-8)  
 - Day/time in profile timezone (AD-10)  
 - No medical advice (FR-17): no claims about autophagy, insulin, disease  
-
-## Story sequence
-
-| ID | Story | Depends on | Value |
-|----|--------|------------|--------|
-| 7.1 | Fasting session model + start/stop | 1.6 | Core timer persistence |
-| 7.2 | Active fast UI (timer + End) | 7.1 | Daily habit affordance |
-| 7.3 | Fasting history list + soft-delete | 7.1 | Trust / fix mistakes |
-| 7.4 | Home glance: fasting status chip | 7.2, 5.x | Habit loop visibility |
 
 ## Likely data shape
 
@@ -64,7 +77,7 @@ FastingSession {
 - Wearable / Apple Health sync  
 - Auto meal-blocking during fast  
 - Medical fasting protocols / clinical claims  
-- Correlation charts (Epic 9)  
+- Correlation charts → **Epic 9** (implemented)  
 
 ## Safety notes
 

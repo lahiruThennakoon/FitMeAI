@@ -1,23 +1,40 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { saveInstantFoodAction } from "@/app/actions/offline";
 import {
+  loadFoodTemplateDraftAction,
   relogFoodTemplateAction,
   setFavoriteFoodAction,
 } from "@/app/actions/food-template";
 import type { FoodTemplateDto } from "@/lib/dal/food-template";
+import { foodTemplateChipToDraft } from "@/lib/domain/nutrition/food-template-draft";
+import type { ParsedFoodItemDraft } from "@/lib/domain/nutrition/parse-types";
 import {
   appendWriteQueue,
   isBrowserOffline,
-  loadOfflineCatalog,
 } from "@/lib/offline/browser-store";
 import { newClientKey } from "@/lib/offline/food-cache";
+
+const OFFLINE_INSTANT_UNITS = new Set([
+  "g",
+  "piece",
+  "serving",
+  "cup",
+  "bowl",
+  "plate",
+]);
+
+function offlineInstantUnit(unit: string): "g" | "piece" | "serving" | "cup" | "bowl" | "plate" {
+  return OFFLINE_INSTANT_UNITS.has(unit)
+    ? (unit as "g" | "piece" | "serving" | "cup" | "bowl" | "plate")
+    : "serving";
+}
 
 type Props = {
   recent: FoodTemplateDto[];
   favorites: FoodTemplateDto[];
+  onSelectForEdit: (draft: ParsedFoodItemDraft) => void;
 };
 
 function StarIcon({ filled }: { filled: boolean }) {
@@ -50,16 +67,21 @@ function initialFavoriteIds(
 }
 
 /**
- * Recent + favorites one-tap re-log on Log (Story 5.5).
- * Catalog items reuse the instant/offline path; others clone macros as-is.
+ * Recent + favorites on Log (Story 5.5).
+ * Tap loads the meal into review — nothing is saved until you confirm below.
  */
-export function RecentFavorites({ recent, favorites }: Props) {
+export function RecentFavorites({
+  recent,
+  favorites,
+  onSelectForEdit,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [favIds, setFavIds] = useState(() =>
     initialFavoriteIds(recent, favorites),
   );
+  const [filter, setFilter] = useState("");
 
   const withFavFlag = (items: FoodTemplateDto[]) =>
     items.map((item) => ({
@@ -70,7 +92,6 @@ export function RecentFavorites({ recent, favorites }: Props) {
   const displayFavorites = withFavFlag(
     favorites.filter((f) => favIds.has(f.sourceEntryId)),
   );
-  // Favorites pinned from recent that aren't in the favorites list prop yet
   const extraFavFromRecent = withFavFlag(
     recent.filter(
       (r) =>
@@ -78,8 +99,20 @@ export function RecentFavorites({ recent, favorites }: Props) {
         !favorites.some((f) => f.sourceEntryId === r.sourceEntryId),
     ),
   );
-  const favoriteChips = [...displayFavorites, ...extraFavFromRecent];
-  const recentChips = withFavFlag(recent);
+  const allFavorites = [...displayFavorites, ...extraFavFromRecent];
+  const allRecent = withFavFlag(recent);
+
+  const query = filter.trim().toLowerCase();
+  const match = useMemo(
+    () => (items: FoodTemplateDto[]) =>
+      query
+        ? items.filter((item) => item.name.toLowerCase().includes(query))
+        : items,
+    [query],
+  );
+  const favoriteChips = match(allFavorites);
+  const recentChips = match(allRecent);
+  const totalChips = allFavorites.length + allRecent.length;
 
   function toggleFavorite(item: FoodTemplateDto) {
     const wantFav = !favIds.has(item.sourceEntryId);
@@ -110,74 +143,77 @@ export function RecentFavorites({ recent, favorites }: Props) {
     });
   }
 
-  function relog(item: FoodTemplateDto, source: "recent" | "favorite") {
+  function relogNow(item: FoodTemplateDto, source: "recent" | "favorite") {
     setMessage(null);
-    const clientKey = newClientKey();
-    const offline = isBrowserOffline();
-    const catalog = loadOfflineCatalog();
-    const cached =
-      item.foodSlug != null &&
-      Boolean(catalog?.foods.some((f) => f.slug === item.foodSlug));
 
-    startTransition(async () => {
-      if (item.foodSlug) {
-        if (offline) {
-          if (!cached) {
-            setMessage(
-              "That food isn’t in your offline cache. Connect once, then try again.",
-            );
-            return;
-          }
-          appendWriteQueue({
-            kind: "instant_food",
-            clientKey,
-            foodSlug: item.foodSlug,
-            quantity: item.quantity,
-            unit: item.unit,
-            mealType: item.mealType,
-            loggedAt: new Date().toISOString(),
-            queuedAt: new Date().toISOString(),
-          });
-          setMessage(
-            `Queued ${item.name} from ${source} — will sync when you’re online.`,
-          );
-          return;
-        }
-
-        const instant = await saveInstantFoodAction({
+    if (isBrowserOffline()) {
+      if (item.foodSlug && item.dataSource === "database") {
+        const clientKey = newClientKey();
+        const payload = {
           clientKey,
           foodSlug: item.foodSlug,
           quantity: item.quantity,
-          unit: item.unit,
+          unit: offlineInstantUnit(item.unit),
           mealType: item.mealType,
           loggedAt: new Date().toISOString(),
+        };
+        appendWriteQueue({
+          ...payload,
+          kind: "instant_food",
+          queuedAt: new Date().toISOString(),
         });
-        if (instant.ok) {
-          setMessage(`Logged ${instant.data.name} from ${source} (catalog).`);
-          router.refresh();
-          return;
-        }
-        // Catalog miss — fall through to clone path.
-      }
-
-      if (offline) {
         setMessage(
-          "Re-logging estimated meals needs a connection. Try Quick log for cached foods.",
+          `Queued ${item.name} from ${source} for sync when you're back online.`,
         );
         return;
       }
+      setMessage(
+        `${item.name} needs a connection to log instantly — tap Review to stage it offline.`,
+      );
+      return;
+    }
 
+    startTransition(async () => {
       const result = await relogFoodTemplateAction({
         sourceEntryId: item.sourceEntryId,
-        source,
-        clientKey,
       });
       if (!result.ok) {
         setMessage(result.error);
         return;
       }
-      setMessage(`Logged ${result.data.name} from ${source}.`);
+      const kcal = result.data.entry.energyKcal;
+      setMessage(
+        kcal != null
+          ? `Logged ${result.data.entry.name} (~${Math.round(kcal)} kcal).`
+          : `Logged ${result.data.entry.name}.`,
+      );
       router.refresh();
+    });
+  }
+
+  function selectForEdit(item: FoodTemplateDto, source: "recent" | "favorite") {
+    setMessage(null);
+
+    if (isBrowserOffline()) {
+      onSelectForEdit(foodTemplateChipToDraft(item));
+      setMessage(
+        `Loaded ${item.name} from ${source} for review (offline — calories only). Save when ready.`,
+      );
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await loadFoodTemplateDraftAction({
+        sourceEntryId: item.sourceEntryId,
+      });
+      if (!result.ok) {
+        setMessage(result.error);
+        return;
+      }
+      onSelectForEdit(result.data);
+      setMessage(
+        `Review ${result.data.name} below — edit if you like, then save to log.`,
+      );
     });
   }
 
@@ -194,8 +230,7 @@ export function RecentFavorites({ recent, favorites }: Props) {
           Recent & favorites
         </h2>
         <p className="mt-0.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-          One tap re-logs a meal you already saved — same numbers, no new AI
-          guess.
+          Review to edit first, or log now to save the same meal immediately.
         </p>
       </div>
 
@@ -206,13 +241,36 @@ export function RecentFavorites({ recent, favorites }: Props) {
         </p>
       ) : (
         <div className="mt-3 space-y-4">
+          {/* Only worth the extra field once scanning the chips gets slow. */}
+          {totalChips > 8 ? (
+            <div>
+              <label htmlFor="template-filter" className="sr-only">
+                Filter saved meals
+              </label>
+              <input
+                id="template-filter"
+                type="search"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter saved meals"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950"
+              />
+            </div>
+          ) : null}
+          {query && favoriteChips.length === 0 && recentChips.length === 0 ? (
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+              Nothing saved matches “{filter.trim()}”. Parse it below to log it
+              for the first time.
+            </p>
+          ) : null}
           {favoriteChips.length > 0 ? (
             <ChipGroup
               label="Favorites"
               source="favorite"
               items={favoriteChips}
               pending={pending}
-              onRelog={relog}
+              onSelect={selectForEdit}
+              onRelogNow={relogNow}
               onToggleFavorite={toggleFavorite}
             />
           ) : null}
@@ -222,7 +280,8 @@ export function RecentFavorites({ recent, favorites }: Props) {
               source="recent"
               items={recentChips}
               pending={pending}
-              onRelog={relog}
+              onSelect={selectForEdit}
+              onRelogNow={relogNow}
               onToggleFavorite={toggleFavorite}
             />
           ) : null}
@@ -246,14 +305,16 @@ function ChipGroup({
   source,
   items,
   pending,
-  onRelog,
+  onSelect,
+  onRelogNow,
   onToggleFavorite,
 }: {
   label: string;
   source: "recent" | "favorite";
   items: FoodTemplateDto[];
   pending: boolean;
-  onRelog: (item: FoodTemplateDto, source: "recent" | "favorite") => void;
+  onSelect: (item: FoodTemplateDto, source: "recent" | "favorite") => void;
+  onRelogNow: (item: FoodTemplateDto, source: "recent" | "favorite") => void;
   onToggleFavorite: (item: FoodTemplateDto) => void;
 }) {
   return (
@@ -270,9 +331,9 @@ function ChipGroup({
             <button
               type="button"
               disabled={pending}
-              onClick={() => onRelog(item, source)}
-              className="px-3 py-1.5 text-left text-sm font-medium text-neutral-800 transition hover:bg-brand-blue/5 hover:text-brand-blue disabled:opacity-50 dark:text-neutral-100"
-              aria-label={`Re-log ${item.name} from ${source}`}
+              onClick={() => onSelect(item, source)}
+              className="px-3 py-1.5 text-left text-sm font-medium text-neutral-800 transition hover:bg-brand-blue/5 hover:text-brand-blue disabled:opacity-50 dark:text-neutral-100 dark:hover:bg-brand-blue/10"
+              aria-label={`Review ${item.name} from ${source}`}
             >
               {item.name}
               {item.energyKcal != null ? (
@@ -280,6 +341,15 @@ function ChipGroup({
                   ~{Math.round(item.energyKcal)} kcal
                 </span>
               ) : null}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => onRelogNow(item, source)}
+              className="border-l border-neutral-200 px-2.5 py-1.5 text-xs font-semibold text-brand-blue transition hover:bg-brand-blue/5 disabled:opacity-50 dark:border-neutral-600 dark:text-blue-300 dark:hover:bg-brand-blue/10"
+              aria-label={`Log ${item.name} now`}
+            >
+              Log
             </button>
             <button
               type="button"

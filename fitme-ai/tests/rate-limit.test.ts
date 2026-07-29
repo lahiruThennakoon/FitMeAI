@@ -8,6 +8,8 @@ import {
   clientKeyFromHeaders,
   createMemoryStore,
   enforceAuthRateLimit,
+  formatWait,
+  rateLimitMessage,
 } from "@/lib/rate-limit";
 
 describe("checkRateLimit (sliding window)", () => {
@@ -195,6 +197,44 @@ describe("authApiRateLimitResponse", () => {
     );
     const body = await blocked!.json();
     expect(body).toEqual({ error: RATE_LIMIT_ERROR });
+  });
+});
+
+describe("rateLimitMessage", () => {
+  it("spells out a short wait in seconds", () => {
+    expect(rateLimitMessage(20)).toBe("Too many attempts. Try again in 20 seconds.");
+    expect(rateLimitMessage(1)).toBe("Too many attempts. Try again in 1 second.");
+  });
+
+  it("rounds up to minutes and hours so we never promise too soon", () => {
+    expect(formatWait(61)).toBe("2 minutes");
+    expect(formatWait(60)).toBe("1 minute");
+    expect(formatWait(3600)).toBe("1 hour");
+    expect(formatWait(3601)).toBe("2 hours");
+  });
+
+  it("falls back to the vague copy when there's no usable wait", () => {
+    expect(rateLimitMessage(0)).toBe(RATE_LIMIT_ERROR);
+    expect(rateLimitMessage(Number.NaN)).toBe(RATE_LIMIT_ERROR);
+  });
+
+  it("reports the real wait from a throttled check", () => {
+    const store = createMemoryStore();
+    const now = 9_000_000;
+    for (let i = 0; i < 2; i++) {
+      checkRateLimit({ key: "k", limit: 2, windowMs: 60_000, store, now: now + i });
+    }
+    const denied = checkRateLimit({
+      key: "k",
+      limit: 2,
+      windowMs: 60_000,
+      store,
+      now: now + 10_000,
+    });
+    expect(denied.ok).toBe(false);
+    if (!denied.ok) {
+      expect(rateLimitMessage(denied.retryAfterSec)).toMatch(/50 seconds/);
+    }
   });
 });
 

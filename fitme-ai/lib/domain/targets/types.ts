@@ -4,6 +4,7 @@ import type {
   Sex,
 } from "@/lib/domain/targets/bmr";
 import type { GoalType } from "@/lib/domain/targets/suggest-targets";
+import type { GlucoseDisplayUnit } from "@/lib/domain/glucose/units";
 
 export type ProfileDto = {
   displayName: string;
@@ -16,6 +17,12 @@ export type ProfileDto = {
   dietaryPreferences: string[];
   goalType: GoalType;
   preferredUnits: PreferredUnits;
+  preferredGlucoseUnit: GlucoseDisplayUnit;
+  /** Credit exercise burn back into the day's food budget ("Remaining"). */
+  eatBackExercise: boolean;
+  /** Saved for when reminder delivery ships; no notifications sent yet. */
+  notifyFastingEnd: boolean;
+  notifyWeeklyDigest: boolean;
   country: string;
   timezone: string;
 };
