@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -26,11 +28,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
@@ -260,18 +260,16 @@ input[type="number"] {
   pointer-events: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  .date-nav-btn--ghost {
-    color: rgb(212 212 212);
-  }
+.dark .date-nav-btn--ghost {
+  color: rgb(212 212 212);
+}
 
-  .date-nav-btn--ghost:hover:not(.date-nav-btn--disabled) {
-    background: rgb(38 38 38);
-  }
+.dark .date-nav-btn--ghost:hover:not(.date-nav-btn--disabled) {
+  background: rgb(38 38 38);
+}
 
-  .date-nav-btn--disabled {
-    color: rgb(64 64 64);
-  }
+.dark .date-nav-btn--disabled {
+  color: rgb(64 64 64);
 }
 
 .date-nav-calendar {
@@ -312,17 +310,15 @@ input[type="number"] {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .date-nav-calendar {
-    border-color: rgb(82 82 82);
-    background: rgb(10 10 10);
-    color: rgb(229 229 229);
-  }
+.dark .date-nav-calendar {
+  border-color: rgb(82 82 82);
+  background: rgb(10 10 10);
+  color: rgb(229 229 229);
+}
 
-  .date-nav-calendar:hover {
-    border-color: color-mix(in srgb, var(--brand-teal) 40%, transparent);
-    background: color-mix(in srgb, var(--brand-teal) 10%, transparent);
-  }
+.dark .date-nav-calendar:hover {
+  border-color: color-mix(in srgb, var(--brand-teal) 40%, transparent);
+  background: color-mix(in srgb, var(--brand-teal) 10%, transparent);
 }
 
 .date-nav-shortcut {
@@ -407,15 +403,13 @@ input[type="number"] {
   outline-offset: 2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .choice-pill--inactive {
-    background: rgb(38 38 38);
-    color: rgb(229 229 229);
-  }
+.dark .choice-pill--inactive {
+  background: rgb(38 38 38);
+  color: rgb(229 229 229);
+}
 
-  .choice-pill--inactive:hover {
-    background: rgb(64 64 64);
-  }
+.dark .choice-pill--inactive:hover {
+  background: rgb(64 64 64);
 }
 
 /* Bordered action chip (instant log staples, outline buttons) */
@@ -434,16 +428,14 @@ input[type="number"] {
   color: var(--brand-blue);
 }
 
-@media (prefers-color-scheme: dark) {
-  .action-chip {
-    border-color: rgb(82 82 82);
-    background: rgb(10 10 10);
-    color: rgb(245 245 245);
-  }
+.dark .action-chip {
+  border-color: rgb(82 82 82);
+  background: rgb(10 10 10);
+  color: rgb(245 245 245);
+}
 
-  .action-chip:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--brand-teal) 45%, transparent);
-    background: rgb(38 38 38);
-    color: rgb(245 245 245);
-  }
+.dark .action-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--brand-teal) 45%, transparent);
+  background: rgb(38 38 38);
+  color: rgb(245 245 245);
 }

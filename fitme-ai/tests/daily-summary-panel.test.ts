@@ -32,6 +32,7 @@ const profile: ProfileDto = {
   eatBackExercise: false,
   notifyFastingEnd: false,
   notifyWeeklyDigest: false,
+  appearancePreference: "system" as const,
   country: "LK",
   timezone: "Asia/Colombo",
 };

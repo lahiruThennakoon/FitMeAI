@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APPEARANCE_PREFERENCES } from "@/lib/domain/appearance/types";
 import { glucoseDisplayUnitSchema } from "@/lib/schemas/glucose";
 
 export const sexSchema = z.enum(["male", "female"]);
@@ -101,6 +102,8 @@ export const saveProfileSchema = z
       .optional(),
     /** Required when the safety ladder evaluates to red (Story 1.7). */
     safetyConsent: z.boolean().optional().default(false),
+    /** Client localStorage choice — backfills profile on first save. */
+    appearancePreference: z.enum(APPEARANCE_PREFERENCES).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.preferredUnits === "metric") {
@@ -178,4 +181,12 @@ export const notificationPreferencesSchema = z.object({
 
 export type NotificationPreferencesInput = z.infer<
   typeof notificationPreferencesSchema
+>;
+
+export const appearancePreferenceSchema = z.object({
+  appearancePreference: z.enum(["system", "light", "dark"]),
+});
+
+export type AppearancePreferenceInput = z.infer<
+  typeof appearancePreferenceSchema
 >;

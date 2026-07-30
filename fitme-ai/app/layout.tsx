@@ -3,6 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { OfflineReconciler } from "@/components/offline-reconciler";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { ThemeInit } from "@/components/theme-init";
+import { ThemeProvider } from "@/components/theme-provider";
+import { getSession } from "@/lib/dal";
+import { getProfileForUser } from "@/lib/dal/profile";
+import { normalizeAppearancePreference } from "@/lib/domain/appearance/types";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,20 +39,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getSession();
+  const profile = user ? await getProfileForUser(user.id) : null;
+  const serverAppearance = profile
+    ? normalizeAppearancePreference(profile.appearancePreference)
+    : null;
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ServiceWorkerRegister />
-        <OfflineReconciler />
-        {children}
+        <ThemeInit fallbackAppearance={serverAppearance} />
+        <ThemeProvider serverAppearance={serverAppearance}>
+          <ServiceWorkerRegister />
+          <OfflineReconciler />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfileAction } from "@/app/actions/profile";
+import { useAppearance } from "@/components/theme-provider";
 import {
   ACTIVITY_MULTIPLIERS,
   MIFFLIN_ST_JEOR_FORMULA,
@@ -168,6 +169,7 @@ function parseOptionalNumber(raw: string): number | undefined {
 
 export function GoalsForm({ initialProfile, initialGoal }: Props) {
   const router = useRouter();
+  const { appearance } = useAppearance();
   const [pending, startTransition] = useTransition();
   const [units, setUnits] = useState<PreferredUnits>(
     initialProfile?.preferredUnits ?? "metric",
@@ -443,6 +445,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           timezone,
           overrides: overridePayload,
           safetyConsent,
+          appearancePreference: appearance,
         });
         if (!result.ok) {
           setFormError(result.error);

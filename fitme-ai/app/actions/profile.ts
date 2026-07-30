@@ -310,6 +310,9 @@ export async function saveProfileAction(
       eatBackExercise: data.eatBackExercise,
       country: data.country,
       timezone: data.timezone,
+      ...(data.appearancePreference
+        ? { appearancePreference: data.appearancePreference }
+        : {}),
     },
     goal: {
       bmrKcal: effective.bmrKcal,

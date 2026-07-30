@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { assertOwnership } from "@/lib/dal/guards";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
 import type { NotificationPreferencesInput } from "@/lib/schemas/profile";
+import type { AppearancePreference } from "@/lib/domain/appearance/types";
 
 export type { GoalDto, ProfileDto };
 
@@ -32,6 +33,7 @@ function toProfileDto(row: UserProfile): ProfileDto {
     eatBackExercise: row.eatBackExercise,
     notifyFastingEnd: row.notifyFastingEnd,
     notifyWeeklyDigest: row.notifyWeeklyDigest,
+    appearancePreference: row.appearancePreference,
     country: row.country,
     timezone: row.timezone,
   };
@@ -92,6 +94,7 @@ export type UpsertProfileGoalInput = {
     eatBackExercise: boolean;
     country: string;
     timezone: string;
+    appearancePreference?: AppearancePreference;
   };
   goal: {
     bmrKcal: number;
@@ -180,6 +183,22 @@ export async function updateNotificationPreferences(
   const row = await prisma.userProfile.update({
     where: { userId },
     data: input,
+  });
+  return toProfileDto(row);
+}
+
+/** Patch appearance only — instant from Settings, no target maths. */
+export async function updateAppearancePreference(
+  userId: string,
+  appearancePreference: AppearancePreference,
+): Promise<ProfileDto | null> {
+  const existing = await prisma.userProfile.findUnique({ where: { userId } });
+  if (!existing) return null;
+  assertOwnership(existing.userId, userId);
+
+  const row = await prisma.userProfile.update({
+    where: { userId },
+    data: { appearancePreference },
   });
   return toProfileDto(row);
 }

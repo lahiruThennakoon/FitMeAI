@@ -110,6 +110,7 @@ export async function getUserExport(
           preferredUnits: profile.preferredUnits,
           preferredGlucoseUnit: profile.preferredGlucoseUnit,
           eatBackExercise: profile.eatBackExercise,
+          appearancePreference: profile.appearancePreference,
           country: profile.country,
           timezone: profile.timezone,
         }

@@ -7,6 +7,7 @@ import { ChangeEmailForm } from "./change-email-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
 import { DisplayPreferencesForm } from "./display-preferences-form";
+import { AppearanceControl } from "./appearance-control";
 import { ExportData } from "./export-data";
 import { NotificationPreferencesForm } from "./notification-preferences-form";
 
@@ -41,28 +42,29 @@ export default async function SettingsPage() {
           id="display-preferences-heading"
           className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
         >
-          Units & timezone
+          Display
         </h2>
-        {profile ? (
-          <div className="mt-4">
+        <div className="mt-4 space-y-6">
+          <AppearanceControl canSyncProfile={profile != null} />
+          {profile ? (
             <DisplayPreferencesForm
               preferredUnits={profile.preferredUnits}
               preferredGlucoseUnit={profile.preferredGlucoseUnit}
               timezone={profile.timezone}
             />
-          </div>
-        ) : (
-          <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-            Set up your{" "}
-            <Link
-              href="/goals"
-              className="font-medium text-brand-blue underline decoration-dotted"
-            >
-              profile
-            </Link>{" "}
-            first — units and timezone are saved alongside it.
-          </p>
-        )}
+          ) : (
+            <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+              Set up your{" "}
+              <Link
+                href="/goals"
+                className="font-medium text-brand-blue underline decoration-dotted"
+              >
+                profile
+              </Link>{" "}
+              to save units and timezone alongside it.
+            </p>
+          )}
+        </div>
       </section>
 
       {profile ? (

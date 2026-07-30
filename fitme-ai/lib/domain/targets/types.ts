@@ -5,6 +5,7 @@ import type {
 } from "@/lib/domain/targets/bmr";
 import type { GoalType } from "@/lib/domain/targets/suggest-targets";
 import type { GlucoseDisplayUnit } from "@/lib/domain/glucose/units";
+import type { AppearancePreference } from "@/lib/domain/appearance/types";
 
 export type ProfileDto = {
   displayName: string;
@@ -23,6 +24,7 @@ export type ProfileDto = {
   /** Saved for when reminder delivery ships; no notifications sent yet. */
   notifyFastingEnd: boolean;
   notifyWeeklyDigest: boolean;
+  appearancePreference: AppearancePreference;
   country: string;
   timezone: string;
 };

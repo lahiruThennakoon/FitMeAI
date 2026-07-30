@@ -26,6 +26,7 @@ const savedProfile = {
   eatBackExercise: false,
   notifyFastingEnd: true,
   notifyWeeklyDigest: false,
+  appearancePreference: "system" as const,
   country: "",
   timezone: "Asia/Colombo",
 };
