@@ -13,6 +13,7 @@ import {
   rematchFoodDraftAction,
   saveMealDraftAction,
 } from "@/app/actions/log";
+import { useLogToast } from "@/components/log-toast-provider";
 import {
   PARSE_QUEUE_EVENT,
   appendParseQueue,
@@ -90,11 +91,11 @@ type Props = {
 };
 
 export function LogMealForm({ ref }: Props) {
+  const { showLogToast } = useLogToast();
   const [pending, startTransition] = useTransition();
   const [saving, startSaveTransition] = useTransition();
   const [text, setText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [items, setItems] = useState<ParsedFoodItemDraft[] | null>(null);
   /** Null until the user picks a time — falls back to the drafts' own stamp. */
   const [mealTime, setMealTime] = useState<string | null>(null);
@@ -125,7 +126,6 @@ export function LogMealForm({ ref }: Props) {
   function restoreQueuedParse(item: OfflineParseQueueItem) {
     setText(item.text);
     setFormError(null);
-    setSaveMessage(null);
     discardQueuedParse(item.clientKey);
     requestAnimationFrame(() => {
       document.getElementById("meal-text")?.focus();
@@ -135,7 +135,6 @@ export function LogMealForm({ ref }: Props) {
   const addDraft = useCallback((draft: ParsedFoodItemDraft) => {
     setItems((prev) => [...(prev ?? []), draft]);
     setFormError(null);
-    setSaveMessage(null);
     setShowManual(false);
     scrollToReview();
   }, []);
@@ -147,7 +146,6 @@ export function LogMealForm({ ref }: Props) {
       if (fitting.length > 0) {
         setItems((prev) => [...(prev ?? []), ...fitting]);
         setFormError(null);
-        setSaveMessage(null);
         setShowManual(false);
         scrollToReview();
       }
@@ -168,7 +166,6 @@ export function LogMealForm({ ref }: Props) {
   function onParse(event: React.FormEvent) {
     event.preventDefault();
     setFormError(null);
-    setSaveMessage(null);
     // Keep drafts the user already staged (manual adds, re-logged favourites);
     // only this parse's own previous results are replaced.
     setItems((prev) => {
@@ -248,7 +245,6 @@ export function LogMealForm({ ref }: Props) {
     setManualQty("1");
     setShowManual(false);
     setFormError(null);
-    setSaveMessage(null);
   }
 
   function updateItem(id: string, patch: Partial<ParsedFoodItemDraft>) {
@@ -369,7 +365,6 @@ export function LogMealForm({ ref }: Props) {
 
   function removeItem(id: string) {
     setFormError(null);
-    setSaveMessage(null);
     setItems((prev) => {
       const next = (prev ?? []).filter((item) => item.id !== id);
       return next.length > 0 ? next : null;
@@ -379,7 +374,6 @@ export function LogMealForm({ ref }: Props) {
   function onSave() {
     if (!items || items.length === 0) return;
     setFormError(null);
-    setSaveMessage(null);
 
     /**
      * An explicit pick applies to every item. Left alone, each item keeps the
@@ -421,7 +415,7 @@ export function LogMealForm({ ref }: Props) {
         if (result.ok) {
           const n = result.data.entries.length;
           const c = result.data.correctionCount;
-          setSaveMessage(
+          showLogToast(
             c > 0
               ? `Saved ${n} item${n === 1 ? "" : "s"} (${c} correction${c === 1 ? "" : "s"} recorded).`
               : `Saved ${n} item${n === 1 ? "" : "s"}.`,
@@ -444,7 +438,6 @@ export function LogMealForm({ ref }: Props) {
     setMealTime(null);
     setAiInteractionId(null);
     setFormError(null);
-    setSaveMessage(null);
     setShowManual(false);
   }
 
@@ -563,15 +556,6 @@ export function LogMealForm({ ref }: Props) {
           role="alert"
         >
           {formError}
-        </p>
-      ) : null}
-
-      {saveMessage ? (
-        <p
-          className="text-sm text-emerald-800 dark:text-emerald-300"
-          role="status"
-        >
-          {saveMessage}
         </p>
       ) : null}
 

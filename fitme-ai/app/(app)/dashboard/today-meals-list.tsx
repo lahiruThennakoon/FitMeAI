@@ -8,7 +8,7 @@ import {
   updateFoodEntryAction,
 } from "@/app/actions/food-entry";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
-import { UndoNotice } from "@/components/undo-notice";
+import { useLogToast } from "@/components/log-toast-provider";
 import type { HomeDayLabels } from "@/lib/domain/dashboard/day-bounds";
 import type { FoodEntryEditableDto } from "@/lib/dal/food-entry";
 import {
@@ -138,37 +138,24 @@ type Props = {
  */
 export function TodayMealsList({ entries, labels }: Props) {
   const router = useRouter();
-  const [removedId, setRemovedId] = useState<string | null>(null);
-  const [undoError, setUndoError] = useState<string | null>(null);
-  const [undoPending, startUndo] = useTransition();
+  const { showLogToast } = useLogToast();
+  const [, startUndo] = useTransition();
 
-  function undoRemove(id: string) {
-    setUndoError(null);
-    startUndo(async () => {
-      const result = await restoreFoodEntryAction(id);
-      if (!result.ok) {
-        setUndoError(result.error);
-        return;
-      }
-      setRemovedId(null);
-      router.refresh();
+  function handleRemoved(id: string) {
+    showLogToast({
+      message: "Meal removed.",
+      undo: () => {
+        startUndo(async () => {
+          const result = await restoreFoodEntryAction(id);
+          if (!result.ok) {
+            showLogToast({ message: result.error, variant: "error" });
+            return;
+          }
+          router.refresh();
+        });
+      },
     });
   }
-
-  const undo = removedId ? (
-    <div className="mt-2">
-      <UndoNotice
-        message="Meal removed."
-        onUndo={() => undoRemove(removedId)}
-        disabled={undoPending}
-      />
-      {undoError ? (
-        <p className="mt-1 text-xs text-red-600" role="alert">
-          {undoError}
-        </p>
-      ) : null}
-    </div>
-  ) : null;
 
   if (entries.length === 0) {
     return (
@@ -176,29 +163,25 @@ export function TodayMealsList({ entries, labels }: Props) {
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
           {labels.mealsEmpty}
         </p>
-        {undo}
       </div>
     );
   }
 
   return (
-    <>
-      <ul
-        className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
-        data-testid="today-meals-list"
-        aria-label={labels.mealsAria}
-      >
-        {entries.map((entry) => (
-          <MealRow
-            key={entry.id}
-            entry={entry}
-            removeScopeLabel={labels.removeScopeLabel}
-            onRemoved={setRemovedId}
-          />
-        ))}
-      </ul>
-      {undo}
-    </>
+    <ul
+      className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
+      data-testid="today-meals-list"
+      aria-label={labels.mealsAria}
+    >
+      {entries.map((entry) => (
+        <MealRow
+          key={entry.id}
+          entry={entry}
+          removeScopeLabel={labels.removeScopeLabel}
+          onRemoved={handleRemoved}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -217,6 +200,7 @@ function MealRow({
   onRemoved: (id: string) => void;
 }) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [mode, setMode] = useState<RowMode>("view");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -264,6 +248,7 @@ function MealRow({
         return;
       }
       setMode("view");
+      showLogToast(`Updated ${form.name.trim() || entry.name}.`);
       router.refresh();
     });
   }

@@ -8,7 +8,7 @@ import {
   updateExerciseEntryAction,
 } from "@/app/actions/exercise";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
-import { UndoNotice } from "@/components/undo-notice";
+import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
@@ -158,37 +158,24 @@ export function TodayExercisesList({
   units,
 }: Props) {
   const router = useRouter();
-  const [removedId, setRemovedId] = useState<string | null>(null);
-  const [undoError, setUndoError] = useState<string | null>(null);
-  const [undoPending, startUndo] = useTransition();
+  const { showLogToast } = useLogToast();
+  const [, startUndo] = useTransition();
 
-  function undoRemove(id: string) {
-    setUndoError(null);
-    startUndo(async () => {
-      const result = await restoreExerciseEntryAction(id);
-      if (!result.ok) {
-        setUndoError(result.error);
-        return;
-      }
-      setRemovedId(null);
-      router.refresh();
+  function handleRemoved(id: string) {
+    showLogToast({
+      message: "Workout removed.",
+      undo: () => {
+        startUndo(async () => {
+          const result = await restoreExerciseEntryAction(id);
+          if (!result.ok) {
+            showLogToast({ message: result.error, variant: "error" });
+            return;
+          }
+          router.refresh();
+        });
+      },
     });
   }
-
-  const undo = removedId ? (
-    <div className="mt-2">
-      <UndoNotice
-        message="Workout removed."
-        onUndo={() => undoRemove(removedId)}
-        disabled={undoPending}
-      />
-      {undoError ? (
-        <p className="mt-1 text-xs text-red-600" role="alert">
-          {undoError}
-        </p>
-      ) : null}
-    </div>
-  ) : null;
 
   if (entries.length === 0) {
     return (
@@ -196,31 +183,27 @@ export function TodayExercisesList({
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
           {labels.exerciseEmpty}
         </p>
-        {undo}
       </div>
     );
   }
 
   return (
-    <>
-      <ul
-        className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
-        data-testid="today-exercises-list"
-        aria-label={labels.exerciseAria}
-      >
-        {entries.map((entry) => (
-          <ExerciseRow
-            key={entry.id}
-            entry={entry}
-            weightKg={weightKg}
-            removeScopeLabel={labels.removeScopeLabel}
-            onRemoved={setRemovedId}
-            units={units}
-          />
-        ))}
-      </ul>
-      {undo}
-    </>
+    <ul
+      className="soft-scroll mt-4 max-h-52 space-y-2 overflow-y-auto overscroll-contain border-t border-neutral-200 pt-4 dark:border-neutral-700"
+      data-testid="today-exercises-list"
+      aria-label={labels.exerciseAria}
+    >
+      {entries.map((entry) => (
+        <ExerciseRow
+          key={entry.id}
+          entry={entry}
+          weightKg={weightKg}
+          removeScopeLabel={labels.removeScopeLabel}
+          onRemoved={handleRemoved}
+          units={units}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -243,6 +226,7 @@ function ExerciseRow({
   units: PreferredUnits;
 }) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [mode, setMode] = useState<RowMode>("view");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -314,6 +298,7 @@ function ExerciseRow({
         return;
       }
       setMode("view");
+      showLogToast("Workout updated.");
       router.refresh();
     });
   }

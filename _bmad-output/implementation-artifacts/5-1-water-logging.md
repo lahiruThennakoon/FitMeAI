@@ -162,6 +162,9 @@ Cursor Sonnet 5
 - fitme-ai/lib/domain/targets/units.ts
 - fitme-ai/app/(app)/dashboard/page.tsx
 - fitme-ai/app/(app)/dashboard/daily-summary-panel.tsx
+- fitme-ai/components/log-toast-provider.tsx
+- fitme-ai/components/app-authenticated-shell.tsx
+- fitme-ai/tests/log-toast-provider.test.tsx
 - fitme-ai/app/(app)/dashboard/water-log-control.tsx
 - fitme-ai/tests/water-entry-dal.test.ts
 - fitme-ai/tests/water-schema.test.ts
@@ -173,6 +176,7 @@ Cursor Sonnet 5
 
 ### Change Log
 
+- 2026-07-30: App-wide log save toast (`LogToastProvider`) — water quick-add success/errors and delete undo now use the global snackbar above the bottom nav (cross-cutting UX; wired across all log flows)
 - 2026-07-26: Implemented Story 5.1 water logging — status → review
 - 2026-07-26: Adversarial self-review (Blind Hunter / Edge Case Hunter / Acceptance Auditor) caught AC7 (preferred units for water display) unimplemented in the first pass — patched: added `preferredUnits` to `DailySummary`, `parseWaterToMl` helper in `lib/domain/targets/units.ts`, wired `displayWater`/unit-aware quick-add + custom input into the water card and `WaterLogControl`. Also tightened the imperial custom-input `max` attribute (169 fl oz, not 170) so it can't exceed the 5000 ml server cap after conversion.
 

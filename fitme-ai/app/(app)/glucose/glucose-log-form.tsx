@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGlucoseEntryAction } from "@/app/actions/glucose";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
@@ -30,9 +31,9 @@ type Props = {
 
 export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState<GlucoseDisplayUnit>(defaultUnit);
   const [context, setContext] =
@@ -45,7 +46,6 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setMessage(null);
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) {
       setError("Enter a positive reading.");
@@ -80,7 +80,7 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
       setValue("");
       setNote("");
       setMeasuredAt(toDatetimeLocalValue(new Date()));
-      setMessage("Reading saved — thanks for logging it.");
+      showLogToast("Reading saved — thanks for logging it.");
       router.refresh();
     });
   }
@@ -198,11 +198,6 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
       {error ? (
         <p className="mt-2 text-sm text-red-600" role="alert">
           {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200" role="status">
-          {message}
         </p>
       ) : null}
     </section>

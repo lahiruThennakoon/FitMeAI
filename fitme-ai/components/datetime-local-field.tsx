@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef, useState } from "react";
+import { DatetimeLocalPickerPopover } from "@/components/datetime-local-picker-popover";
+import {
+  formatDatetimeLocalDisplay,
+  getNowDatetimeLocal,
+} from "@/lib/domain/datetime-local";
 
 type Props = {
   id: string;
@@ -45,58 +50,97 @@ export function DatetimeLocalField({
   compact = false,
   max,
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const pickerId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const triggerClassName = compact
+    ? "datetime-local-trigger datetime-local-trigger--compact"
+    : "datetime-local-trigger";
+
+  const calendarButtonClassName = compact
+    ? "datetime-local-calendar-btn datetime-local-calendar-btn--compact"
+    : "datetime-local-calendar-btn";
 
   function openPicker() {
-    const input = inputRef.current;
-    if (!input) return;
-    input.focus();
-    if (typeof input.showPicker === "function") {
-      try {
-        input.showPicker();
-      } catch {
-        /* Unsupported or blocked outside a user gesture */
-      }
-    }
+    setDraft(value || getNowDatetimeLocal(max));
+    setOpen(true);
   }
 
-  const inputClassName = compact
-    ? "datetime-local-input w-full rounded-lg border border-neutral-300 bg-white py-1.5 pl-2 pr-10 text-sm dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
-    : "datetime-local-input w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 pr-11 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100";
+  function closePicker() {
+    setOpen(false);
+  }
+
+  function commitDraft() {
+    onChange(draft);
+    closePicker();
+  }
+
+  const displayValue = formatDatetimeLocalDisplay(value);
 
   return (
-    <div className={className}>
+    <div className={className} ref={rootRef}>
       {hideLabel ? null : (
         <label
-          htmlFor={id}
+          htmlFor={`${id}-trigger`}
           className="block text-xs font-medium text-neutral-600 dark:text-neutral-300"
         >
           {label}
         </label>
       )}
+
       <div className={compact && hideLabel ? "relative" : "relative mt-1"}>
         <input
-          ref={inputRef}
           id={id}
+          name={id}
           type="datetime-local"
           required={required}
           max={max}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={inputClassName}
+          onChange={() => {}}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only"
         />
+
         <button
           type="button"
+          id={`${id}-trigger`}
+          data-datetime-picker-trigger
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={open ? pickerId : undefined}
+          onClick={openPicker}
+          className={triggerClassName}
+        >
+          <span className={displayValue ? "text-neutral-900 dark:text-neutral-100" : "text-neutral-400 dark:text-neutral-500"}>
+            {displayValue || "Pick date and time"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          data-datetime-picker-trigger
           onClick={openPicker}
           aria-label={`Open calendar for ${label}`}
-          className={
-            compact
-              ? "absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-blue dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-brand-teal"
-              : "absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-brand-teal"
-          }
+          className={calendarButtonClassName}
         >
           <CalendarIcon className="h-4 w-4" />
         </button>
+
+        {open ? (
+          <div id={pickerId} className="datetime-picker-anchor">
+            <DatetimeLocalPickerPopover
+              label={label}
+              draft={draft}
+              onDraftChange={setDraft}
+              onSet={commitDraft}
+              onClose={closePicker}
+              max={max}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

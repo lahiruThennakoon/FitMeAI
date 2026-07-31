@@ -132,6 +132,8 @@ Profile includes a **Weight check-in** card: log kg/lb (preferred units), see ca
 - Offline writes queue with a `clientKey` and reconcile via idempotent upsert when back online.
 - Smart-parse prompts queue offline and resume on reconnect.
 - Installable PWA: `manifest.webmanifest` + service worker (`/sw.js`) with shell + catalog caching.
+- **Bottom tab bar** on authenticated routes: Home · Log · Exercise · More (`AppQuickNav` in `app/(app)/layout.tsx`). Fixed to the bottom with safe-area padding; active tab uses a filled pill + brand color. More opens fasting, glucose, progress, goals, and settings.
+- **Log save toast** — global snackbar above the tab bar (`LogToastProvider`) confirms successful saves across water, food, exercise, glucose, weight, and fasting flows; removable entries offer Undo in the toast.
 
 
 ### Nutrition catalog (Story 2.1 / FR-7 data layer)

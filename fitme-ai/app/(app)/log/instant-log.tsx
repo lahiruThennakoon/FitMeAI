@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveInstantFoodAction } from "@/app/actions/offline";
+import { useLogToast } from "@/components/log-toast-provider";
 import {
   appendWriteQueue,
   isBrowserOffline,
@@ -57,11 +58,14 @@ function readInitialCache(): {
  */
 export function InstantLog() {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   /** Lazy initializers read cache/connectivity once on mount — no setState-in-effect. */
   const [initialCache] = useState(readInitialCache);
   const [foods, setFoods] = useState<CachedFood[]>(initialCache.foods);
   const [online, setOnline] = useState(() => !isBrowserOffline());
-  const [message, setMessage] = useState<string | null>(initialCache.message);
+  const [infoMessage, setInfoMessage] = useState<string | null>(
+    initialCache.message,
+  );
   const [pending, startTransition] = useTransition();
   const [servingsRaw, setServingsRaw] = useState("1");
   const [mealType, setMealType] = useState<MealType>("unknown");
@@ -93,7 +97,6 @@ export function InstantLog() {
   }, []);
 
   function logFood(food: CachedFood) {
-    setMessage(null);
     const clientKey = newClientKey();
     const payload = {
       clientKey,
@@ -112,18 +115,18 @@ export function InstantLog() {
           kind: "instant_food",
           queuedAt: new Date().toISOString(),
         });
-        setMessage(
-          `Queued ${food.name} (${portion}) for sync when you're back online (no AI needed).`,
+        showLogToast(
+          `Queued ${food.name} (${portion}) for sync when you're back online.`,
         );
         return;
       }
       try {
         const result = await saveInstantFoodAction(payload);
         if (!result.ok) {
-          setMessage(result.error);
+          showLogToast({ message: result.error, variant: "error" });
           return;
         }
-        setMessage(
+        showLogToast(
           result.data.created
             ? `Logged ${result.data.name} — ${portion}.`
             : `${result.data.name} was already saved.`,
@@ -135,7 +138,7 @@ export function InstantLog() {
           kind: "instant_food",
           queuedAt: new Date().toISOString(),
         });
-        setMessage(
+        showLogToast(
           `Saved ${food.name} (${portion}) offline — will sync when connected.`,
         );
       }
@@ -243,9 +246,9 @@ export function InstantLog() {
         </>
       )}
 
-      {message ? (
+      {infoMessage ? (
         <p className="mt-3 text-sm text-neutral-700 dark:text-neutral-200" role="status">
-          {message}
+          {infoMessage}
         </p>
       ) : null}
     </section>

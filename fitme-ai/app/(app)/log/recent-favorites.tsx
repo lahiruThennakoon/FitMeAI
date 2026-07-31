@@ -15,6 +15,7 @@ import {
   isBrowserOffline,
 } from "@/lib/offline/browser-store";
 import { newClientKey } from "@/lib/offline/food-cache";
+import { useLogToast } from "@/components/log-toast-provider";
 
 const OFFLINE_INSTANT_UNITS = new Set([
   "g",
@@ -76,6 +77,7 @@ export function RecentFavorites({
   onSelectForEdit,
 }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [favIds, setFavIds] = useState(() =>
@@ -162,7 +164,7 @@ export function RecentFavorites({
           kind: "instant_food",
           queuedAt: new Date().toISOString(),
         });
-        setMessage(
+        showLogToast(
           `Queued ${item.name} from ${source} for sync when you're back online.`,
         );
         return;
@@ -178,11 +180,11 @@ export function RecentFavorites({
         sourceEntryId: item.sourceEntryId,
       });
       if (!result.ok) {
-        setMessage(result.error);
+        showLogToast({ message: result.error, variant: "error" });
         return;
       }
       const kcal = result.data.entry.energyKcal;
-      setMessage(
+      showLogToast(
         kcal != null
           ? `Logged ${result.data.entry.name} (~${Math.round(kcal)} kcal).`
           : `Logged ${result.data.entry.name}.`,

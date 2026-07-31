@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import {
-  PROFILE_REQUIRED_ERROR,
-  saveDisplayPreferencesAction,
-} from "@/app/actions/profile";
+import { saveDisplayPreferencesAction } from "@/app/actions/profile";
+import { PROFILE_REQUIRED_ERROR } from "@/lib/domain/profile/errors";
 
 afterEach(() => {
   vi.restoreAllMocks();

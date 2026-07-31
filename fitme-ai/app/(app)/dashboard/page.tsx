@@ -220,10 +220,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         />
       </section>
 
-      <nav className="flex flex-col gap-3" aria-label="Main actions">
-        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          Next actions
-        </p>
+      <nav className="flex flex-col gap-3" aria-label="Account">
         {!isToday ? (
           <p className="text-sm text-neutral-600 dark:text-neutral-300">
             Logging always goes to{" "}
@@ -233,40 +230,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             >
               today
             </Link>
-            .
+            . Use the bar above for quick actions.
           </p>
         ) : null}
-        <Link
-          href="/log"
-          className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
-        >
-          Log food
-        </Link>
-        <Link
-          href="/exercise"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm shadow-brand-teal/15 transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:ring-brand-teal/50 dark:hover:bg-brand-teal/20"
-        >
-          Log exercise
-        </Link>
-        <Link
-          href="/fasting"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600 dark:hover:bg-neutral-100/10"
-        >
-          Fasting timer
-        </Link>
-        <Link
-          href="/glucose"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900/5 px-6 text-base font-medium text-neutral-800 ring-1 ring-inset ring-neutral-300/80 shadow-sm transition hover:bg-neutral-900/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:bg-neutral-100/5 dark:text-neutral-100 dark:ring-neutral-600 dark:hover:bg-neutral-100/10"
-        >
-          Log glucose
-        </Link>
-        <Link
-          href="/progress"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-teal/10 px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 shadow-sm transition hover:bg-brand-teal/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:bg-brand-teal/15 dark:text-teal-200 dark:hover:bg-brand-teal/20"
-        >
-          Progress charts
-        </Link>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link
             href="/goals"
             className="text-sm font-medium text-neutral-600 underline-offset-2 transition hover:text-neutral-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:text-neutral-400 dark:hover:text-neutral-100"

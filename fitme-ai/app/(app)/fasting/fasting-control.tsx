@@ -10,6 +10,7 @@ import {
   updateFastingSessionAction,
 } from "@/app/actions/fasting";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { useLogToast } from "@/components/log-toast-provider";
 import type { FastingSessionDto } from "@/lib/dal/fasting-session";
 import {
   fromDatetimeLocalValue,
@@ -51,9 +52,9 @@ function resolvePastInstant(
  */
 export function FastingControl({ active, nowMs }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [protocol, setProtocol] = useState<string>("16:8");
   const [customLabel, setCustomLabel] = useState("");
   const [plannedHours, setPlannedHours] = useState("16");
@@ -81,7 +82,6 @@ export function FastingControl({ active, nowMs }: Props) {
   function onStart(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setMessage(null);
     const hours = Number(plannedHours);
     const plannedDurationMin =
       Number.isFinite(hours) && hours > 0 ? Math.round(hours * 60) : null;
@@ -108,7 +108,7 @@ export function FastingControl({ active, nowMs }: Props) {
         setError(result.error);
         return;
       }
-      setMessage("Fast started — you've got this at your own pace.");
+      showLogToast("Fast started — you've got this at your own pace.");
       setStartedAtInput("");
       router.refresh();
     });
@@ -117,7 +117,6 @@ export function FastingControl({ active, nowMs }: Props) {
   function onLogPast(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setMessage(null);
 
     const start = resolvePastInstant(pastStart);
     if (!start.ok) {
@@ -146,7 +145,7 @@ export function FastingControl({ active, nowMs }: Props) {
         setError(result.error);
         return;
       }
-      setMessage(
+      showLogToast(
         `Logged · ${formatDurationMs(result.data.session.durationMs)}. Added to your history.`,
       );
       setPastStart("");
@@ -160,7 +159,6 @@ export function FastingControl({ active, nowMs }: Props) {
     setAdjustStart(toDatetimeLocalValue(active.startedAt));
     setAdjustNotes(active.notes ?? "");
     setError(null);
-    setMessage(null);
     setAdjusting(true);
   }
 
@@ -189,7 +187,7 @@ export function FastingControl({ active, nowMs }: Props) {
         return;
       }
       setAdjusting(false);
-      setMessage("Updated.");
+      showLogToast("Updated.");
       router.refresh();
     });
   }
@@ -197,7 +195,6 @@ export function FastingControl({ active, nowMs }: Props) {
   function onDiscard() {
     if (!active) return;
     setError(null);
-    setMessage(null);
     startTransition(async () => {
       const result = await discardActiveFastAction({ sessionId: active.id });
       if (!result.ok) {
@@ -206,14 +203,13 @@ export function FastingControl({ active, nowMs }: Props) {
         return;
       }
       setConfirmingDiscard(false);
-      setMessage("Fast discarded — nothing was added to your history.");
+      showLogToast("Fast discarded — nothing was added to your history.");
       router.refresh();
     });
   }
 
   function onEnd() {
     setError(null);
-    setMessage(null);
     startTransition(async () => {
       const result = await endFastingSessionAction(
         active ? { sessionId: active.id } : {},
@@ -222,7 +218,7 @@ export function FastingControl({ active, nowMs }: Props) {
         setError(result.error);
         return;
       }
-      setMessage(
+      showLogToast(
         `Fast ended · ${formatDurationMs(result.data.session.durationMs)}. Nice work logging it.`,
       );
       router.refresh();
@@ -421,11 +417,6 @@ export function FastingControl({ active, nowMs }: Props) {
             {error}
           </p>
         ) : null}
-        {message ? (
-          <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200" role="status">
-            {message}
-          </p>
-        ) : null}
       </section>
     );
   }
@@ -584,11 +575,6 @@ export function FastingControl({ active, nowMs }: Props) {
       {error ? (
         <p className="mt-2 text-sm text-red-600" role="alert">
           {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200" role="status">
-          {message}
         </p>
       ) : null}
     </section>

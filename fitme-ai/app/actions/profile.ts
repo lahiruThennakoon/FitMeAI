@@ -10,6 +10,7 @@ import {
   upsertProfileAndGoal,
   type UpsertProfileGoalInput,
 } from "@/lib/dal/profile";
+import { PROFILE_REQUIRED_ERROR } from "@/lib/domain/profile/errors";
 import type { GoalDto, ProfileDto } from "@/lib/domain/targets/types";
 import {
   evaluateSafetyLadder,
@@ -76,9 +77,6 @@ export type DisplayPreferencesActionDeps = {
 
 export type DisplayPreferencesResult = Result<{ profile: ProfileDto }>;
 export type NotificationPreferencesResult = Result<{ profile: ProfileDto }>;
-
-export const PROFILE_REQUIRED_ERROR =
-  "Set up your profile first — units and timezone live alongside it.";
 
 /** Change how numbers are shown (and where the day starts) without touching targets. */
 export async function saveDisplayPreferencesAction(

@@ -39,6 +39,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Native selects/date inputs — sync with class-based theme (Epic 10).
+   Without color-scheme, dark UI inherits light text into OS light popups. */
+select,
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color-scheme: light;
+}
+
+.dark select,
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"] {
+  color-scheme: dark;
+  color: var(--foreground);
+}
+
+/* OS dropdown lists often stay light even in dark UI — keep options readable. */
+select option {
+  color: #171717;
+  background-color: #ffffff;
+}
+
 /* Hide browser stepper arrows on number fields — they clash with calm UI. */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
@@ -63,6 +86,584 @@ input[type="number"] {
 
 .datetime-local-input::-webkit-datetime-edit-fields-wrapper {
   padding: 0;
+}
+
+/* Datetime field trigger — replaces visible native input */
+.datetime-local-trigger {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(212 212 212);
+  background: rgb(255 255 255);
+  padding: 0.625rem 2.75rem 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.datetime-local-trigger:hover {
+  border-color: rgb(163 163 163);
+}
+
+.datetime-local-trigger:focus-visible {
+  border-color: var(--brand-blue);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-blue) 30%, transparent);
+}
+
+.datetime-local-trigger--compact {
+  min-height: 2.125rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+}
+
+.dark .datetime-local-trigger {
+  border-color: rgb(82 82 82);
+  background: rgb(10 10 10);
+  box-shadow: none;
+}
+
+.dark .datetime-local-trigger:hover {
+  border-color: rgb(115 115 115);
+}
+
+.datetime-local-calendar-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: rgb(115 115 115);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.datetime-local-calendar-btn:hover {
+  background: rgb(245 245 245);
+  color: var(--brand-blue);
+}
+
+.datetime-local-calendar-btn:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+.datetime-local-calendar-btn--compact {
+  right: 0.375rem;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 0.375rem;
+}
+
+.dark .datetime-local-calendar-btn {
+  color: rgb(163 163 163);
+}
+
+.dark .datetime-local-calendar-btn:hover {
+  background: rgb(38 38 38);
+  color: var(--brand-teal);
+}
+
+.datetime-picker-anchor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.375rem);
+  z-index: 50;
+}
+
+.datetime-picker-popover {
+  display: flex;
+  max-height: min(26rem, calc(100dvh - 5rem));
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(212 212 212);
+  background: rgb(255 255 255);
+  box-shadow:
+    0 10px 25px rgb(0 0 0 / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.06);
+}
+
+.dark .datetime-picker-popover {
+  border-color: rgb(64 64 64);
+  background: rgb(23 23 23);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+.datetime-picker-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: auto;
+}
+
+@media (min-width: 480px) {
+  .datetime-picker-body {
+    flex-direction: row;
+  }
+}
+
+.datetime-picker-calendar {
+  flex: 1 1 auto;
+  padding: 0.75rem;
+}
+
+.datetime-picker-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.datetime-picker-month-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(23 23 23);
+}
+
+.dark .datetime-picker-month-label {
+  color: rgb(245 245 245);
+}
+
+.datetime-picker-icon-btn {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: rgb(82 82 82);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.datetime-picker-icon-btn:hover:not(:disabled) {
+  background: rgb(245 245 245);
+  color: var(--brand-blue);
+}
+
+.datetime-picker-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dark .datetime-picker-icon-btn {
+  color: rgb(163 163 163);
+}
+
+.dark .datetime-picker-icon-btn:hover:not(:disabled) {
+  background: rgb(38 38 38);
+  color: var(--brand-teal);
+}
+
+.datetime-picker-weekdays,
+.datetime-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.125rem;
+}
+
+.datetime-picker-weekday {
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgb(115 115 115);
+  padding-block: 0.25rem;
+}
+
+.datetime-picker-day {
+  height: 2rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgb(38 38 38);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.datetime-picker-day:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand-blue) 10%, transparent);
+}
+
+.datetime-picker-day--muted {
+  color: rgb(163 163 163);
+}
+
+.datetime-picker-day--selected {
+  background: color-mix(in srgb, var(--brand-blue) 16%, transparent);
+  color: var(--brand-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-blue) 45%, transparent);
+}
+
+.datetime-picker-day:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dark .datetime-picker-day {
+  color: rgb(229 229 229);
+}
+
+.dark .datetime-picker-day--muted {
+  color: rgb(115 115 115);
+}
+
+.dark .datetime-picker-day--selected {
+  background: color-mix(in srgb, var(--brand-teal) 18%, transparent);
+  color: rgb(153 246 228);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-teal) 50%, transparent);
+}
+
+.datetime-picker-time {
+  display: flex;
+  border-top: 1px solid rgb(229 229 229);
+}
+
+@media (min-width: 480px) {
+  .datetime-picker-time {
+    border-top: none;
+    border-left: 1px solid rgb(229 229 229);
+  }
+}
+
+.dark .datetime-picker-time {
+  border-color: rgb(64 64 64);
+}
+
+.datetime-picker-time-column {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.5rem;
+}
+
+.datetime-picker-time-column-label {
+  margin-bottom: 0.25rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(115 115 115);
+}
+
+.datetime-picker-time-list {
+  max-height: 11rem;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+}
+
+.datetime-picker-time-option {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgb(64 64 64);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.datetime-picker-time-option:hover {
+  background: rgb(245 245 245);
+}
+
+.datetime-picker-time-option--selected {
+  background: color-mix(in srgb, var(--brand-blue) 14%, transparent);
+  color: var(--brand-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-blue) 40%, transparent);
+}
+
+.dark .datetime-picker-time-option {
+  color: rgb(212 212 212);
+}
+
+.dark .datetime-picker-time-option:hover {
+  background: rgb(38 38 38);
+}
+
+.dark .datetime-picker-time-option--selected {
+  background: color-mix(in srgb, var(--brand-teal) 16%, transparent);
+  color: rgb(153 246 228);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-teal) 45%, transparent);
+}
+
+.datetime-picker-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgb(229 229 229);
+  padding: 0.625rem 0.75rem;
+}
+
+.dark .datetime-picker-footer {
+  border-color: rgb(64 64 64);
+}
+
+.datetime-picker-footer-btn {
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--brand-blue);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.datetime-picker-footer-btn:hover {
+  background: color-mix(in srgb, var(--brand-blue) 10%, transparent);
+}
+
+.datetime-picker-footer-btn--primary {
+  margin-left: auto;
+  min-width: 4.5rem;
+  background: var(--brand-blue);
+  color: #fff;
+  text-align: center;
+}
+
+.datetime-picker-footer-btn--primary:hover {
+  background: color-mix(in srgb, var(--brand-blue) 88%, black);
+  color: #fff;
+}
+
+.dark .datetime-picker-footer-btn {
+  color: rgb(147 197 253);
+}
+
+.dark .datetime-picker-footer-btn:hover {
+  background: color-mix(in srgb, var(--brand-teal) 12%, transparent);
+}
+
+.dark .datetime-picker-footer-btn--primary {
+  background: var(--brand-teal);
+  color: rgb(4 47 46);
+}
+
+.dark .datetime-picker-footer-btn--primary:hover {
+  background: color-mix(in srgb, var(--brand-teal) 88%, white);
+  color: rgb(4 47 46);
+}
+
+/* App shell — reserve space for fixed bottom quick nav */
+.app-shell {
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-quick-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  border-top: 1px solid rgb(229 229 229 / 0.9);
+  background: rgb(255 255 255 / 0.92);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  backdrop-filter: blur(10px);
+}
+
+.dark .app-quick-nav {
+  border-color: rgb(64 64 64);
+  background: rgb(10 10 10 / 0.92);
+}
+
+.app-quick-nav-inner {
+  display: grid;
+  max-width: 32rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-inline: auto;
+  padding-inline: 0.5rem;
+}
+
+.app-quick-nav-item {
+  display: flex;
+  min-height: 3rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  border-radius: 0.75rem;
+  padding: 0.375rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(115 115 115);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+@media (hover: hover) {
+  .app-quick-nav-item:hover:not(.app-quick-nav-item--active) {
+    color: rgb(64 64 64);
+  }
+}
+
+.app-quick-nav-item--active {
+  color: var(--brand-blue);
+  background: color-mix(in srgb, var(--brand-blue) 14%, transparent);
+}
+
+.dark .app-quick-nav-item {
+  color: rgb(200 200 200);
+}
+
+@media (hover: hover) {
+  .dark .app-quick-nav-item:hover:not(.app-quick-nav-item--active) {
+    color: rgb(245 245 245);
+  }
+}
+
+.dark .app-quick-nav-item--active {
+  color: rgb(147 197 253);
+  background: color-mix(in srgb, rgb(59 130 246) 22%, transparent);
+}
+
+.app-quick-nav-more-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 50;
+  min-width: 11.5rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(212 212 212);
+  background: rgb(255 255 255);
+  padding: 0.375rem;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.14);
+}
+
+.dark .app-quick-nav-more-menu {
+  border-color: rgb(64 64 64);
+  background: rgb(23 23 23);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+}
+
+.app-quick-nav-more-link {
+  display: block;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(38 38 38);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.app-quick-nav-more-link:hover {
+  background: color-mix(in srgb, var(--brand-blue) 10%, transparent);
+  color: var(--brand-blue);
+}
+
+.dark .app-quick-nav-more-link {
+  color: rgb(229 229 229);
+}
+
+.dark .app-quick-nav-more-link:hover {
+  background: color-mix(in srgb, var(--brand-teal) 12%, transparent);
+  color: rgb(153 246 228);
+}
+
+/* Log save confirmation — snackbar above bottom tab bar */
+.log-toast {
+  position: fixed;
+  inset-inline: 0.75rem;
+  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  z-index: 45;
+  display: flex;
+  max-width: 32rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-inline: auto;
+  border-radius: 0.875rem;
+  border: 1px solid rgb(212 212 212);
+  background: rgb(255 255 255 / 0.96);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgb(38 38 38);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.dark .log-toast {
+  border-color: rgb(64 64 64);
+  background: rgb(23 23 23 / 0.96);
+  color: rgb(245 245 245);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+}
+
+.log-toast--success {
+  border-color: color-mix(in srgb, var(--brand-blue) 28%, rgb(212 212 212));
+}
+
+.dark .log-toast--success {
+  border-color: color-mix(in srgb, rgb(59 130 246) 35%, rgb(64 64 64));
+}
+
+.log-toast--error {
+  border-color: color-mix(in srgb, rgb(220 38 38) 35%, rgb(212 212 212));
+  color: rgb(185 28 28);
+}
+
+.dark .log-toast--error {
+  border-color: color-mix(in srgb, rgb(248 113 113) 35%, rgb(64 64 64));
+  color: rgb(252 165 165);
+}
+
+.log-toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.log-toast-undo {
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--brand-blue);
+  transition: background-color 150ms ease;
+}
+
+.log-toast-undo:hover {
+  background: color-mix(in srgb, var(--brand-blue) 12%, transparent);
+}
+
+.dark .log-toast-undo {
+  color: rgb(147 197 253);
+}
+
+.dark .log-toast-undo:hover {
+  background: color-mix(in srgb, rgb(59 130 246) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .log-toast {
+    animation: log-toast-in 180ms ease-out;
+  }
+}
+
+@keyframes log-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Reusable brand theme helpers */
@@ -438,4 +1039,65 @@ input[type="number"] {
   border-color: color-mix(in srgb, var(--brand-teal) 45%, transparent);
   background: rgb(38 38 38);
   color: rgb(245 245 245);
+}
+
+/* Sub-page back link — solid surface + brand tint so it reads as navigation */
+.page-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  height: 2.25rem;
+  padding-inline: 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(212 212 212 / 0.9);
+  background: rgb(255 255 255);
+  color: var(--brand-blue);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.8);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.page-back-link:hover {
+  border-color: color-mix(in srgb, var(--brand-blue) 50%, transparent);
+  background: color-mix(in srgb, var(--brand-blue) 8%, white);
+  box-shadow: 0 1px 3px rgb(47 87 227 / 0.12);
+}
+
+.page-back-link:active {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.page-back-link:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+.dark .page-back-link {
+  border-color: rgb(82 82 82);
+  background: rgb(23 23 23);
+  color: rgb(147 197 253);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.dark .page-back-link:hover {
+  border-color: color-mix(in srgb, var(--brand-teal) 55%, transparent);
+  background: rgb(38 38 38);
+  color: rgb(224 242 254);
+  box-shadow: 0 1px 4px rgb(14 165 165 / 0.15);
+}
+
+.dark .page-back-link:active {
+  background: rgb(30 30 30);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
 }

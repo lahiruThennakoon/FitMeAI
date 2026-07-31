@@ -7,7 +7,7 @@ import {
   restoreWaterEntryAction,
   saveWaterEntryAction,
 } from "@/app/actions/water";
-import { UndoNotice } from "@/components/undo-notice";
+import { useLogToast } from "@/components/log-toast-provider";
 import type { WaterEntryDto } from "@/lib/dal/water-entry";
 import {
   displayWater,
@@ -50,52 +50,47 @@ export function WaterLogControl({
   dayLabel,
 }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [customAmount, setCustomAmount] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [removedId, setRemovedId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const unit = preferredUnits === "imperial" ? "fl oz" : "ml";
 
   function logAmountMl(amountMl: number, displayLabel: string) {
-    setMessage(null);
-    setRemovedId(null);
     startTransition(async () => {
       const result = await saveWaterEntryAction({
         amountMl,
         loggedAt: logAtIso ?? undefined,
       });
       if (!result.ok) {
-        setMessage(result.error);
+        showLogToast({ message: result.error, variant: "error" });
         return;
       }
-      setMessage(`Logged ${displayLabel}.`);
+      showLogToast(`Logged ${displayLabel}.`);
       setCustomAmount("");
       router.refresh();
     });
   }
 
   function removeEntry(id: string) {
-    setMessage(null);
     startTransition(async () => {
       const result = await deleteWaterEntryAction(id);
       if (!result.ok) {
-        setMessage(result.error);
+        showLogToast({ message: result.error, variant: "error" });
         return;
       }
-      setRemovedId(id);
-      router.refresh();
-    });
-  }
-
-  function undoRemove(id: string) {
-    setMessage(null);
-    startTransition(async () => {
-      const result = await restoreWaterEntryAction(id);
-      if (!result.ok) {
-        setMessage(result.error);
-        return;
-      }
-      setRemovedId(null);
+      showLogToast({
+        message: "Water log removed.",
+        undo: () => {
+          startTransition(async () => {
+            const undoResult = await restoreWaterEntryAction(id);
+            if (!undoResult.ok) {
+              showLogToast({ message: undoResult.error, variant: "error" });
+              return;
+            }
+            router.refresh();
+          });
+        },
+      });
       router.refresh();
     });
   }
@@ -171,23 +166,6 @@ export function WaterLogControl({
         <p className="text-[11px] leading-snug text-sky-800/80 dark:text-sky-200/80">
           Adds land on {dayLabel}, the day you&rsquo;re viewing.
         </p>
-      ) : null}
-
-      {message ? (
-        <p
-          className="text-[11px] leading-snug text-sky-800/90 dark:text-sky-200/90"
-          role="status"
-        >
-          {message}
-        </p>
-      ) : null}
-
-      {removedId ? (
-        <UndoNotice
-          message="Water log removed."
-          onUndo={() => undoRemove(removedId)}
-          disabled={pending}
-        />
       ) : null}
 
       {entries.length > 0 ? (

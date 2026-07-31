@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { searchFoodCatalogAction } from "@/app/actions/catalog";
 import { saveInstantFoodAction } from "@/app/actions/offline";
+import { useLogToast } from "@/components/log-toast-provider";
 import type { FoodSearchHit } from "@/lib/dal/nutrition";
 import {
   appendWriteQueue,
@@ -31,9 +32,10 @@ function servingsFrom(raw: string): number {
  */
 export function FoodCatalogSearch({ onAddToReview }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<FoodSearchHit[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [servingsRaw, setServingsRaw] = useState("1");
   const [mealType, setMealType] = useState<MealType>("unknown");
@@ -53,18 +55,17 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
         if (generation !== searchGeneration.current) return;
         if (!result.ok) {
           setHits([]);
-          setMessage(result.error);
+          setSearchError(result.error);
           return;
         }
         setHits(result.data.hits);
-        setMessage(null);
+        setSearchError(null);
       });
     }, 250);
     return () => window.clearTimeout(handle);
   }, [trimmed]);
 
   function logHit(hit: FoodSearchHit) {
-    setMessage(null);
     const clientKey = newClientKey();
     const payload = {
       clientKey,
@@ -86,17 +87,17 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
           kind: "instant_food",
           queuedAt: new Date().toISOString(),
         });
-        setMessage(
+        showLogToast(
           `Queued ${hit.name} (${portion}) for sync when you're back online.`,
         );
         return;
       }
       const result = await saveInstantFoodAction(payload);
       if (!result.ok) {
-        setMessage(result.error);
+        showLogToast({ message: result.error, variant: "error" });
         return;
       }
-      setMessage(
+      showLogToast(
         result.data.created
           ? `Logged ${result.data.name} — ${portion}.`
           : `${result.data.name} was already saved.`,
@@ -224,12 +225,12 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
         </ul>
       ) : null}
 
-      {message ? (
+      {searchError ? (
         <p
-          className="mt-3 text-sm text-neutral-700 dark:text-neutral-200"
-          role="status"
+          className="mt-3 text-sm text-red-600 dark:text-red-400"
+          role="alert"
         >
-          {message}
+          {searchError}
         </p>
       ) : null}
     </section>

@@ -57,6 +57,8 @@ Planning references: `_bmad-output/planning-artifacts/epics.md`, per-epic files 
 | Profile & targets | `/goals` | `saveProfileAction()`, Mifflin–St Jeor in `lib/domain/targets/bmr.ts` |
 | Safety ladder | `/goals` | `lib/domain/safety/ladder.ts` — green/yellow/red targets |
 | Session guard | App routes | `app/(app)/layout.tsx` — redirects to `/login` if no session |
+| Bottom quick nav | All app routes | `AppQuickNav` — fixed bottom tab bar: Home (`/dashboard`), Log (`/log`), Exercise (`/exercise`), More (fasting, glucose, progress, goals, settings). Active tab: filled pill + brand icon fill; `env(safe-area-inset-bottom)` on PWA standalone |
+| Log save toast | Authenticated app | `LogToastProvider` + `useLogToast()` — snackbar above bottom nav confirms successful saves (water, food, exercise, glucose, weight, fasting) and soft-delete undo actions |
 
 **Validation:** Shared email normalization in `lib/domain/auth/email.ts`; Zod schemas in `lib/schemas/auth.ts`; client + server validation on login/register forms.
 

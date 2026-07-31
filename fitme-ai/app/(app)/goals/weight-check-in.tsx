@@ -9,7 +9,7 @@ import {
   updateWeightEntryAction,
 } from "@/app/actions/weight";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
-import { UndoNotice } from "@/components/undo-notice";
+import { useLogToast } from "@/components/log-toast-provider";
 import type { WeightEntryDto } from "@/lib/dal/weight-entry";
 import {
   fromDatetimeLocalValue,
@@ -247,6 +247,7 @@ export function WeightCheckIn({
   showMore,
 }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const unitLabel = preferredUnits === "imperial" ? "lb" : "kg";
   const [weight, setWeight] = useState(() =>
     String(displayMass(currentWeightG, preferredUnits)),
@@ -256,8 +257,6 @@ export function WeightCheckIn({
   const [recordedAt, setRecordedAt] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [removedId, setRemovedId] = useState<string | null>(null);
 
   const pacing = useMemo(
     () =>
@@ -290,8 +289,6 @@ export function WeightCheckIn({
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setMessage(null);
-    setRemovedId(null);
     const n = Number(weight);
     if (!Number.isFinite(n)) {
       setError("Enter a valid weight.");
@@ -323,7 +320,7 @@ export function WeightCheckIn({
         setError(result.error);
         return;
       }
-      setMessage("Weigh-in saved.");
+      showLogToast("Weigh-in saved.");
       setNote("");
       setRecordedAt("");
       router.refresh();
@@ -332,27 +329,25 @@ export function WeightCheckIn({
 
   function removeEntry(id: string) {
     setError(null);
-    setMessage(null);
     startTransition(async () => {
       const result = await deleteWeightEntryAction(id);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setRemovedId(id);
-      router.refresh();
-    });
-  }
-
-  function undoRemove(id: string) {
-    setError(null);
-    startTransition(async () => {
-      const result = await restoreWeightEntryAction(id);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setRemovedId(null);
+      showLogToast({
+        message: "Weigh-in removed.",
+        undo: () => {
+          startTransition(async () => {
+            const undoResult = await restoreWeightEntryAction(id);
+            if (!undoResult.ok) {
+              showLogToast({ message: undoResult.error, variant: "error" });
+              return;
+            }
+            router.refresh();
+          });
+        },
+      });
       router.refresh();
     });
   }
@@ -466,21 +461,6 @@ export function WeightCheckIn({
         <p className="mt-2 text-sm text-red-600" role="alert">
           {error}
         </p>
-      ) : null}
-      {message ? (
-        <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200" role="status">
-          {message}
-        </p>
-      ) : null}
-
-      {removedId ? (
-        <div className="mt-2">
-          <UndoNotice
-            message="Weigh-in removed."
-            onUndo={() => undoRemove(removedId)}
-            disabled={pending}
-          />
-        </div>
       ) : null}
 
       {recent.length > 0 ? (

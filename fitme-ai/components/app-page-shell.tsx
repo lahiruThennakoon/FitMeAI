@@ -55,10 +55,10 @@ export function AppPageShell({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={backHref}
-            className="inline-flex h-8 items-center gap-0.5 rounded-lg border border-neutral-200/80 bg-white/70 px-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-200 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/80"
+            className="page-back-link"
             aria-label={`Back to ${backLabel}`}
           >
-            <ChevronLeftIcon className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            <ChevronLeftIcon className="h-4 w-4 shrink-0" />
             {backLabel}
           </Link>
           <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { saveExerciseEntryAction } from "@/app/actions/exercise";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
@@ -44,6 +45,7 @@ function numOrNull(raw: string): number | null {
 
 export function ExerciseForm({ weightKg, units }: Props) {
   const router = useRouter();
+  const { showLogToast } = useLogToast();
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState<ExerciseType>("walking");
   const [customLabel, setCustomLabel] = useState("");
@@ -59,7 +61,6 @@ export function ExerciseForm({ weightKg, units }: Props) {
   const [performedAt, setPerformedAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const durationNum = Number(durationMin);
   const liveEstimate = useMemo(() => {
@@ -76,7 +77,6 @@ export function ExerciseForm({ weightKg, units }: Props) {
     event.preventDefault();
     setError(null);
     setFieldErrors({});
-    setSavedMsg(null);
 
     const distanceM = (() => {
       const entered = numOrNull(distance);
@@ -120,7 +120,7 @@ export function ExerciseForm({ weightKg, units }: Props) {
           setFieldErrors(result.fieldErrors ?? {});
           return;
         }
-        setSavedMsg(
+        showLogToast(
           `Saved · ~${result.data.entry.estimatedKcal} kcal burned (estimate)`,
         );
         router.refresh();
@@ -347,11 +347,6 @@ export function ExerciseForm({ weightKg, units }: Props) {
       {error ? (
         <p className="text-sm text-red-600" role="alert">
           {error}
-        </p>
-      ) : null}
-      {savedMsg ? (
-        <p className="text-sm text-green-700 dark:text-green-300" role="status">
-          {savedMsg}
         </p>
       ) : null}
 

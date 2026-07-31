@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AppAuthenticatedShell } from "@/components/app-authenticated-shell";
 import { getSession } from "@/lib/dal";
 
 /**
@@ -11,5 +12,5 @@ export default async function AppLayout({
 }) {
   const user = await getSession();
   if (!user) redirect("/login");
-  return children;
+  return <AppAuthenticatedShell>{children}</AppAuthenticatedShell>;
 }
