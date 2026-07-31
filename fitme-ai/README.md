@@ -195,6 +195,34 @@ Auth abuse protection uses an in-memory sliding window (fine for single-instance
 
 Over-limit responses use the safe copy *“Too many attempts. Please try again later.”* (HTTP `429` + `Retry-After` on the API). Client keys prefer platform IP headers (`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`) over raw `x-forwarded-for`. Logs go through `lib/logging` redaction — no email/password/health keys or raw `Error.message` values.
 
+### Freemium AI parse quota (Story 11.1 / Epic 11)
+
+Free users get a configurable daily cap on **smart parse** (natural-language AI). Catalog quick-log, manual entry, and offline instant-path are **not** capped.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BILLING_ENABLED` | `true` | Set to `false` to skip daily quota for all users (closed beta) |
+| `FREE_AI_PARSES_PER_DAY` | `5` | Successful AI parses per profile-timezone day on the free tier |
+
+Quota counts existing `AIInteraction` rows (`purpose: food_parse`, `status: succeeded`) for today in the user's profile timezone (AD-10). Pro users have no daily cap; the abuse rate limit above (30/hour) still applies.
+
+**Manual Pro override (beta):**
+
+```bash
+npm run billing:grant-pro -- user@example.com
+```
+
+Or insert/update via SQL / Prisma Studio:
+
+```sql
+-- Replace <user-id> with the user's id from the user table.
+INSERT INTO subscription (id, "userId", plan, status, "createdAt", "updatedAt")
+VALUES ('<new-cuid>', '<user-id>', 'pro', 'active', NOW(), NOW())
+ON CONFLICT ("userId") DO UPDATE SET plan = 'pro', status = 'active', "updatedAt" = NOW();
+```
+
+Or use Prisma Studio (`npm run db:studio`). Stripe/PayHere checkout lands in Epic 11.3+.
+
 ## Scripts
 
 | Script | Purpose |
@@ -209,6 +237,7 @@ Over-limit responses use the safe copy *“Too many attempts. Please try again l
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:seed` | Seed Sri Lankan nutrition catalog |
 | `npm run db:studio` | Prisma Studio |
+| `npm run billing:grant-pro -- <email>` | Grant manual Pro subscription (beta ops) |
 
 ## Project structure
 

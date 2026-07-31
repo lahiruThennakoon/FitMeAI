@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -88,14 +89,19 @@ export type LogMealFormHandle = {
 
 type Props = {
   ref?: React.Ref<LogMealFormHandle>;
+  /** From server — null means unlimited (Pro). */
+  aiParsesRemaining?: number | null;
+  freePlan?: boolean;
 };
 
-export function LogMealForm({ ref }: Props) {
+export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }: Props) {
   const { showLogToast } = useLogToast();
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [saving, startSaveTransition] = useTransition();
   const [text, setText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [items, setItems] = useState<ParsedFoodItemDraft[] | null>(null);
   /** Null until the user picks a time — falls back to the drafts' own stamp. */
   const [mealTime, setMealTime] = useState<string | null>(null);
@@ -174,6 +180,7 @@ export function LogMealForm({ ref }: Props) {
     });
     setAiInteractionId(null);
     setShowManual(false);
+    setQuotaExceeded(false);
 
     startTransition(async () => {
       if (isBrowserOffline()) {
@@ -195,9 +202,12 @@ export function LogMealForm({ ref }: Props) {
         if (result.ok) {
           setItems((prev) => [...(prev ?? []), ...result.data.items]);
           setAiInteractionId(result.data.aiInteractionId);
+          setQuotaExceeded(false);
+          router.refresh();
           return;
         }
         setFormError(result.error);
+        setQuotaExceeded(result.fieldErrors?.code === "ai_quota_exceeded");
         setShowManual(true);
       } catch {
         setFormError(
@@ -550,13 +560,39 @@ export function LogMealForm({ ref }: Props) {
 
       <ParseLoading active={pending} />
 
-      {formError ? (
-        <p
-          className="text-sm text-red-700 dark:text-red-400"
-          role="alert"
-        >
-          {formError}
+      {freePlan &&
+      aiParsesRemaining !== null &&
+      aiParsesRemaining <= 3 &&
+      aiParsesRemaining > 0 ? (
+        <p className="text-sm text-amber-800 dark:text-amber-200/90" role="status">
+          {aiParsesRemaining} free smart parse{aiParsesRemaining === 1 ? "" : "s"}{" "}
+          left today.
         </p>
+      ) : null}
+
+      {formError ? (
+        <div className="space-y-2" role="alert">
+          <p
+            className={
+              quotaExceeded
+                ? "text-sm text-amber-800 dark:text-amber-200/90"
+                : "text-sm text-red-700 dark:text-red-400"
+            }
+          >
+            {formError}
+          </p>
+          {quotaExceeded ? (
+            <p className="text-sm text-neutral-700 dark:text-neutral-300">
+              <Link
+                href="/settings/billing"
+                className="font-medium text-brand-blue underline-offset-2 hover:underline"
+              >
+                Upgrade to Pro
+              </Link>{" "}
+              for unlimited smart parsing.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {chipGroups.length > 0 ? (

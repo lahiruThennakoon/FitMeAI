@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "demo:seed": "node scripts/seed-demo-environment.mjs",
+    "billing:grant-pro": "node scripts/grant-pro-subscription.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

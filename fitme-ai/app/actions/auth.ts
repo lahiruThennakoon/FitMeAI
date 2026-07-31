@@ -52,6 +52,7 @@ import {
   resetPasswordSchema,
 } from "@/lib/schemas/auth";
 import { getSession } from "@/lib/dal";
+import { provisionFreeSubscriptionForEmail } from "@/lib/dal/subscription";
 
 async function defaultClientKey(): Promise<string> {
   return clientKeyFromHeaders(await headers());
@@ -110,6 +111,8 @@ export async function registerAction(
   const sendVerificationEmail =
     deps.sendVerificationEmail ??
     ((args) => auth.api.sendVerificationEmail(args));
+  const provisionFreeSubscription =
+    deps.provisionFreeSubscription ?? provisionFreeSubscriptionForEmail;
 
   try {
     await signUpEmail({
@@ -123,6 +126,14 @@ export async function registerAction(
   } catch {
     logger.error("auth.register.failed", { outcome: "signup_error" });
     return err(REGISTER_GENERIC_ERROR);
+  }
+
+  try {
+    await provisionFreeSubscription(email);
+  } catch {
+    logger.warn("auth.register.subscription_provision_failed", {
+      outcome: "subscription_error",
+    });
   }
 
   try {

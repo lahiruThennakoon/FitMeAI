@@ -53,6 +53,8 @@ Use existing files under `implementation-artifacts/` as the canonical shape:
 | — | 7 | Fasting |
 | — | 8 | Glucose |
 | — | 9 | Progress charts |
+| — | 10 | Appearance (theme) |
+| — | 11 | Commercial / freemium (post-MVP; no FR-* yet) |
 
 When a change maps to an FR, cite it in the story Change Log.
 

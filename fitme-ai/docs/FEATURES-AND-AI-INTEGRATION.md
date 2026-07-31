@@ -10,7 +10,8 @@ This document describes what is built in the FitMe AI MVP, how work is grouped b
 
 | Area | Uses AI? | Notes |
 |------|----------|-------|
-| Natural-language meal parsing | **Yes** | Only production LLM feature |
+| Natural-language meal parsing | **Yes** | Only production LLM feature; **free-tier daily quota** (Epic 11.1) |
+| Freemium / subscriptions | No | Entitlements + quota gate; payment providers deferred (Epic 11.3+) |
 | Meal review, save, edit, favorites | No | Deterministic; may consume AI parse output |
 | Auth, profile, targets | No | Better Auth + formulas |
 | Dashboard, water, day switcher | No | Aggregations + domain math |
@@ -39,6 +40,8 @@ Features are delivered in epics aligned with functional requirements (FR) from t
 | **7** | Fasting tracker | Done | Start/stop fast, timer, history, home chip | None |
 | **8** | Blood sugar | Done | Glucose log, list edit/delete, home glance | None |
 | **9** | Correlation graphs | Done | `/progress` charts, metric picker, time ranges | None |
+| **10** | Appearance | In progress | Light/dark/system theme, profile sync | None |
+| **11** | Commercial & freemium | In progress | AI parse daily quota, `Subscription` model, entitlements DAL | Quota gate before parse; metering from audit rows |
 
 Planning references: `_bmad-output/planning-artifacts/epics.md`, per-epic files under `_bmad-output/planning-artifacts/`.
 
@@ -134,6 +137,28 @@ const result = await parseMealAction({ text });
 | **7** | Fasting timer `/fasting`, history, `FastingStatusChip` on dashboard |
 | **8** | Glucose log `/glucose`, unit conversion, home `GlucoseGlance` |
 | **9** | Progress page `/progress`, metric series DAL, chart renderer |
+| **11** | Freemium entitlements, AI parse quota on `/log`, `Subscription` schema (Story 11.1) |
+
+---
+
+### Epic 11 — Commercial & freemium (partial — Story 11.1)
+
+| Feature | Route / entry | AI? | Implementation |
+|---------|---------------|-----|----------------|
+| Daily AI parse quota (free tier) | `/log` Parse meal | Gate only | `assertAiParseAllowed()` in `lib/dal/entitlements.ts`; called from `parseMealAction` |
+| Pro unlimited parses | `/log` | — | `Subscription` row with effective `plan: pro` |
+| Entitlements read | `/log` page | No | `getEntitlements()` — remaining parses hint for free users |
+| Beta kill-switch | env | No | `BILLING_ENABLED=false` skips quota for all users |
+
+**Not gated (free tier):** catalog quick-log (`saveInstantFoodAction`), manual entry, favorites/recent catalog paths, offline instant-path.
+
+**Metering:** Counts `AIInteraction` rows where `purpose = "food_parse"` and `status = "succeeded"` within the profile-timezone calendar day (AD-10). Failed parses do not consume quota.
+
+**Env:** `FREE_AI_PARSES_PER_DAY` (default `5`), `BILLING_ENABLED` (default on; set `false` for closed beta).
+
+**Deferred (Epic 11.2–11.6):** Stripe/PayHere checkout, `/settings/billing` UI, progress/fasting/glucose depth gates, offline smart-parse reconcile quota.
+
+See: `_bmad-output/implementation-artifacts/11-1-freemium-ai-parse-quota.md`, `epic-11-commercial-freemium.md`.
 
 ---
 
@@ -149,7 +174,8 @@ const result = await parseMealAction({ text });
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Server action: app/actions/log.ts                          │
-│  • Session + rate limit (30/hr)                             │
+│  • Session + assertAiParseAllowed (free daily quota)        │
+│  • Abuse rate limit (30/hr)                                 │
 │  • Zod input validation                                     │
 │  • createAiProvider()                                       │
 └───────────────────────────┬─────────────────────────────────┘
@@ -250,14 +276,15 @@ The form uses `noValidate` and server-side Zod for the parse input; AI is never 
 
 ---
 
-### Step 2 — Server action: auth, rate limit, validation
+### Step 2 — Server action: auth, entitlements, rate limit, validation
 
 File: `app/actions/log.ts` — `parseMealAction()`
 
 1. **`requireSession()`** — must be signed in.
-2. **`enforceAiRateLimit("foodParse", clientKey)`** — 30 requests/hour per client key (`lib/rate-limit/`).
-3. **`parseMealInputSchema.safeParse(input)`** — validates `{ text }` length and shape.
-4. **`createAiProvider()`** — returns guarded Gemini, OpenAI, or fake adapter.
+2. **`assertAiParseAllowed(userId)`** — free-tier daily quota (`lib/dal/entitlements.ts`); Pro users skip; returns `{ ok: false, fieldErrors: { code: "ai_quota_exceeded" } }` when exhausted — **no AI call**.
+3. **`enforceAiRateLimit("foodParse", clientKey)`** — 30 requests/hour per client key (`lib/rate-limit/`) — abuse backstop, separate from daily quota.
+4. **`parseMealInputSchema.safeParse(input)`** — validates `{ text }` length and shape.
+5. **`createAiProvider()`** — returns guarded Gemini, OpenAI, or fake adapter.
 
 ---
 
@@ -402,7 +429,10 @@ Requires `confirmed: true`. Persists via `saveConfirmedFoodEntries()` only after
 | `lib/domain/nutrition/estimate-fallback.ts` | AI estimate → draft |
 | `lib/domain/nutrition/clarifying-chips.ts` | Portion clarification UI logic |
 | `lib/domain/nutrition/corrections.ts` | User vs AI diff |
-| `lib/dal/ai-interaction.ts` | Persist audit rows |
+| `lib/dal/ai-interaction.ts` | Persist audit rows; **quota metering source** (Story 11.1) |
+| `lib/dal/entitlements.ts` | `getEntitlements`, `assertAiParseAllowed` (Story 11.1) |
+| `lib/domain/billing/entitlements.ts` | Pure plan resolution + quota math |
+| `lib/billing/config.ts` | `BILLING_ENABLED`, `FREE_AI_PARSES_PER_DAY` |
 
 ---
 
@@ -417,6 +447,7 @@ From the Architecture Spine and Epic 2 stories:
 5. **Provider swap = env change** — `AI_PROVIDER` + keys; port stays stable.
 6. **Outputs are schema-validated** — Zod is authoritative; model JSON is untrusted input.
 7. **Guardrails before display** — unsafe text is blocked or regenerated, then fails safe.
+8. **Free-tier parse quota is server-enforced** — UI hints only; metering uses audit rows, not client state (Story 11.1).
 
 ---
 
@@ -428,7 +459,9 @@ From the Architecture Spine and Epic 2 stories:
 | `tests/ai-guardrails.test.ts` | Medical advice / shaming blocks |
 | `tests/ai-audit.test.ts` | No forbidden fields in audit meta |
 | `tests/ai-parse.test.ts` | JSON extraction + Zod |
-| `tests/parse-meal-action.test.ts` | End-to-end action with fake provider |
+| `tests/parse-meal-action.test.ts` | End-to-end action with fake provider + quota gate |
+| `tests/entitlements.test.ts` | Plan resolution + quota math (Story 11.1) |
+| `tests/entitlements-dal.test.ts` | DAL entitlement checks (Story 11.1) |
 | `tests/food-parse-resolve.test.ts` | Catalog vs estimate resolution |
 
 Run: `npm test` from `fitme-ai/`.
@@ -451,4 +484,4 @@ Keeping AI scoped to **natural-language meal parsing** reduces cost, latency, an
 
 ---
 
-*Last updated: 2026-07-29 — reflects Epics 1–9 implementation in `fitme-ai/`.*
+*Last updated: 2026-07-31 — reflects Epics 1–11 (Story 11.1 freemium quota) in `fitme-ai/`.*

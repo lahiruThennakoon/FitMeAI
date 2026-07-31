@@ -803,3 +803,47 @@ See `epic-9-correlation-graphs.md`. **Status: Done (2026-07-27).**
 ### Story 9.5: Weight trend via Progress (absorbs 6.2) — **done**
 
 ---
+
+## Epic 10: Appearance (Light / Dark / System)
+
+See `epic-10-appearance.md`. **Status: In progress (2026-07-30).**
+
+### Story 10.1: Theme provider + FOUC + class-based dark CSS — **review**
+### Story 10.2: Settings Appearance control + instant apply — **review**
+### Story 10.3: Profile `appearancePreference` migration + sync — **review**
+### Story 10.4: Night mode — warm tokens + fourth mode — **backlog**
+
+---
+
+## Epic 11: Commercial & Freemium
+
+See `epic-11-commercial-freemium.md`. **Status: In progress (2026-07-31).** Post-MVP monetization substrate; business KPIs remain deferred until PMF signals.
+
+### Story 11.1: Freemium entitlements + AI parse daily quota — **done**
+
+As a product owner preparing for commercial launch,
+I want free users limited to a configurable daily AI meal-parse quota while Pro users parse without that cap,
+so that AI API costs stay predictable and the free offline catalog path stays fully usable.
+
+**Acceptance Criteria (summary):**
+
+- Free tier: `FREE_AI_PARSES_PER_DAY` successful parses per profile-timezone day (default 5); meters from `AIInteraction` (`food_parse`, `succeeded` only).
+- Pro tier: no daily cap (`Subscription.plan = pro` with effective status); abuse rate limit (30/hr) unchanged.
+- Quota enforced in `parseMealAction` via `assertAiParseAllowed` before AI call; returns `fieldErrors.code = ai_quota_exceeded`.
+- Catalog quick-log, manual entry, offline instant-path **not** gated.
+- `BILLING_ENABLED=false` treats all users as Pro (closed beta kill-switch).
+
+**Implementation:** `_bmad-output/implementation-artifacts/11-1-freemium-ai-parse-quota.md`
+
+### Story 11.2: Subscription on register + manual Pro (beta) — **review**
+
+New registrations get a persisted free `subscription` row (best-effort). Ops can grant Pro via `npm run billing:grant-pro -- <email>`.
+
+**Implementation:** `_bmad-output/implementation-artifacts/11-2-subscription-on-register-manual-pro.md`
+
+### Story 11.3: Stripe checkout + webhooks — **backlog**
+### Story 11.4: PayHere checkout + webhooks (LKR) — **backlog**
+### Story 11.5: Premium feature gates (progress, fasting, glucose, favorites) — **backlog**
+### Story 11.6: Billing settings UI + upgrade flows — **backlog**
+
+---

@@ -37,6 +37,7 @@ model User {
   glucoseEntries GlucoseEntry[]
   aiInteractions AIInteraction[]
   corrections   UserCorrection[]
+  subscription  Subscription?
 
   @@map("user")
 }
@@ -579,4 +580,46 @@ model GlucoseEntry {
   @@index([userId, measuredAt])
   @@index([userId, deletedAt])
   @@map("glucose_entry")
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions (Story 11.1 / Epic 11) — billing providers in 11.3+
+// ---------------------------------------------------------------------------
+
+enum PlanTier {
+  free
+  pro
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  expired
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan                  PlanTier           @default(free)
+  status                SubscriptionStatus @default(expired)
+
+  /// Stripe/PayHere ids — populated in Stories 11.3–11.4
+  stripeCustomerId      String?            @unique
+  stripeSubscriptionId  String?            @unique
+  payhereSubscriptionId String?            @unique
+
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  trialEndsAt           DateTime?
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status, currentPeriodEnd])
+  @@map("subscription")
 }

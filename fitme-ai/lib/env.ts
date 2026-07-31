@@ -20,6 +20,9 @@ const serverEnvSchema = z.object({
   AI_PROVIDER: z.enum(["gemini", "openai", "fake"]).optional(),
   AI_MODEL: z.string().min(1).optional(),
   AI_TIMEOUT_MS: z.string().min(1).optional(),
+  // Optional freemium (Story 11.1). Parsed via readBillingRuntimeConfig().
+  BILLING_ENABLED: z.string().min(1).optional(),
+  FREE_AI_PARSES_PER_DAY: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

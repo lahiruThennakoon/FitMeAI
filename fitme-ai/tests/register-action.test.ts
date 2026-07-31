@@ -15,6 +15,7 @@ afterEach(() => {
 const validDeps = () => ({
   signUpEmail: vi.fn().mockResolvedValue({ user: { id: "u1" }, token: null }),
   sendVerificationEmail: vi.fn().mockResolvedValue({ status: true }),
+  provisionFreeSubscription: vi.fn().mockResolvedValue(undefined),
   ...authRateLimitTestDeps,
 });
 
@@ -50,6 +51,9 @@ describe("registerAction (non-enumerable signup + Result envelope)", () => {
       data: { message: REGISTER_SUCCESS_MESSAGE },
     });
     expect(deps.signUpEmail).toHaveBeenCalledOnce();
+    expect(deps.provisionFreeSubscription).toHaveBeenCalledWith(
+      "nimali@example.com",
+    );
     expect(deps.sendVerificationEmail).toHaveBeenCalledOnce();
   });
 
@@ -78,7 +82,22 @@ describe("registerAction (non-enumerable signup + Result envelope)", () => {
     if (!result.ok) {
       expect(result.error).toBe(REGISTER_GENERIC_ERROR);
     }
+    expect(deps.provisionFreeSubscription).not.toHaveBeenCalled();
     expect(deps.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it("still succeeds when subscription provisioning fails (best-effort)", async () => {
+    const deps = validDeps();
+    deps.provisionFreeSubscription.mockRejectedValue(new Error("db down"));
+    const result = await registerAction(
+      { email: "nimali@example.com", password: "securepass" },
+      deps,
+    );
+    expect(result).toEqual({
+      ok: true,
+      data: { message: REGISTER_SUCCESS_MESSAGE },
+    });
+    expect(deps.sendVerificationEmail).toHaveBeenCalledOnce();
   });
 
   it("returns generic error when verification email delivery fails (Decision A)", async () => {

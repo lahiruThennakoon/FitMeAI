@@ -14,6 +14,13 @@ import { UnauthorizedError, assertOwnership } from "@/lib/dal/guards";
 
 export { UnauthorizedError, assertOwnership };
 
+export {
+  EntitlementError,
+  assertAiParseAllowed,
+  getEntitlements,
+  type EntitlementsDto,
+} from "@/lib/dal/entitlements";
+
 export type SessionUser = {
   id: string;
   email: string;

@@ -83,6 +83,13 @@ Food **logging** works without AI. **Parse meal** on `/log` needs:
 - `AI_PROVIDER` + matching API key in `.env`
 - Corporate proxy: `NODE_TLS_REJECT_UNAUTHORIZED=0` in `.env` (dev only)
 
+**Freemium quota (Story 11.1):** Demo user is on the **free tier** by default (5 successful parses per profile-timezone day). Options:
+
+- Set `BILLING_ENABLED=false` in `.env` to disable quota during demos/presentations
+- Grant Pro manually: insert/update a `subscription` row for the demo user (`plan=pro`, `status=active`) — see `fitme-ai/README.md` § Freemium
+
+Catalog **Quick log** on `/log` is never quota-limited.
+
 Diagnose: `node scripts/check-ai.mjs`
 
 ## Troubleshooting
@@ -93,6 +100,7 @@ Diagnose: `node scripts/check-ai.mjs`
 | Login fails | Re-run `node scripts/seed-demo-environment.mjs` |
 | Empty dashboard | Same — seed resets demo data |
 | Parse meal fails | Check AI keys / TLS (see above) |
+| Parse blocked after 5 meals | Free-tier daily quota — set `BILLING_ENABLED=false` or grant Pro subscription row |
 | Port 3000 in use | Stop other `next dev` or use the port shown in terminal |
 
 ## Reset demo data only

@@ -2,6 +2,10 @@
 
 import { headers } from "next/headers";
 import { requireSession } from "@/lib/dal";
+import {
+  assertAiParseAllowed as defaultAssertAiParseAllowed,
+  EntitlementError,
+} from "@/lib/dal/entitlements";
 import { findFoodBySlugOrAlias } from "@/lib/dal/nutrition";
 import { createAiProvider, type AiProvider } from "@/lib/ai";
 import {
@@ -66,6 +70,7 @@ export type ParseMealActionDeps = {
   recordAiInteraction?: (
     input: RecordAiInteractionInput,
   ) => Promise<{ id: string }>;
+  assertAiParseAllowed?: (userId: string) => Promise<void>;
 };
 
 const MANUAL_FALLBACK =
@@ -89,6 +94,8 @@ export async function parseMealAction(
     deps.rateLimit ??
     ((bucket, clientKey) => enforceAiRateLimit({ bucket, clientKey }));
   const recordInteraction = deps.recordAiInteraction ?? recordAiInteraction;
+  const assertParseAllowed =
+    deps.assertAiParseAllowed ?? defaultAssertAiParseAllowed;
 
   let userId: string;
   try {
@@ -96,6 +103,15 @@ export async function parseMealAction(
     userId = user.id;
   } catch {
     return err("Please sign in to log food.");
+  }
+
+  try {
+    await assertParseAllowed(userId);
+  } catch (e) {
+    if (e instanceof EntitlementError && e.code === "ai_quota_exceeded") {
+      return err(e.message, { code: "ai_quota_exceeded" });
+    }
+    throw e;
   }
 
   let clientKey: string;

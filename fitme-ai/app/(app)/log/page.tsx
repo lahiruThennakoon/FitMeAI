@@ -1,5 +1,6 @@
 import { AppPageShell } from "@/components/app-page-shell";
 import { getSession } from "@/lib/dal";
+import { getEntitlements } from "@/lib/dal/entitlements";
 import {
   listFavoriteFoodTemplates,
   listRecentFoodTemplates,
@@ -17,13 +18,14 @@ import { LogPageContent } from "./log-page-content";
  */
 export default async function LogPage() {
   const user = await getSession();
-  const [recent, favorites, profile] = user
+  const [recent, favorites, profile, entitlements] = user
     ? await Promise.all([
         listRecentFoodTemplates(user.id),
         listFavoriteFoodTemplates(user.id),
         getProfileForUser(user.id),
+        getEntitlements(user.id),
       ])
-    : [[], [], null];
+    : [[], [], null, null];
 
   const timeZone = profile?.timezone ?? "UTC";
   const yesterdayKey = previousZonedDayKey(
@@ -42,6 +44,8 @@ export default async function LogPage() {
         recent={recent}
         favorites={favorites}
         yesterdayKey={yesterdayKey}
+        aiParsesRemaining={entitlements?.aiParsesRemaining ?? null}
+        freePlan={entitlements?.plan === "free"}
       />
     </AppPageShell>
   );

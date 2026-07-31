@@ -70,6 +70,8 @@ type SignInEmail = (args: {
 export type RegisterActionDeps = {
   signUpEmail?: SignUpEmail;
   sendVerificationEmail?: SendVerificationEmail;
+  /** Story 11.2 — create free subscription row after signup (best-effort). */
+  provisionFreeSubscription?: (email: string) => Promise<void>;
   getClientKey?: AuthClientKeyFn;
   rateLimit?: AuthRateLimitFn;
 };

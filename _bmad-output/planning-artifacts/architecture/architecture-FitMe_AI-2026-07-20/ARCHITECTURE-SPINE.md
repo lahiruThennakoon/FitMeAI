@@ -187,6 +187,7 @@ erDiagram
   User ||--o{ ExerciseEntry : logs
   User ||--o{ AIInteraction : generates
   User ||--o{ UserCorrection : makes
+  User ||--o| Subscription : "may have (Epic 11)"
   Food ||--o{ FoodServing : has
   Food ||--o{ RecipeIngredient : "composed of"
   Ingredient ||--o{ RecipeIngredient : "used in"
@@ -213,6 +214,17 @@ erDiagram
 | AI safety & schema validation (FR-17–18) | `lib/ai` (guardrails + schemas) | AD-4, AD-5 |
 | Auditability (FR-19–20) | `lib/dal/ai-interaction`, `lib/dal/user-correction` | AD-8 |
 | Cross-cutting: rate limit / no-log-leak (FR-30–31) | middleware, `lib/logging` | AD-9, AD-2 |
+| Freemium entitlements (Epic 11.1) | `lib/dal/entitlements`, `lib/domain/billing`, `Subscription` | AD-1, AD-7, AD-10, AD-13 |
+
+## Post-MVP extensions (Epic 11 — not new ADs)
+
+Story 11.1 adds freemium without changing AD-1…AD-13:
+
+- **`Subscription`** — optional 1:1 row per user; absence = free tier.
+- **`assertAiParseAllowed`** — DAL choke point before AI parse; meters successful `food_parse` interactions per profile-timezone day.
+- Quota errors use existing result envelope with `fieldErrors.code` (AD-13).
+
+Payment provider adapters (Stripe/PayHere) and additional Pro gates are deferred to Epic 11.3+.
 
 ## Deferred
 

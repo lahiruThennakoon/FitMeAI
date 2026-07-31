@@ -1,9 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
 import { parseMealAction } from "@/app/actions/log";
 import { FakeAiProvider } from "@/lib/ai/fake";
+import { EntitlementError } from "@/lib/dal/entitlements";
+import { AI_PARSE_QUOTA_MESSAGE } from "@/lib/domain/billing/entitlements";
 import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
 
 const recordAiInteraction = vi.fn(async () => ({ id: "ai-parse-1" }));
+const allowParse = vi.fn(async () => undefined);
+
+const sessionDeps = {
+  requireSession: async () => ({
+    id: "u1",
+    email: "a@b.com",
+    name: null,
+  }),
+  getClientKey: async () => "ip:test",
+  rateLimit: () => ({ ok: true, remaining: 29 }) as const,
+  recordAiInteraction,
+  assertAiParseAllowed: allowParse,
+};
 
 const milkTea: FoodDetailDto = {
   slug: "milk-tea",
@@ -117,16 +132,9 @@ describe("parseMealAction", () => {
         text: "two eggs, one milk tea, 100g chickpeas, one dhal wade",
       },
       {
-        requireSession: async () => ({
-          id: "u1",
-          email: "a@b.com",
-          name: null,
-        }),
+        ...sessionDeps,
         createAiProvider: () => provider,
         findFoodBySlugOrAlias: async (q) => foods[q.toLowerCase()] ?? null,
-        getClientKey: async () => "ip:test",
-        rateLimit: () => ({ ok: true, remaining: 29 }),
-        recordAiInteraction,
       },
     );
 
@@ -153,16 +161,9 @@ describe("parseMealAction", () => {
     const result = await parseMealAction(
       { text: "something odd" },
       {
-        requireSession: async () => ({
-          id: "u1",
-          email: "a@b.com",
-          name: null,
-        }),
+        ...sessionDeps,
         createAiProvider: () => provider,
         findFoodBySlugOrAlias: async () => null,
-        getClientKey: async () => "ip:test",
-        rateLimit: () => ({ ok: true, remaining: 29 }),
-        recordAiInteraction,
       },
     );
     expect(result.ok).toBe(false);
@@ -178,19 +179,7 @@ describe("parseMealAction", () => {
   });
 
   it("rejects empty text", async () => {
-    const result = await parseMealAction(
-      { text: "   " },
-      {
-        requireSession: async () => ({
-          id: "u1",
-          email: "a@b.com",
-          name: null,
-        }),
-        getClientKey: async () => "ip:test",
-        rateLimit: () => ({ ok: true, remaining: 29 }),
-        recordAiInteraction,
-      },
-    );
+    const result = await parseMealAction({ text: "   " }, sessionDeps);
     expect(result.ok).toBe(false);
   });
 
@@ -199,18 +188,37 @@ describe("parseMealAction", () => {
     const result = await parseMealAction(
       { text: "two eggs" },
       {
-        requireSession: async () => ({
-          id: "u1",
-          email: "a@b.com",
-          name: null,
-        }),
-        getClientKey: async () => "ip:test",
+        ...sessionDeps,
         rateLimit: () => ({ ok: false, retryAfterSec: 60 }),
-        recordAiInteraction,
       },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toMatch(/too many/i);
+    expect(recordAiInteraction).not.toHaveBeenCalled();
+  });
+
+  it("blocks when daily AI parse quota is exceeded", async () => {
+    recordAiInteraction.mockClear();
+    allowParse.mockRejectedValueOnce(
+      new EntitlementError(AI_PARSE_QUOTA_MESSAGE, "ai_quota_exceeded"),
+    );
+    const createAiProvider = vi.fn(() => new FakeAiProvider(() => "{}"));
+
+    const result = await parseMealAction(
+      { text: "rice and curry" },
+      {
+        ...sessionDeps,
+        createAiProvider,
+        findFoodBySlugOrAlias: async () => null,
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe(AI_PARSE_QUOTA_MESSAGE);
+      expect(result.fieldErrors?.code).toBe("ai_quota_exceeded");
+    }
+    expect(createAiProvider).not.toHaveBeenCalled();
     expect(recordAiInteraction).not.toHaveBeenCalled();
   });
 });

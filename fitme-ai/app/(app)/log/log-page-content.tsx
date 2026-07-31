@@ -14,10 +14,18 @@ type Props = {
   recent: FoodTemplateDto[];
   favorites: FoodTemplateDto[];
   yesterdayKey: string;
+  aiParsesRemaining?: number | null;
+  freePlan?: boolean;
 };
 
 /** Client shell wiring recent/favorites and copy-a-day into the review form. */
-export function LogPageContent({ recent, favorites, yesterdayKey }: Props) {
+export function LogPageContent({
+  recent,
+  favorites,
+  yesterdayKey,
+  aiParsesRemaining = null,
+  freePlan = false,
+}: Props) {
   const formRef = useRef<LogMealFormHandle>(null);
   const [catalogMessage, setCatalogMessage] = useState<string | null>(null);
   const [catalogPending, startCatalogTransition] = useTransition();
@@ -62,7 +70,11 @@ export function LogPageContent({ recent, favorites, yesterdayKey }: Props) {
         </p>
       ) : null}
       <InstantLog />
-      <LogMealForm ref={formRef} />
+      <LogMealForm
+        ref={formRef}
+        aiParsesRemaining={aiParsesRemaining}
+        freePlan={freePlan}
+      />
     </>
   );
 }

@@ -66,3 +66,9 @@ Issues triaged out of active stories during code review.
 - **Metric series integration tests** — parser/action tests only; mocked Prisma coverage for `buildChartPoints` later.
 - **Profile sparkline (Story 6.2)** — absorbed into `/progress` default; no duplicate widget.
 
+## Deferred from: Story 11.1 freemium AI parse quota (2026-07-31)
+
+- **Offline `smart_parse` queue reconcile** — client queues smart parse when offline; server reconcile only handles catalog instant items today. When smart parse replay lands, call `assertAiParseAllowed` before invoking AI (same gate as `parseMealAction`).
+- **TOCTOU race at quota boundary** — concurrent parses at N-1 can both pass check before audit write; acceptable for v1.
+- **Timezone change resets quota window** — profile timezone drives day bounds; user can shift TZ to get a fresh window; bounded by 30/hr abuse limit; fix with UTC day key or rolling window later.
+- **Failed audit write skips quota increment** — if `recordAiInteraction` fails after successful AI call, user can repeat without quota advancing; rare; rate limit still applies.
