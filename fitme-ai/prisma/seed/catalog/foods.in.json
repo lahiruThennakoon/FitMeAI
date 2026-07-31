@@ -1,0 +1,555 @@
+{
+  "locale": "in",
+  "foods": [
+    {
+      "slug": "idli",
+      "name": "Idli (2 pieces)",
+      "aliases": [
+        "idli",
+        "idly"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — idli",
+      "recipe": {
+        "rice-flour": 60,
+        "urad-dhal-cooked": 40,
+        "coconut-oil": 5
+      },
+      "servings": [
+        {
+          "name": "2 pieces",
+          "grams": 105
+        }
+      ]
+    },
+    {
+      "slug": "plain-dosa",
+      "name": "Plain dosa",
+      "aliases": [
+        "dosa",
+        "dosai"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — plain dosa",
+      "recipe": {
+        "rice-flour": 55,
+        "urad-dhal-cooked": 30,
+        "coconut-oil": 8
+      },
+      "servings": [
+        {
+          "name": "dosa",
+          "grams": 93
+        }
+      ]
+    },
+    {
+      "slug": "masala-dosa",
+      "name": "Masala dosa",
+      "aliases": [
+        "masala dosa"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — masala dosa",
+      "recipe": {
+        "rice-flour": 55,
+        "urad-dhal-cooked": 30,
+        "potato-boiled": 60,
+        "onion-red": 15,
+        "coconut-oil": 12
+      },
+      "servings": [
+        {
+          "name": "dosa",
+          "grams": 172
+        }
+      ]
+    },
+    {
+      "slug": "plain-naan",
+      "name": "Naan",
+      "aliases": [
+        "naan"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — naan",
+      "recipe": {
+        "wheat-flour": 55,
+        "greek-yogurt": 20,
+        "ghee": 8,
+        "sugar-white": 5
+      },
+      "servings": [
+        {
+          "name": "naan",
+          "grams": 88
+        }
+      ]
+    },
+    {
+      "slug": "basmati-rice",
+      "name": "Basmati rice",
+      "aliases": [
+        "basmati",
+        "basmati rice"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe IN — basmati rice",
+      "recipe": {
+        "basmati-rice-cooked": 150
+      },
+      "servings": [
+        {
+          "name": "medium",
+          "grams": 150
+        }
+      ]
+    },
+    {
+      "slug": "dal-tadka",
+      "name": "Dal tadka",
+      "aliases": [
+        "dal tadka"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — dal tadka",
+      "recipe": {
+        "lentils-red-cooked": 120,
+        "ghee": 10,
+        "onion-red": 15,
+        "tomato-raw": 20,
+        "garlic-raw": 3,
+        "ginger-raw": 3,
+        "curry-powder": 2
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 173
+        }
+      ]
+    },
+    {
+      "slug": "chana-masala",
+      "name": "Chana masala",
+      "aliases": [
+        "chana masala",
+        "chole"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — chana masala",
+      "recipe": {
+        "chickpeas-cooked": 120,
+        "tomato-raw": 30,
+        "onion-red": 15,
+        "ghee": 8,
+        "ginger-raw": 3,
+        "curry-powder": 3
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 179
+        }
+      ]
+    },
+    {
+      "slug": "butter-chicken",
+      "name": "Butter chicken",
+      "aliases": [
+        "butter chicken"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — butter chicken",
+      "recipe": {
+        "chicken-cooked": 100,
+        "tomato-raw": 40,
+        "butter-salted": 15,
+        "greek-yogurt": 30,
+        "onion-red": 10,
+        "ghee": 8,
+        "ginger-raw": 3
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 206
+        }
+      ]
+    },
+    {
+      "slug": "chicken-biryani",
+      "name": "Chicken biryani",
+      "aliases": [
+        "biryani",
+        "chicken biryani"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — chicken biryani",
+      "recipe": {
+        "basmati-rice-cooked": 200,
+        "chicken-cooked": 80,
+        "onion-red": 25,
+        "tomato-raw": 15,
+        "ghee": 12,
+        "greek-yogurt": 20
+      },
+      "servings": [
+        {
+          "name": "plate",
+          "grams": 352
+        }
+      ]
+    },
+    {
+      "slug": "veg-biryani",
+      "name": "Vegetable biryani",
+      "aliases": [
+        "veg biryani"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — veg biryani",
+      "recipe": {
+        "basmati-rice-cooked": 200,
+        "potato-boiled": 40,
+        "carrot-raw": 25,
+        "onion-red": 20,
+        "ghee": 12,
+        "tomato-raw": 15
+      },
+      "servings": [
+        {
+          "name": "plate",
+          "grams": 312
+        }
+      ]
+    },
+    {
+      "slug": "samosa",
+      "name": "Samosa (2)",
+      "aliases": [
+        "samosa"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — samosa",
+      "recipe": {
+        "wheat-flour": 35,
+        "potato-boiled": 40,
+        "onion-red": 10,
+        "coconut-oil": 15
+      },
+      "servings": [
+        {
+          "name": "2 pieces",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "slug": "pakora",
+      "name": "Pakora",
+      "aliases": [
+        "pakora"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — pakora",
+      "recipe": {
+        "chickpea-flour": 35,
+        "onion-red": 20,
+        "potato-boiled": 15,
+        "coconut-oil": 12
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 82
+        }
+      ]
+    },
+    {
+      "slug": "poha",
+      "name": "Poha",
+      "aliases": [
+        "poha"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — poha",
+      "recipe": {
+        "flattened-rice": 60,
+        "onion-red": 20,
+        "potato-boiled": 25,
+        "peanut-butter": 8,
+        "coconut-oil": 8
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 121
+        }
+      ]
+    },
+    {
+      "slug": "sambar",
+      "name": "Sambar",
+      "aliases": [
+        "sambar"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — sambar",
+      "recipe": {
+        "lentils-red-cooked": 80,
+        "tomato-raw": 25,
+        "onion-red": 15,
+        "carrot-raw": 20,
+        "coconut-oil": 8,
+        "curry-powder": 3
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 151
+        }
+      ]
+    },
+    {
+      "slug": "palak-paneer",
+      "name": "Palak paneer",
+      "aliases": [
+        "palak paneer"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — palak paneer",
+      "recipe": {
+        "paneer": 80,
+        "spinach-cooked": 70,
+        "onion-red": 10,
+        "tomato-raw": 10,
+        "ghee": 10,
+        "garlic-raw": 3
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 183
+        }
+      ]
+    },
+    {
+      "slug": "paneer-tikka",
+      "name": "Paneer tikka",
+      "aliases": [
+        "paneer tikka"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — paneer tikka",
+      "recipe": {
+        "paneer": 90,
+        "greek-yogurt": 20,
+        "onion-red": 10,
+        "coconut-oil": 8
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 128
+        }
+      ]
+    },
+    {
+      "slug": "tandoori-chicken",
+      "name": "Tandoori chicken",
+      "aliases": [
+        "tandoori chicken"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — tandoori chicken",
+      "recipe": {
+        "chicken-cooked": 120,
+        "greek-yogurt": 20,
+        "onion-red": 10,
+        "ginger-raw": 5,
+        "garlic-raw": 3,
+        "coconut-oil": 8
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 166
+        }
+      ]
+    },
+    {
+      "slug": "rajma",
+      "name": "Rajma",
+      "aliases": [
+        "rajma"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — rajma",
+      "recipe": {
+        "kidney-beans-cooked": 120,
+        "tomato-raw": 30,
+        "onion-red": 15,
+        "ghee": 8,
+        "ginger-raw": 3,
+        "garlic-raw": 3
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 179
+        }
+      ]
+    },
+    {
+      "slug": "aloo-gobi",
+      "name": "Aloo gobi",
+      "aliases": [
+        "aloo gobi"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — aloo gobi",
+      "recipe": {
+        "potato-boiled": 80,
+        "cauliflower-raw": 70,
+        "onion-red": 15,
+        "tomato-raw": 10,
+        "coconut-oil": 10
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 185
+        }
+      ]
+    },
+    {
+      "slug": "lassi-sweet",
+      "name": "Sweet lassi",
+      "aliases": [
+        "lassi"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — sweet lassi",
+      "recipe": {
+        "greek-yogurt": 120,
+        "milk-whole": 100,
+        "sugar-white": 15
+      },
+      "servings": [
+        {
+          "name": "glass",
+          "grams": 235
+        }
+      ]
+    },
+    {
+      "slug": "masala-chai",
+      "name": "Masala chai",
+      "aliases": [
+        "masala chai",
+        "chai"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — masala chai",
+      "recipe": {
+        "black-tea-brewed": 150,
+        "milk-whole": 60,
+        "sugar-white": 8,
+        "ginger-raw": 3
+      },
+      "servings": [
+        {
+          "name": "cup",
+          "grams": 221
+        }
+      ]
+    },
+    {
+      "slug": "upma",
+      "name": "Upma",
+      "aliases": [
+        "upma",
+        "rava upma"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — upma",
+      "recipe": {
+        "semolina-dry": 50,
+        "onion-red": 20,
+        "carrot-raw": 15,
+        "coconut-oil": 10
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 95
+        }
+      ]
+    },
+    {
+      "slug": "chole-bhature",
+      "name": "Chole bhature",
+      "aliases": [
+        "chole bhature"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — chole bhature",
+      "recipe": {
+        "chickpeas-cooked": 120,
+        "tomato-raw": 25,
+        "onion-red": 15,
+        "wheat-flour": 80,
+        "coconut-oil": 20,
+        "ghee": 8
+      },
+      "servings": [
+        {
+          "name": "plate",
+          "grams": 268
+        }
+      ]
+    },
+    {
+      "slug": "jalebi",
+      "name": "Jalebi",
+      "aliases": [
+        "jalebi"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — jalebi",
+      "recipe": {
+        "wheat-flour": 25,
+        "sugar-white": 20,
+        "coconut-oil": 15
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 60
+        }
+      ]
+    },
+    {
+      "slug": "gulab-jamun",
+      "name": "Gulab jamun (2)",
+      "aliases": [
+        "gulab jamun"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe IN — gulab jamun",
+      "recipe": {
+        "wheat-flour": 20,
+        "milk-whole": 25,
+        "sugar-white": 25,
+        "ghee": 10
+      },
+      "servings": [
+        {
+          "name": "2 pieces",
+          "grams": 80
+        }
+      ]
+    }
+  ]
+}

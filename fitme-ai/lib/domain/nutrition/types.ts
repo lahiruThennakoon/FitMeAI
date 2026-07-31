@@ -3,6 +3,8 @@
  * Catalog lookups always carry dataSource = "database".
  */
 
+import type { CatalogLocale } from "@/lib/domain/nutrition/catalog-locale";
+
 export type NutritionDataSource = "database" | "ai_estimated";
 
 /** Macros for a portion. Null = unknown (never coerced to 0). */
@@ -42,6 +44,7 @@ export type FoodDetailDto = {
   name: string;
   aliases: string[];
   kind: "simple" | "composite";
+  locale: CatalogLocale;
   defaultServingG: number;
   sourceLabel: string;
   servings: FoodServingDto[];

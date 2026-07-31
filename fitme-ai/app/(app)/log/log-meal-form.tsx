@@ -37,6 +37,7 @@ import {
   toDatetimeLocalValue,
 } from "@/lib/domain/datetime-local";
 import {
+  clampFutureInstant,
   FUTURE_TIME_MESSAGE,
   INVALID_TIME_MESSAGE,
   isFutureInstant,
@@ -200,7 +201,11 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
       try {
         const result = await parseMealAction({ text });
         if (result.ok) {
-          setItems((prev) => [...(prev ?? []), ...result.data.items]);
+          const loggedAt = new Date().toISOString();
+          setItems((prev) => [
+            ...(prev ?? []),
+            ...result.data.items.map((item) => ({ ...item, loggedAt })),
+          ]);
           setAiInteractionId(result.data.aiInteractionId);
           setQuotaExceeded(false);
           router.refresh();
@@ -404,15 +409,17 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
       const loggedAtIso = loggedAt.toISOString();
       itemsToSave = items.map((item) => ({ ...item, loggedAt: loggedAtIso }));
     } else {
-      const own = items.map((item) => new Date(item.loggedAt));
+      const own = items.map((item) =>
+        clampFutureInstant(new Date(item.loggedAt)),
+      );
       if (own.some((d) => Number.isNaN(d.getTime()))) {
         setFormError(INVALID_TIME_MESSAGE);
         return;
       }
-      if (own.some(isFutureInstant)) {
-        setFormError(FUTURE_TIME_MESSAGE);
-        return;
-      }
+      itemsToSave = items.map((item, i) => ({
+        ...item,
+        loggedAt: own[i]!.toISOString(),
+      }));
     }
 
     startSaveTransition(async () => {

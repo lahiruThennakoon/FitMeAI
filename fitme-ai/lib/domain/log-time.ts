@@ -28,3 +28,10 @@ export function isNotFutureIso(value: string | undefined | null): boolean {
   if (Number.isNaN(t)) return true;
   return !isFutureInstant(t);
 }
+
+/** If a timestamp is slightly ahead of client now (server clock skew), clamp to now. */
+export function clampFutureInstant(at: Date | number, now = Date.now()): Date {
+  const d = typeof at === "number" ? new Date(at) : at;
+  if (Number.isNaN(d.getTime())) return new Date(now);
+  return isFutureInstant(d, now) ? new Date(now) : d;
+}

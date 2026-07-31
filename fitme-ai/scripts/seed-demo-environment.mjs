@@ -129,12 +129,14 @@ async function ensureDemoUser(prisma) {
       goalType: "weight_loss",
       preferredUnits: "metric",
       country: "LK",
+      catalogLocale: "lk",
       timezone: "Asia/Colombo",
     },
     update: {
       displayName: DEMO_NAME,
       currentWeightG: 72_000,
       targetWeightG: 70_000,
+      catalogLocale: "lk",
       timezone: "Asia/Colombo",
     },
   });

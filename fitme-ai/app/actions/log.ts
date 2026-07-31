@@ -6,10 +6,13 @@ import {
   assertAiParseAllowed as defaultAssertAiParseAllowed,
   EntitlementError,
 } from "@/lib/dal/entitlements";
-import { findFoodBySlugOrAlias } from "@/lib/dal/nutrition";
+import {
+  findFoodBySlugOrAlias,
+  getCatalogLocaleForUser,
+} from "@/lib/dal/nutrition";
 import { createAiProvider, type AiProvider } from "@/lib/ai";
 import {
-  FOOD_PARSE_SYSTEM,
+  buildFoodParseSystemPrompt,
   foodParseAiSchema,
   foodParseResponseSchema,
 } from "@/lib/ai/schemas/food-parse";
@@ -71,6 +74,9 @@ export type ParseMealActionDeps = {
     input: RecordAiInteractionInput,
   ) => Promise<{ id: string }>;
   assertAiParseAllowed?: (userId: string) => Promise<void>;
+  getCatalogLocaleForUser?: (userId: string) => Promise<
+    import("@/lib/domain/nutrition/catalog-locale").CatalogLocale
+  >;
 };
 
 const MANUAL_FALLBACK =
@@ -96,6 +102,8 @@ export async function parseMealAction(
   const recordInteraction = deps.recordAiInteraction ?? recordAiInteraction;
   const assertParseAllowed =
     deps.assertAiParseAllowed ?? defaultAssertAiParseAllowed;
+  const getCatalogLocale =
+    deps.getCatalogLocaleForUser ?? getCatalogLocaleForUser;
 
   let userId: string;
   try {
@@ -132,6 +140,7 @@ export async function parseMealAction(
   }
 
   const { text } = parsed.data;
+  const catalogLocale = await getCatalogLocale(userId);
   const provider = createProvider();
   const aiCfg = readAiRuntimeConfig();
   const requestMeta = buildAiRequestMeta("food_parse", text.length);
@@ -139,7 +148,7 @@ export async function parseMealAction(
   const aiResult = await provider.generateStructured(
     {
       purpose: "food_parse",
-      systemInstruction: FOOD_PARSE_SYSTEM,
+      systemInstruction: buildFoodParseSystemPrompt(catalogLocale),
       userPrompt: text,
       responseSchema: { ...foodParseResponseSchema },
     },

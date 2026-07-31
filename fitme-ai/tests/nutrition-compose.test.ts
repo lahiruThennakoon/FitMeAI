@@ -61,6 +61,7 @@ describe("buildFoodDetail (AD-3 provenance)", () => {
       name: "Rice (cooked)",
       aliases: [],
       kind: "simple",
+      locale: "lk",
       defaultServingG: 150,
       sourceLabel: "seed",
       servings: [{ name: "default", grams: 150 }],
@@ -90,6 +91,14 @@ describe("Sri Lankan seed catalog", () => {
     expect(pol?.kind).toBe("composite");
     expect(Object.keys(pol!.recipe).length).toBeGreaterThan(1);
     expect(defaultServingGrams(pol!)).toBeGreaterThan(0);
+  });
+
+  it("includes vegetable roti with composite vegetable filling", () => {
+    const roti = SEED_FOODS.find((f) => f.slug === "vegetable-roti");
+    expect(roti?.name).toBe("Vegetable roti");
+    expect(roti?.kind).toBe("composite");
+    expect(Object.keys(roti!.recipe).length).toBeGreaterThan(2);
+    expect(defaultServingGrams(roti!)).toBe(137);
   });
 
   it("references only known ingredient slugs", () => {
@@ -130,6 +139,7 @@ describe("Sri Lankan seed catalog", () => {
         name: food.name,
         aliases: food.aliases ?? [],
         kind: food.kind,
+        locale: food.locale ?? "global",
         defaultServingG: defaultServingGrams(food),
         sourceLabel: food.sourceLabel,
         servings: food.servings,
@@ -144,13 +154,14 @@ describe("Sri Lankan seed catalog", () => {
       expect(detail.nutrition.energyKcal).toBeGreaterThan(0);
     }
 
-    // coconut-milk fibre is null → dhal curry fibre total stays null
+    // dhal curry includes lentils with fibre — total should compute after coconut-milk fibre filled from USDA
     const dhal = SEED_FOODS.find((f) => f.slug === "dhal-curry")!;
     const dhalDetail = buildFoodDetail({
       slug: dhal.slug,
       name: dhal.name,
       aliases: dhal.aliases ?? [],
       kind: dhal.kind,
+      locale: dhal.locale ?? "lk",
       defaultServingG: defaultServingGrams(dhal),
       sourceLabel: dhal.sourceLabel,
       servings: dhal.servings,
@@ -159,6 +170,7 @@ describe("Sri Lankan seed catalog", () => {
         grams,
       })),
     });
-    expect(dhalDetail.nutrition.fibreG).toBeNull();
+    expect(dhalDetail.nutrition.fibreG).not.toBeNull();
+    expect(dhalDetail.nutrition.fibreG).toBeGreaterThan(0);
   });
 });

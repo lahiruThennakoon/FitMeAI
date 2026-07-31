@@ -23,6 +23,7 @@ const egg: FoodDetailDto = {
   name: "Egg",
   aliases: ["eggs"],
   kind: "simple",
+  locale: "global",
   defaultServingG: 50,
   sourceLabel: "seed",
   servings: [{ name: "piece", grams: 50 }],

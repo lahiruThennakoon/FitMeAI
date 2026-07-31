@@ -1,13 +1,16 @@
 /**
- * Hybrid Sri Lankan nutrition seed (Story 2.1).
- * Ingredient values approximate USDA FoodData Central–style open data (per 100 g)
- * unless noted. Dish proportions are hand-curated for FitMe MVP — not lab assays.
- * Missing macros stay null (never fabricated as 0).
- *
- * Data lives in catalog-data.json so Prisma seed can run as plain Node (no tsx).
+ * Multi-region nutrition seed (Story 12.1).
+ * Ingredient values approximate USDA FDC / IFCT-style open data (per 100 g).
+ * Dish proportions are hand-curated per locale shard.
  */
 
-import catalogData from "./catalog-data.json";
+import ingredientsGlobal from "./catalog/ingredients.global.json";
+import foodsLk from "./catalog/foods.lk.json";
+import foodsUs from "./catalog/foods.us.json";
+import foodsIn from "./catalog/foods.in.json";
+import foodsEu from "./catalog/foods.eu.json";
+
+export type CatalogLocale = "lk" | "us" | "in" | "eu" | "global";
 
 export type SeedIngredient = {
   slug: string;
@@ -29,17 +32,39 @@ export type SeedFood = {
   aliases?: string[];
   kind: "simple" | "composite";
   sourceLabel: string;
-  /** ingredientSlug → grams in default recipe */
+  locale?: CatalogLocale;
   recipe: Record<string, number>;
   servings: { name: string; grams: number }[];
 };
 
+type FoodShard = { locale: CatalogLocale; foods: Omit<SeedFood, "locale">[] };
+
+const FOOD_SHARDS: FoodShard[] = [
+  foodsLk as unknown as FoodShard,
+  foodsUs as unknown as FoodShard,
+  foodsIn as unknown as FoodShard,
+  foodsEu as unknown as FoodShard,
+];
+
+function mergeCatalog() {
+  const ingredients = ingredientsGlobal.ingredients as SeedIngredient[];
+  const foods: SeedFood[] = [];
+  for (const shard of FOOD_SHARDS) {
+    for (const food of shard.foods) {
+      foods.push({ ...food, locale: shard.locale });
+    }
+  }
+  return { ingredients, foods };
+}
+
+const catalog = mergeCatalog();
+
 export const SEED_INGREDIENTS: SeedIngredient[] =
-  catalogData.ingredients as SeedIngredient[];
+  catalog.ingredients as SeedIngredient[];
 
-export const SEED_FOODS: SeedFood[] = catalogData.foods as unknown as SeedFood[];
+export const SEED_FOODS: SeedFood[] = catalog.foods as SeedFood[];
 
-/** Foods the story AC names explicitly. */
+/** Foods the Story 2.1 AC names explicitly. */
 export const REQUIRED_FOOD_SLUGS = ["rice", "pol-sambol", "dhal-curry"] as const;
 
 export function defaultServingGrams(food: SeedFood): number {
@@ -89,3 +114,6 @@ export function validateSeedCatalog(
     }
   }
 }
+
+// Validate at import time (tests + seed).
+validateSeedCatalog();

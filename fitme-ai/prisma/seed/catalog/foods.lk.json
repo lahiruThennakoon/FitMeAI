@@ -1,0 +1,545 @@
+{
+  "locale": "lk",
+  "foods": [
+    {
+      "slug": "rice",
+      "name": "Rice (cooked)",
+      "aliases": [
+        "white rice",
+        "steamed rice",
+        "rice"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — white rice medium serving (150 g)",
+      "recipe": {
+        "rice-white-cooked": 150
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 100
+        },
+        {
+          "name": "medium",
+          "grams": 150
+        },
+        {
+          "name": "large",
+          "grams": 220
+        }
+      ]
+    },
+    {
+      "slug": "red-rice",
+      "name": "Red rice (cooked)",
+      "aliases": [
+        "rathu haal",
+        "brown rice"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — red rice medium serving (150 g)",
+      "recipe": {
+        "rice-red-cooked": 150
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 100
+        },
+        {
+          "name": "medium",
+          "grams": 150
+        },
+        {
+          "name": "large",
+          "grams": 220
+        }
+      ]
+    },
+    {
+      "slug": "pol-sambol",
+      "name": "Pol sambol",
+      "aliases": [
+        "coconut sambol",
+        "pol sambol"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — typical side portion (~93 g yield)",
+      "recipe": {
+        "coconut-grated": 60,
+        "onion-red": 20,
+        "chili-green": 8,
+        "lime-juice": 5
+      },
+      "servings": [
+        {
+          "name": "tablespoon",
+          "grams": 15
+        },
+        {
+          "name": "side portion",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "slug": "seeni-sambol",
+      "name": "Seeni sambol",
+      "aliases": [
+        "seeni sambol",
+        "sweet onion sambol"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — caramelized onion sambol (~110 g yield)",
+      "recipe": {
+        "onion-red": 80,
+        "sugar-white": 12,
+        "chili-green": 5,
+        "coconut-oil": 10,
+        "lime-juice": 3
+      },
+      "servings": [
+        {
+          "name": "tablespoon",
+          "grams": 15
+        },
+        {
+          "name": "side portion",
+          "grams": 35
+        }
+      ]
+    },
+    {
+      "slug": "dhal-curry",
+      "name": "Dhal curry",
+      "aliases": [
+        "parippu",
+        "dhal",
+        "lentil curry"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — home-style parippu (~185 g yield)",
+      "recipe": {
+        "lentils-red-cooked": 120,
+        "coconut-milk": 40,
+        "onion-red": 15,
+        "chili-green": 5,
+        "coconut-oil": 5,
+        "garlic-raw": 3,
+        "curry-powder": 2
+      },
+      "servings": [
+        {
+          "name": "small bowl",
+          "grams": 120
+        },
+        {
+          "name": "medium bowl",
+          "grams": 185
+        }
+      ]
+    },
+    {
+      "slug": "dhal-wade",
+      "name": "Dhal wade",
+      "aliases": [
+        "ulundu wade",
+        "dhal vadai",
+        "vadai"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — urad-dhal fritter (~68 g per piece)",
+      "recipe": {
+        "urad-dhal-cooked": 45,
+        "onion-red": 10,
+        "chili-green": 3,
+        "coconut-oil": 10
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 68
+        }
+      ]
+    },
+    {
+      "slug": "milk-tea",
+      "name": "Milk tea",
+      "aliases": [
+        "teatime tea",
+        "kiri tea",
+        "tea with milk"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — typical sweet milk tea cup (~230 g)",
+      "recipe": {
+        "black-tea-brewed": 180,
+        "milk-whole": 40,
+        "sugar-white": 10
+      },
+      "servings": [
+        {
+          "name": "cup",
+          "grams": 230
+        }
+      ]
+    },
+    {
+      "slug": "egg",
+      "name": "Egg",
+      "aliases": [
+        "eggs",
+        "boiled egg",
+        "fried egg"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — one large egg (~50 g)",
+      "recipe": {
+        "egg-whole": 50
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 50
+        }
+      ]
+    },
+    {
+      "slug": "chickpeas",
+      "name": "Chickpeas",
+      "aliases": [
+        "kadala",
+        "boiled chickpeas"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — cooked chickpeas 100 g",
+      "recipe": {
+        "chickpeas-cooked": 100
+      },
+      "servings": [
+        {
+          "name": "100g",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "slug": "chicken-curry",
+      "name": "Chicken curry",
+      "aliases": [
+        "kukul mas curry",
+        "chicken curry sri lanka"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — home-style chicken curry (~188 g yield)",
+      "recipe": {
+        "chicken-cooked": 100,
+        "coconut-milk": 50,
+        "onion-red": 20,
+        "tomato-raw": 15,
+        "chili-green": 5,
+        "coconut-oil": 8,
+        "garlic-raw": 3,
+        "ginger-raw": 3,
+        "curry-powder": 2
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 120
+        },
+        {
+          "name": "medium",
+          "grams": 206
+        }
+      ]
+    },
+    {
+      "slug": "fish-curry",
+      "name": "Fish curry",
+      "aliases": [
+        "mas curry",
+        "fish curry",
+        "malu curry"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — coconut fish curry (~195 g yield)",
+      "recipe": {
+        "fish-white-cooked": 100,
+        "coconut-milk": 50,
+        "onion-red": 20,
+        "tomato-raw": 15,
+        "chili-green": 5,
+        "coconut-oil": 8,
+        "garlic-raw": 3,
+        "ginger-raw": 3,
+        "curry-powder": 2
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 120
+        },
+        {
+          "name": "medium",
+          "grams": 206
+        }
+      ]
+    },
+    {
+      "slug": "kiribath",
+      "name": "Kiribath (milk rice)",
+      "aliases": [
+        "milk rice",
+        "kiribath"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — festive milk rice block (~200 g yield)",
+      "recipe": {
+        "rice-white-cooked": 150,
+        "coconut-milk": 50
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 80
+        },
+        {
+          "name": "serving",
+          "grams": 200
+        }
+      ]
+    },
+    {
+      "slug": "string-hoppers",
+      "name": "String hoppers",
+      "aliases": [
+        "idi appa",
+        "idiyappam"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — steamed rice noodles (~80 g serving)",
+      "recipe": {
+        "rice-flour": 65,
+        "coconut-milk": 15
+      },
+      "servings": [
+        {
+          "name": "serving (5 pieces)",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "slug": "hoppers",
+      "name": "Hoppers (appa)",
+      "aliases": [
+        "appa",
+        "hopper",
+        "bowl hopper"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — plain hopper (~115 g yield)",
+      "recipe": {
+        "rice-flour": 80,
+        "coconut-milk": 30,
+        "sugar-white": 5
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 115
+        }
+      ]
+    },
+    {
+      "slug": "egg-hopper",
+      "name": "Egg hopper",
+      "aliases": [
+        "egg appa",
+        "biththara appa",
+        "egg hopper"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — hopper with egg (~165 g yield)",
+      "recipe": {
+        "rice-flour": 80,
+        "coconut-milk": 30,
+        "sugar-white": 5,
+        "egg-whole": 50
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 165
+        }
+      ]
+    },
+    {
+      "slug": "pittu",
+      "name": "Pittu",
+      "aliases": [
+        "pittu",
+        "puttu"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — steamed rice-coconut cylinder (~120 g serving)",
+      "recipe": {
+        "rice-flour": 60,
+        "coconut-grated": 40,
+        "wheat-flour": 20
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "roti",
+      "name": "Roti",
+      "aliases": [
+        "chapati",
+        "godamba roti",
+        "plain roti"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — one plain roti (~80 g)",
+      "recipe": {
+        "roti-chapati": 80
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "slug": "vegetable-roti",
+      "name": "Vegetable roti",
+      "aliases": [
+        "vegi roti",
+        "veggie roti",
+        "roti with vegetables"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — Sri Lankan vegetable-stuffed roti (~137 g)",
+      "recipe": {
+        "wheat-flour": 58,
+        "potato-boiled": 20,
+        "carrot-raw": 20,
+        "cabbage-raw": 15,
+        "onion-red": 10,
+        "coconut-oil": 14
+      },
+      "servings": [
+        {
+          "name": "piece",
+          "grams": 137
+        },
+        {
+          "name": "small",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "slug": "kottu",
+      "name": "Kottu roti",
+      "aliases": [
+        "kottu",
+        "chicken kottu",
+        "koththu"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe hand-curated — chicken kottu plate (~270 g yield)",
+      "recipe": {
+        "roti-chapati": 120,
+        "chicken-cooked": 60,
+        "onion-red": 30,
+        "egg-whole": 50,
+        "coconut-oil": 10
+      },
+      "servings": [
+        {
+          "name": "plate",
+          "grams": 270
+        }
+      ]
+    },
+    {
+      "slug": "boiled-potato",
+      "name": "Boiled potato",
+      "aliases": [
+        "potato",
+        "ala",
+        "boiled potato"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — boiled potato 150 g",
+      "recipe": {
+        "potato-boiled": 150
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 100
+        },
+        {
+          "name": "medium",
+          "grams": 150
+        }
+      ]
+    },
+    {
+      "slug": "banana",
+      "name": "Banana",
+      "aliases": [
+        "banana",
+        "kehel",
+        "ambul kesel"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — one medium banana (~120 g)",
+      "recipe": {
+        "banana-raw": 120
+      },
+      "servings": [
+        {
+          "name": "small",
+          "grams": 90
+        },
+        {
+          "name": "medium",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "bread-slice",
+      "name": "Bread slice",
+      "aliases": [
+        "bread",
+        "paan",
+        "toast"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe seed — one white bread slice (~30 g)",
+      "recipe": {
+        "bread-white": 30
+      },
+      "servings": [
+        {
+          "name": "slice",
+          "grams": 30
+        },
+        {
+          "name": "2 slices",
+          "grams": 60
+        }
+      ]
+    }
+  ]
+}

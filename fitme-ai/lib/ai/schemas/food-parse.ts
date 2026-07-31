@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  catalogLocaleHint,
+  type CatalogLocale,
+} from "@/lib/domain/nutrition/catalog-locale";
 
 /** Meal types inferred or set on a log item (FR-12 defaults). */
 export const mealTypeSchema = z.enum([
@@ -129,15 +133,23 @@ export const foodParseResponseSchema = {
   required: ["items"],
 } as const;
 
-export const FOOD_PARSE_SYSTEM = [
-  "You parse meal descriptions into structured food items for a nutrition tracker.",
-  "Prefer common Sri Lankan food names when appropriate (e.g. pol sambol, dhal curry, milk tea, dhal wade).",
-  "Use unit g for gram amounts; piece for countable items; cup/bowl/plate/serving when natural.",
-  "Set needsClarification true when quantity/portion is ambiguous.",
-  "Always include an estimate object for every item with energyKcal, proteinG, carbsG, fatG, fibreG, sugarG, sodiumMg for the given quantity.",
-  "Prefer typical numeric values. Use 0 when a nutrient is negligible (e.g. fibre and sugar in meat, liver, eggs, fish) — do not leave those as null.",
-  "Use null only for calories/protein/carbs/fat/sodium when you truly cannot estimate.",
-  "Item names must be food names only — never diagnoses, advice, or judgment.",
-  "Estimates are approximate; never claim database, lab, or medical precision in names or notes.",
-  "Lower confidence when unsure, but still provide best-effort numbers.",
-].join(" ");
+export function buildFoodParseSystemPrompt(
+  locale: CatalogLocale = "global",
+): string {
+  const regional = catalogLocaleHint(locale);
+  return [
+    "You parse meal descriptions into structured food items for a nutrition tracker.",
+    `Prefer common ${regional} food names when appropriate.`,
+    "Use unit g for gram amounts; piece for countable items; cup/bowl/plate/serving when natural.",
+    "Set needsClarification true when quantity/portion is ambiguous.",
+    "Always include an estimate object for every item with energyKcal, proteinG, carbsG, fatG, fibreG, sugarG, sodiumMg for the given quantity.",
+    "Prefer typical numeric values. Use 0 when a nutrient is negligible (e.g. fibre and sugar in meat, liver, eggs, fish) — do not leave those as null.",
+    "Use null only for calories/protein/carbs/fat/sodium when you truly cannot estimate.",
+    "Item names must be food names only — never diagnoses, advice, or judgment.",
+    "Estimates are approximate; never claim database, lab, or medical precision in names or notes.",
+    "Lower confidence when unsure, but still provide best-effort numbers.",
+  ].join(" ");
+}
+
+/** Default prompt when locale is unknown (tests / fallback). */
+export const FOOD_PARSE_SYSTEM = buildFoodParseSystemPrompt("global");

@@ -1,7 +1,12 @@
 "use server";
 
 import { requireSession } from "@/lib/dal";
-import { findFoodBySlugOrAlias, searchFoodsByQuery, type FoodSearchHit } from "@/lib/dal/nutrition";
+import {
+  findFoodBySlugOrAlias,
+  getCatalogLocaleForUser,
+  searchFoodsByQuery,
+  type FoodSearchHit,
+} from "@/lib/dal/nutrition";
 import { foodEntryToDraft } from "@/lib/domain/nutrition/food-template-draft";
 import type { ParsedFoodItemDraft } from "@/lib/domain/nutrition/parse-types";
 import { err, ok, type Result } from "@/lib/result";
@@ -23,6 +28,7 @@ export type CatalogActionDeps = {
   requireSession?: typeof requireSession;
   searchFoodsByQuery?: typeof searchFoodsByQuery;
   findFoodBySlugOrAlias?: typeof findFoodBySlugOrAlias;
+  getCatalogLocaleForUser?: typeof getCatalogLocaleForUser;
 };
 
 /** Online catalog lookup for Log (Tier 3). */
@@ -32,9 +38,12 @@ export async function searchFoodCatalogAction(
 ): Promise<SearchFoodCatalogResult> {
   const requireSessionFn = deps.requireSession ?? requireSession;
   const search = deps.searchFoodsByQuery ?? searchFoodsByQuery;
+  const getLocale = deps.getCatalogLocaleForUser ?? getCatalogLocaleForUser;
 
+  let userId: string;
   try {
-    await requireSessionFn();
+    const user = await requireSessionFn();
+    userId = user.id;
   } catch {
     return err("Please sign in to search foods.");
   }
@@ -44,7 +53,8 @@ export async function searchFoodCatalogAction(
     return err("Enter at least two characters to search.");
   }
 
-  const hits = await search(parsed.data.query, parsed.data.limit ?? 12);
+  const locale = await getLocale(userId);
+  const hits = await search(parsed.data.query, parsed.data.limit ?? 12, locale);
   return ok({ hits });
 }
 

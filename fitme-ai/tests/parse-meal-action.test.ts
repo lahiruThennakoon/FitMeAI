@@ -7,6 +7,7 @@ import type { FoodDetailDto } from "@/lib/domain/nutrition/types";
 
 const recordAiInteraction = vi.fn(async () => ({ id: "ai-parse-1" }));
 const allowParse = vi.fn(async () => undefined);
+const getCatalogLocaleForUser = vi.fn(async () => "lk" as const);
 
 const sessionDeps = {
   requireSession: async () => ({
@@ -18,6 +19,7 @@ const sessionDeps = {
   rateLimit: () => ({ ok: true, remaining: 29 }) as const,
   recordAiInteraction,
   assertAiParseAllowed: allowParse,
+  getCatalogLocaleForUser,
 };
 
 const milkTea: FoodDetailDto = {
@@ -25,6 +27,7 @@ const milkTea: FoodDetailDto = {
   name: "Milk tea",
   aliases: ["teatime tea"],
   kind: "composite",
+  locale: "lk",
   defaultServingG: 230,
   sourceLabel: "seed",
   servings: [{ name: "cup", grams: 230 }],

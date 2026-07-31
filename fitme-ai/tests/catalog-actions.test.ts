@@ -6,19 +6,22 @@ import {
 
 const searchFoodsByQuery = vi.fn();
 const findFoodBySlugOrAlias = vi.fn();
+const getCatalogLocaleForUser = vi.fn();
 
 const session = async () =>
   ({ id: "u1", email: "a@b.com", name: null }) as never;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getCatalogLocaleForUser.mockResolvedValue("us");
   searchFoodsByQuery.mockResolvedValue([
-    { slug: "oats", name: "Oats", energyKcal: 150 },
+    { slug: "oats", name: "Oats", energyKcal: 150, locale: "us" },
   ]);
   findFoodBySlugOrAlias.mockResolvedValue({
     slug: "oats",
     name: "Oats",
     kind: "simple",
+    locale: "us",
     defaultServingG: 40,
     nutrition: {
       energyKcal: 150,
@@ -40,10 +43,12 @@ describe("searchFoodCatalogAction (Tier 3)", () => {
   it("returns catalog hits for a signed-in user", async () => {
     const result = await searchFoodCatalogAction(
       { query: "oat" },
-      { requireSession: session, searchFoodsByQuery },
+      { requireSession: session, searchFoodsByQuery, getCatalogLocaleForUser },
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(getCatalogLocaleForUser).toHaveBeenCalledWith("u1");
+    expect(searchFoodsByQuery).toHaveBeenCalledWith("oat", 12, "us");
     expect(result.data.hits[0].slug).toBe("oats");
   });
 

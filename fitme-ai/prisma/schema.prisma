@@ -100,6 +100,8 @@ model UserProfile {
   notifyWeeklyDigest Boolean        @default(false)
   appearancePreference AppearancePreference @default(system)
   country            String         @default("")
+  /// Boosts catalog search + AI parse hints (Story 12.1). `global` = no regional bias.
+  catalogLocale      CatalogLocale  @default(global)
   timezone           String
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -203,6 +205,14 @@ enum FoodKind {
   composite
 }
 
+enum CatalogLocale {
+  lk
+  us
+  in
+  eu
+  global
+}
+
 model Ingredient {
   id            String   @id @default(cuid())
   slug          String   @unique
@@ -237,6 +247,7 @@ model Food {
   /// DB CHECK: defaultServingG > 0 (migration 20260726020000).
   defaultServingG      Int
   sourceLabel          String
+  locale               CatalogLocale @default(global)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

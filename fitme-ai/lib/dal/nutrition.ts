@@ -1,5 +1,10 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import {
+  localeScoreBonus,
+  resolveCatalogLocale,
+  type CatalogLocale,
+} from "@/lib/domain/nutrition/catalog-locale";
 import { buildFoodDetail } from "@/lib/domain/nutrition/food-detail";
 import type { FoodDetailDto, IngredientDto } from "@/lib/domain/nutrition/types";
 
@@ -38,6 +43,7 @@ function toFoodDetail(row: {
   name: string;
   aliases: string[];
   kind: "simple" | "composite";
+  locale: CatalogLocale;
   defaultServingG: number;
   sourceLabel: string;
   servings: { name: string; grams: number }[];
@@ -63,6 +69,7 @@ function toFoodDetail(row: {
     name: row.name,
     aliases: row.aliases,
     kind: row.kind,
+    locale: row.locale,
     defaultServingG: row.defaultServingG,
     sourceLabel: row.sourceLabel,
     servings: row.servings.map((s) => ({ name: s.name, grams: s.grams })),
@@ -121,15 +128,31 @@ export type FoodSearchHit = {
   slug: string;
   name: string;
   energyKcal: number | null;
+  locale: CatalogLocale;
 };
+
+/** Resolve catalog locale for search ranking and AI parse hints. */
+export async function getCatalogLocaleForUser(
+  userId: string,
+): Promise<CatalogLocale> {
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: { catalogLocale: true, country: true },
+  });
+  return resolveCatalogLocale({
+    catalogLocale: profile?.catalogLocale ?? null,
+    country: profile?.country ?? null,
+  });
+}
 
 /**
  * Case-insensitive catalog search by name, alias, or slug prefix.
- * MVP catalog is small — scored in memory after one DB fetch.
+ * Boosts foods matching `preferredLocale` when set (Story 12.1).
  */
 export async function searchFoodsByQuery(
   query: string,
   limit = 12,
+  preferredLocale: CatalogLocale = "global",
 ): Promise<FoodSearchHit[]> {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
@@ -157,10 +180,13 @@ export async function searchFoodsByQuery(
     else if (aliases.some((a) => a.includes(q))) score = 40;
     else continue;
 
+    score += localeScoreBonus(detail.locale, preferredLocale);
+
     scored.push({
       slug: detail.slug,
       name: detail.name,
       energyKcal: detail.nutrition.energyKcal,
+      locale: detail.locale,
       score,
     });
   }

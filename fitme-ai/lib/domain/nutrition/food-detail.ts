@@ -5,11 +5,14 @@ import type {
   NutritionMacros,
 } from "@/lib/domain/nutrition/types";
 
+import type { CatalogLocale } from "@/lib/domain/nutrition/catalog-locale";
+
 export type FoodDetailInput = {
   slug: string;
   name: string;
   aliases: string[];
   kind: "simple" | "composite";
+  locale: CatalogLocale;
   defaultServingG: number;
   sourceLabel: string;
   servings: { name: string; grams: number }[];
@@ -34,6 +37,7 @@ export function buildFoodDetail(input: FoodDetailInput): FoodDetailDto {
     name: input.name,
     aliases: input.aliases,
     kind: input.kind,
+    locale: input.locale,
     defaultServingG: input.defaultServingG,
     sourceLabel: input.sourceLabel,
     servings: input.servings,

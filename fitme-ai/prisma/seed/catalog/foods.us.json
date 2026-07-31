@@ -1,0 +1,509 @@
+{
+  "locale": "us",
+  "foods": [
+    {
+      "slug": "oatmeal",
+      "name": "Oatmeal",
+      "aliases": [
+        "oats",
+        "porridge"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — cooked oats bowl",
+      "recipe": {
+        "oats-rolled": 40,
+        "milk-whole": 180,
+        "sugar-white": 5,
+        "banana-raw": 30
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 255
+        }
+      ]
+    },
+    {
+      "slug": "scrambled-eggs",
+      "name": "Scrambled eggs",
+      "aliases": [
+        "scrambled eggs"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — 2 eggs scrambled",
+      "recipe": {
+        "egg-whole": 100,
+        "butter-salted": 8
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 108
+        }
+      ]
+    },
+    {
+      "slug": "bacon-strips",
+      "name": "Bacon (2 strips)",
+      "aliases": [
+        "bacon"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe US — 2 bacon strips",
+      "recipe": {
+        "bacon-cooked": 40
+      },
+      "servings": [
+        {
+          "name": "2 strips",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "slug": "peanut-butter-toast",
+      "name": "Peanut butter toast",
+      "aliases": [
+        "pb toast"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — PB toast",
+      "recipe": {
+        "bread-white": 60,
+        "peanut-butter": 20
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "slug": "greek-yogurt-cup",
+      "name": "Greek yogurt",
+      "aliases": [
+        "greek yogurt"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe US — greek yogurt cup",
+      "recipe": {
+        "greek-yogurt": 170
+      },
+      "servings": [
+        {
+          "name": "cup",
+          "grams": 170
+        }
+      ]
+    },
+    {
+      "slug": "grilled-chicken-breast",
+      "name": "Grilled chicken breast",
+      "aliases": [
+        "grilled chicken"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe US — grilled chicken",
+      "recipe": {
+        "chicken-cooked": 120
+      },
+      "servings": [
+        {
+          "name": "serving",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "cheeseburger",
+      "name": "Cheeseburger",
+      "aliases": [
+        "burger",
+        "cheeseburger"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — cheeseburger",
+      "recipe": {
+        "ground-beef-cooked": 90,
+        "bread-white": 60,
+        "cheddar-cheese": 20,
+        "lettuce-raw": 15,
+        "tomato-raw": 20,
+        "onion-red": 15
+      },
+      "servings": [
+        {
+          "name": "burger",
+          "grams": 220
+        }
+      ]
+    },
+    {
+      "slug": "mac-and-cheese",
+      "name": "Mac and cheese",
+      "aliases": [
+        "mac and cheese"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — mac and cheese",
+      "recipe": {
+        "pasta-cooked": 180,
+        "cheddar-cheese": 40,
+        "milk-whole": 30,
+        "butter-salted": 10
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 260
+        }
+      ]
+    },
+    {
+      "slug": "french-fries",
+      "name": "French fries",
+      "aliases": [
+        "fries"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — french fries",
+      "recipe": {
+        "potato-boiled": 100,
+        "coconut-oil": 20
+      },
+      "servings": [
+        {
+          "name": "medium",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "pizza-slice",
+      "name": "Pizza slice",
+      "aliases": [
+        "pizza"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — pizza slice",
+      "recipe": {
+        "wheat-flour": 50,
+        "mozzarella-cheese": 35,
+        "tomato-raw": 25,
+        "olive-oil": 10
+      },
+      "servings": [
+        {
+          "name": "slice",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "caesar-salad",
+      "name": "Caesar salad",
+      "aliases": [
+        "caesar salad"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — caesar salad",
+      "recipe": {
+        "lettuce-raw": 120,
+        "chicken-cooked": 50,
+        "cheddar-cheese": 15,
+        "olive-oil": 15
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 200
+        }
+      ]
+    },
+    {
+      "slug": "bagel-cream-cheese",
+      "name": "Bagel with cream cheese",
+      "aliases": [
+        "bagel"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — bagel + cream cheese",
+      "recipe": {
+        "bagel-plain": 90,
+        "cream-cheese": 30
+      },
+      "servings": [
+        {
+          "name": "bagel",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "slug": "avocado-toast",
+      "name": "Avocado toast",
+      "aliases": [
+        "avocado toast"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — avocado toast",
+      "recipe": {
+        "bread-white": 60,
+        "avocado-raw": 60,
+        "olive-oil": 5
+      },
+      "servings": [
+        {
+          "name": "slice",
+          "grams": 125
+        }
+      ]
+    },
+    {
+      "slug": "pancakes",
+      "name": "Pancakes (2)",
+      "aliases": [
+        "pancakes"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — 2 pancakes",
+      "recipe": {
+        "wheat-flour": 60,
+        "egg-whole": 50,
+        "milk-whole": 30,
+        "sugar-white": 10,
+        "butter-salted": 8
+      },
+      "servings": [
+        {
+          "name": "2 pancakes",
+          "grams": 148
+        }
+      ]
+    },
+    {
+      "slug": "grilled-salmon",
+      "name": "Grilled salmon",
+      "aliases": [
+        "salmon"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — grilled salmon",
+      "recipe": {
+        "salmon-cooked": 130,
+        "olive-oil": 10
+      },
+      "servings": [
+        {
+          "name": "fillet",
+          "grams": 140
+        }
+      ]
+    },
+    {
+      "slug": "mashed-potatoes",
+      "name": "Mashed potatoes",
+      "aliases": [
+        "mashed potatoes"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — mashed potatoes",
+      "recipe": {
+        "potato-boiled": 160,
+        "butter-salted": 15,
+        "milk-whole": 20
+      },
+      "servings": [
+        {
+          "name": "side",
+          "grams": 195
+        }
+      ]
+    },
+    {
+      "slug": "chicken-wings",
+      "name": "Chicken wings (6)",
+      "aliases": [
+        "wings"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — chicken wings",
+      "recipe": {
+        "chicken-cooked": 150,
+        "coconut-oil": 15
+      },
+      "servings": [
+        {
+          "name": "6 wings",
+          "grams": 165
+        }
+      ]
+    },
+    {
+      "slug": "burrito",
+      "name": "Burrito",
+      "aliases": [
+        "burrito"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — chicken burrito",
+      "recipe": {
+        "roti-chapati": 80,
+        "chicken-cooked": 80,
+        "rice-white-cooked": 80,
+        "cheddar-cheese": 25,
+        "tomato-raw": 20,
+        "onion-red": 15,
+        "lettuce-raw": 20
+      },
+      "servings": [
+        {
+          "name": "burrito",
+          "grams": 300
+        }
+      ]
+    },
+    {
+      "slug": "coffee-latte",
+      "name": "Latte",
+      "aliases": [
+        "latte",
+        "coffee latte"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — latte",
+      "recipe": {
+        "black-tea-brewed": 50,
+        "milk-whole": 280,
+        "sugar-white": 5
+      },
+      "servings": [
+        {
+          "name": "cup",
+          "grams": 335
+        }
+      ]
+    },
+    {
+      "slug": "steak-sirloin",
+      "name": "Steak (sirloin)",
+      "aliases": [
+        "steak"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — steak",
+      "recipe": {
+        "ground-beef-cooked": 160,
+        "butter-salted": 10,
+        "olive-oil": 5
+      },
+      "servings": [
+        {
+          "name": "steak",
+          "grams": 175
+        }
+      ]
+    },
+    {
+      "slug": "turkey-sandwich",
+      "name": "Turkey sandwich",
+      "aliases": [
+        "sandwich"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — turkey sandwich",
+      "recipe": {
+        "bread-white": 90,
+        "chicken-cooked": 60,
+        "lettuce-raw": 15,
+        "tomato-raw": 15,
+        "cheddar-cheese": 10
+      },
+      "servings": [
+        {
+          "name": "sandwich",
+          "grams": 190
+        }
+      ]
+    },
+    {
+      "slug": "protein-shake",
+      "name": "Protein shake",
+      "aliases": [
+        "protein shake"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — protein shake",
+      "recipe": {
+        "milk-whole": 250,
+        "greek-yogurt": 80,
+        "banana-raw": 30,
+        "peanut-butter": 15
+      },
+      "servings": [
+        {
+          "name": "shake",
+          "grams": 375
+        }
+      ]
+    },
+    {
+      "slug": "apple-fruit",
+      "name": "Apple",
+      "aliases": [
+        "apple"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe US — medium apple",
+      "recipe": {
+        "apple-raw": 180
+      },
+      "servings": [
+        {
+          "name": "medium",
+          "grams": 180
+        }
+      ]
+    },
+    {
+      "slug": "broccoli-side",
+      "name": "Broccoli (steamed)",
+      "aliases": [
+        "broccoli"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe US — steamed greens side",
+      "recipe": {
+        "spinach-cooked": 150
+      },
+      "servings": [
+        {
+          "name": "side",
+          "grams": 150
+        }
+      ]
+    },
+    {
+      "slug": "cereal-with-milk",
+      "name": "Cereal with milk",
+      "aliases": [
+        "cereal"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe US — cereal bowl",
+      "recipe": {
+        "oats-rolled": 40,
+        "milk-whole": 200,
+        "sugar-white": 10,
+        "banana-raw": 20
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 270
+        }
+      ]
+    }
+  ]
+}

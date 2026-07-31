@@ -1,12 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { loadCatalog, validateCatalog } from "./seed/catalog/load-catalog.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const catalog = JSON.parse(
-  readFileSync(join(__dirname, "seed", "catalog-data.json"), "utf8"),
-);
+const catalog = loadCatalog();
+validateCatalog(catalog);
 
 const prisma = new PrismaClient();
 
@@ -14,48 +10,7 @@ function defaultServingGrams(food) {
   return Object.values(food.recipe).reduce((a, b) => a + b, 0);
 }
 
-function assertPositiveGrams(label, grams) {
-  if (!Number.isInteger(grams) || grams <= 0) {
-    throw new Error(`${label} must be a positive integer gram amount, got ${grams}`);
-  }
-}
-
-function validateCatalog() {
-  const ingredientSlugs = new Set();
-  for (const ing of catalog.ingredients) {
-    if (ingredientSlugs.has(ing.slug)) {
-      throw new Error(`Duplicate ingredient slug in seed: ${ing.slug}`);
-    }
-    ingredientSlugs.add(ing.slug);
-  }
-
-  const foodSlugs = new Set();
-  for (const food of catalog.foods) {
-    if (foodSlugs.has(food.slug)) {
-      throw new Error(`Duplicate food slug in seed: ${food.slug}`);
-    }
-    foodSlugs.add(food.slug);
-
-    const recipeEntries = Object.entries(food.recipe);
-    if (recipeEntries.length === 0) {
-      throw new Error(`Food ${food.slug} has empty recipe`);
-    }
-    for (const [ingSlug, grams] of recipeEntries) {
-      if (!ingredientSlugs.has(ingSlug)) {
-        throw new Error(`Unknown ingredient slug in seed: ${ingSlug}`);
-      }
-      assertPositiveGrams(`${food.slug} recipe ${ingSlug}`, grams);
-    }
-    for (const serving of food.servings) {
-      assertPositiveGrams(`${food.slug} serving ${serving.name}`, serving.grams);
-    }
-    assertPositiveGrams(`${food.slug} defaultServingG`, defaultServingGrams(food));
-  }
-}
-
 async function main() {
-  validateCatalog();
-
   await prisma.$transaction(async (tx) => {
     for (const ing of catalog.ingredients) {
       await tx.ingredient.upsert({
@@ -93,6 +48,7 @@ async function main() {
 
     for (const food of catalog.foods) {
       const defaultServingG = defaultServingGrams(food);
+      const locale = food.locale ?? "global";
 
       const row = await tx.food.upsert({
         where: { slug: food.slug },
@@ -103,6 +59,7 @@ async function main() {
           kind: food.kind,
           defaultServingG,
           sourceLabel: food.sourceLabel,
+          locale,
         },
         update: {
           name: food.name,
@@ -110,6 +67,7 @@ async function main() {
           kind: food.kind,
           defaultServingG,
           sourceLabel: food.sourceLabel,
+          locale,
         },
       });
 
@@ -143,6 +101,15 @@ async function main() {
         });
       }
     }
+
+    // Backfill LK locale for legacy rows missing shard tag (idempotent).
+    await tx.food.updateMany({
+      where: {
+        slug: { in: ["rice", "pol-sambol", "dhal-curry"] },
+        locale: "global",
+      },
+      data: { locale: "lk" },
+    });
   });
 
   console.log(
