@@ -18,7 +18,6 @@ const us = {
     { slug: "french-fries", name: "French fries", aliases: ["fries"], kind: "composite", sourceLabel: "FitMe US — french fries", recipe: { "potato-boiled": 100, "coconut-oil": 20 }, servings: [{ name: "medium", grams: 120 }] },
     { slug: "pizza-slice", name: "Pizza slice", aliases: ["pizza"], kind: "composite", sourceLabel: "FitMe US — pizza slice", recipe: { "wheat-flour": 50, "mozzarella-cheese": 35, "tomato-raw": 25, "olive-oil": 10 }, servings: [{ name: "slice", grams: 120 }] },
     { slug: "caesar-salad", name: "Caesar salad", aliases: ["caesar salad"], kind: "composite", sourceLabel: "FitMe US — caesar salad", recipe: { "lettuce-raw": 120, "chicken-cooked": 50, "cheddar-cheese": 15, "olive-oil": 15 }, servings: [{ name: "bowl", grams: 200 }] },
-    { slug: "bagel-cream-cheese", name: "Bagel with cream cheese", aliases: ["bagel"], kind: "composite", sourceLabel: "FitMe US — bagel + cream cheese", recipe: { "bagel-plain": 90, "cream-cheese": 30 }, servings: [{ name: "bagel", grams: 120 }] },
     { slug: "avocado-toast", name: "Avocado toast", aliases: ["avocado toast"], kind: "composite", sourceLabel: "FitMe US — avocado toast", recipe: { "bread-white": 60, "avocado-raw": 60, "olive-oil": 5 }, servings: [{ name: "slice", grams: 125 }] },
     { slug: "pancakes", name: "Pancakes (2)", aliases: ["pancakes"], kind: "composite", sourceLabel: "FitMe US — 2 pancakes", recipe: { "wheat-flour": 60, "egg-whole": 50, "milk-whole": 30, "sugar-white": 10, "butter-salted": 8 }, servings: [{ name: "2 pancakes", grams: 148 }] },
     { slug: "grilled-salmon", name: "Grilled salmon", aliases: ["salmon"], kind: "composite", sourceLabel: "FitMe US — grilled salmon", recipe: { "salmon-cooked": 130, "olive-oil": 10 }, servings: [{ name: "fillet", grams: 140 }] },
@@ -31,7 +30,6 @@ const us = {
     { slug: "protein-shake", name: "Protein shake", aliases: ["protein shake"], kind: "composite", sourceLabel: "FitMe US — protein shake", recipe: { "milk-whole": 250, "greek-yogurt": 80, "banana-raw": 30, "peanut-butter": 15 }, servings: [{ name: "shake", grams: 375 }] },
     { slug: "apple-fruit", name: "Apple", aliases: ["apple"], kind: "simple", sourceLabel: "FitMe US — medium apple", recipe: { "apple-raw": 180 }, servings: [{ name: "medium", grams: 180 }] },
     { slug: "broccoli-side", name: "Broccoli (steamed)", aliases: ["broccoli"], kind: "simple", sourceLabel: "FitMe US — steamed greens side", recipe: { "spinach-cooked": 150 }, servings: [{ name: "side", grams: 150 }] },
-    { slug: "cereal-with-milk", name: "Cereal with milk", aliases: ["cereal"], kind: "composite", sourceLabel: "FitMe US — cereal bowl", recipe: { "oats-rolled": 40, "milk-whole": 200, "sugar-white": 10, "banana-raw": 20 }, servings: [{ name: "bowl", grams: 270 }] },
   ],
 };
 
@@ -74,8 +72,6 @@ const eu = {
     { slug: "margherita-pizza", name: "Margherita pizza (slice)", aliases: ["margherita"], kind: "composite", sourceLabel: "FitMe EU — margherita slice", recipe: { "wheat-flour": 50, "mozzarella-cheese": 40, "tomato-raw": 25, "olive-oil": 8 }, servings: [{ name: "slice", grams: 123 }] },
     { slug: "croissant-pastry", name: "Croissant", aliases: ["croissant"], kind: "simple", sourceLabel: "FitMe EU — croissant", recipe: { "croissant": 60 }, servings: [{ name: "piece", grams: 60 }] },
     { slug: "greek-salad", name: "Greek salad", aliases: ["greek salad"], kind: "composite", sourceLabel: "FitMe EU — greek salad", recipe: { "tomato-raw": 80, "lettuce-raw": 60, "feta-cheese": 40, "olive-oil": 15, "onion-red": 15 }, servings: [{ name: "bowl", grams: 210 }] },
-    { slug: "fish-and-chips", name: "Fish and chips", aliases: ["fish and chips"], kind: "composite", sourceLabel: "FitMe EU — fish and chips", recipe: { "fish-white-cooked": 120, "potato-boiled": 150, "wheat-flour": 30, "coconut-oil": 25 }, servings: [{ name: "plate", grams: 325 }] },
-    { slug: "hummus-pita", name: "Hummus with pita", aliases: ["hummus"], kind: "composite", sourceLabel: "FitMe EU — hummus pita", recipe: { "chickpeas-cooked": 80, "olive-oil": 15, "pita-bread": 70, "garlic-raw": 3, "lime-juice": 5 }, servings: [{ name: "serving", grams: 173 }] },
     { slug: "bratwurst", name: "Bratwurst plate", aliases: ["bratwurst", "sausage"], kind: "composite", sourceLabel: "FitMe EU — bratwurst", recipe: { "sausage-pork-cooked": 100, "cabbage-raw": 60, "potato-boiled": 40 }, servings: [{ name: "plate", grams: 200 }] },
     { slug: "risotto", name: "Mushroom risotto", aliases: ["risotto"], kind: "composite", sourceLabel: "FitMe EU — risotto", recipe: { "rice-white-cooked": 180, "butter-salted": 12, "onion-red": 15, "milk-whole": 30, "olive-oil": 8 }, servings: [{ name: "bowl", grams: 245 }] },
     { slug: "caprese-salad", name: "Caprese salad", aliases: ["caprese"], kind: "composite", sourceLabel: "FitMe EU — caprese", recipe: { "tomato-raw": 80, "mozzarella-cheese": 60, "olive-oil": 10 }, servings: [{ name: "bowl", grams: 150 }] },

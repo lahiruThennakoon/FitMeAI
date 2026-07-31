@@ -518,6 +518,70 @@
       ]
     },
     {
+      "slug": "oats-porridge",
+      "name": "Oats porridge",
+      "aliases": [
+        "oats",
+        "oatmeal",
+        "porridge"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe LK — oats cooked with milk (~225 g)",
+      "recipe": {
+        "oats-rolled": 40,
+        "milk-whole": 180,
+        "sugar-white": 5
+      },
+      "servings": [
+        {
+          "name": "bowl",
+          "grams": 225
+        }
+      ]
+    },
+    {
+      "slug": "marie-biscuits",
+      "name": "Marie biscuits",
+      "aliases": [
+        "biscuits",
+        "marie biscuit",
+        "tea biscuits"
+      ],
+      "kind": "simple",
+      "sourceLabel": "FitMe LK — 3 marie biscuits (~30 g)",
+      "recipe": {
+        "marie-biscuit": 30
+      },
+      "servings": [
+        {
+          "name": "3 biscuits",
+          "grams": 30
+        }
+      ]
+    },
+    {
+      "slug": "green-salad",
+      "name": "Green salad",
+      "aliases": [
+        "salad",
+        "side salad",
+        "garden salad"
+      ],
+      "kind": "composite",
+      "sourceLabel": "FitMe LK — simple green salad (~120 g)",
+      "recipe": {
+        "lettuce-raw": 60,
+        "tomato-raw": 50,
+        "olive-oil": 10
+      },
+      "servings": [
+        {
+          "name": "side",
+          "grams": 120
+        }
+      ]
+    },
+    {
       "slug": "bread-slice",
       "name": "Bread slice",
       "aliases": [

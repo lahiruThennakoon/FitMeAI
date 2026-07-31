@@ -108,49 +108,6 @@
       ]
     },
     {
-      "slug": "fish-and-chips",
-      "name": "Fish and chips",
-      "aliases": [
-        "fish and chips"
-      ],
-      "kind": "composite",
-      "sourceLabel": "FitMe EU — fish and chips",
-      "recipe": {
-        "fish-white-cooked": 120,
-        "potato-boiled": 150,
-        "wheat-flour": 30,
-        "coconut-oil": 25
-      },
-      "servings": [
-        {
-          "name": "plate",
-          "grams": 325
-        }
-      ]
-    },
-    {
-      "slug": "hummus-pita",
-      "name": "Hummus with pita",
-      "aliases": [
-        "hummus"
-      ],
-      "kind": "composite",
-      "sourceLabel": "FitMe EU — hummus pita",
-      "recipe": {
-        "chickpeas-cooked": 80,
-        "olive-oil": 15,
-        "pita-bread": 70,
-        "garlic-raw": 3,
-        "lime-juice": 5
-      },
-      "servings": [
-        {
-          "name": "serving",
-          "grams": 173
-        }
-      ]
-    },
-    {
       "slug": "bratwurst",
       "name": "Bratwurst plate",
       "aliases": [

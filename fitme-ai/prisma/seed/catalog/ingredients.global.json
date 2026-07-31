@@ -909,6 +909,23 @@
       "fibreG": 0,
       "sugarG": 3.2,
       "sodiumMg": 314
+    },
+    {
+      "slug": "marie-biscuit",
+      "name": "Marie biscuit",
+      "aliases": [
+        "marie biscuit",
+        "biscuit",
+        "cracker"
+      ],
+      "sourceLabel": "USDA FDC #174988 (crackers, standard snack-type, regular)",
+      "energyKcal": 421,
+      "proteinG": 7.5,
+      "carbsG": 74.1,
+      "fatG": 11.3,
+      "fibreG": 2.3,
+      "sugarG": 6.2,
+      "sodiumMg": 758
     }
   ]
 }

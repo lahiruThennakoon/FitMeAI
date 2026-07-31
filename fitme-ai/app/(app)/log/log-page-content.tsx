@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import type { FoodTemplateDto } from "@/lib/dal/food-template";
 import { loadCatalogFoodDraftAction } from "@/app/actions/catalog";
 import type { FoodSearchHit } from "@/lib/dal/nutrition";
-import { CopyDayMeals } from "./copy-day-meals";
 import { FoodCatalogSearch } from "./food-catalog-search";
 import { InstantLog } from "./instant-log";
 import { LogMealForm, type LogMealFormHandle } from "./log-meal-form";
@@ -13,16 +12,14 @@ import { RecentFavorites } from "./recent-favorites";
 type Props = {
   recent: FoodTemplateDto[];
   favorites: FoodTemplateDto[];
-  yesterdayKey: string;
   aiParsesRemaining?: number | null;
   freePlan?: boolean;
 };
 
-/** Client shell wiring recent/favorites and copy-a-day into the review form. */
+/** Client shell wiring recent/favorites and catalog into the review form. */
 export function LogPageContent({
   recent,
   favorites,
-  yesterdayKey,
   aiParsesRemaining = null,
   freePlan = false,
 }: Props) {
@@ -49,15 +46,6 @@ export function LogPageContent({
         recent={recent}
         favorites={favorites}
         onSelectForEdit={(draft) => formRef.current?.addDraft(draft)}
-      />
-      <CopyDayMeals
-        yesterdayKey={yesterdayKey}
-        onLoadDrafts={(drafts) =>
-          formRef.current?.addDrafts(drafts) ?? {
-            added: 0,
-            skipped: drafts.length,
-          }
-        }
       />
       <FoodCatalogSearch onAddToReview={reviewCatalogHit} />
       {catalogMessage ? (

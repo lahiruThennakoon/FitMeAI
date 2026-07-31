@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute";
+import {
+  recomputeDraftNutrition,
+  scaleDraftNutritionByQuantity,
+} from "@/lib/domain/nutrition/draft-recompute";
 import type { ParsedFoodItemDraft } from "@/lib/domain/nutrition/parse-types";
 
 const base: ParsedFoodItemDraft = {
@@ -51,5 +54,10 @@ describe("recomputeDraftNutrition", () => {
     const next = recomputeDraftNutrition({ ...base, unit: "bowl" });
     expect(next.needsClarification).toBe(true);
     expect(next.nutrition.energyKcal).toBe(72);
+  });
+
+  it("scales stored macros without catalog when quantity changes", () => {
+    const next = scaleDraftNutritionByQuantity({ ...base, quantity: 2, catalog: null }, 1);
+    expect(next.nutrition.energyKcal).toBe(144);
   });
 });

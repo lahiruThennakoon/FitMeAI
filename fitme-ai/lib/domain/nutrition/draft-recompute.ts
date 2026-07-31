@@ -50,3 +50,20 @@ export function recomputeDraftNutrition(
     nutrition: scaleMacros(item.catalog.nutritionAtDefault, factor),
   };
 }
+
+/**
+ * Scale stored macros when quantity changes but no catalog ref exists
+ * (e.g. re-logged meals saved without foodSlug).
+ */
+export function scaleDraftNutritionByQuantity(
+  item: ParsedFoodItemDraft,
+  previousQuantity: number,
+): ParsedFoodItemDraft {
+  if (previousQuantity <= 0 || item.quantity <= 0) return item;
+  const factor = item.quantity / previousQuantity;
+  if (!Number.isFinite(factor) || factor === 1) return item;
+  return {
+    ...item,
+    nutrition: scaleMacros(item.nutrition, factor),
+  };
+}

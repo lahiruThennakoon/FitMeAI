@@ -4,6 +4,14 @@ import { loadCatalog, validateCatalog } from "./seed/catalog/load-catalog.mjs";
 const catalog = loadCatalog();
 validateCatalog(catalog);
 
+/** Combined meal pairs removed from catalog — log each item separately. */
+const REMOVED_FOOD_SLUGS = [
+  "cereal-with-milk",
+  "bagel-cream-cheese",
+  "fish-and-chips",
+  "hummus-pita",
+];
+
 const prisma = new PrismaClient();
 
 function defaultServingGrams(food) {
@@ -12,6 +20,10 @@ function defaultServingGrams(food) {
 
 async function main() {
   await prisma.$transaction(async (tx) => {
+    await tx.food.deleteMany({
+      where: { slug: { in: REMOVED_FOOD_SLUGS } },
+    });
+
     for (const ing of catalog.ingredients) {
       await tx.ingredient.upsert({
         where: { slug: ing.slug },

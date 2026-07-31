@@ -30,7 +30,7 @@ import {
   type ClarifyingChipOption,
 } from "@/lib/domain/nutrition/clarifying-chips";
 import { applyProportionEdit } from "@/lib/domain/nutrition/decompose";
-import { recomputeDraftNutrition } from "@/lib/domain/nutrition/draft-recompute";
+import { recomputeDraftNutrition, scaleDraftNutritionByQuantity } from "@/lib/domain/nutrition/draft-recompute";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
 import {
   fromDatetimeLocalValue,
@@ -81,11 +81,59 @@ function scrollToReview() {
   });
 }
 
+/** Quantity field — keeps raw text so users can clear and retype (e.g. 1 → 26). */
+function QuantityField({
+  itemId,
+  itemName,
+  value,
+  disabled,
+  onCommit,
+}: {
+  itemId: string;
+  itemName: string;
+  value: number;
+  disabled?: boolean;
+  onCommit: (quantity: number) => void;
+}) {
+  const [raw, setRaw] = useState(String(value));
+
+  useEffect(() => {
+    setRaw(String(value));
+  }, [itemId, value]);
+
+  return (
+    <input
+      aria-label={`Quantity for ${itemName}`}
+      type="number"
+      min={0.1}
+      step="any"
+      disabled={disabled}
+      value={raw}
+      onChange={(e) => {
+        const nextRaw = e.target.value;
+        setRaw(nextRaw);
+        const parsed = Number(nextRaw);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          onCommit(parsed);
+        }
+      }}
+      onBlur={() => {
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          setRaw(String(value));
+          return;
+        }
+        onCommit(parsed);
+        setRaw(String(parsed));
+      }}
+      className="w-20 rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700"
+    />
+  );
+}
+
 /** Lets sibling components push drafts straight into the review list. */
 export type LogMealFormHandle = {
   addDraft: (draft: ParsedFoodItemDraft) => void;
-  /** Returns how many fit — the rest would overflow one save. */
-  addDrafts: (drafts: ParsedFoodItemDraft[]) => { added: number; skipped: number };
 };
 
 type Props = {
@@ -146,28 +194,10 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
     scrollToReview();
   }, []);
 
-  const addDrafts = useCallback(
-    (drafts: ParsedFoodItemDraft[]) => {
-      const room = Math.max(0, MAX_REVIEW_ITEMS - (items?.length ?? 0));
-      const fitting = drafts.slice(0, room);
-      if (fitting.length > 0) {
-        setItems((prev) => [...(prev ?? []), ...fitting]);
-        setFormError(null);
-        setShowManual(false);
-        scrollToReview();
-      }
-      return {
-        added: fitting.length,
-        skipped: drafts.length - fitting.length,
-      };
-    },
-    [items],
-  );
-
   useImperativeHandle(
     ref,
-    () => ({ addDraft, addDrafts }),
-    [addDraft, addDrafts],
+    () => ({ addDraft }),
+    [addDraft],
   );
 
   function onParse(event: React.FormEvent) {
@@ -267,6 +297,7 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
       prev
         ? prev.map((item) => {
             if (item.id !== id) return item;
+            const previousQuantity = item.quantity;
             let next = { ...item, ...patch };
             // Identity edit drops catalog FK + DB macros until rematch (FR-11).
             if (
@@ -297,7 +328,16 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
               };
             }
             if ("quantity" in patch || "unit" in patch) {
-              return recomputeDraftNutrition(next);
+              if (next.catalog && next.dataSource === "database") {
+                return recomputeDraftNutrition(next);
+              }
+              if (
+                "quantity" in patch &&
+                typeof patch.quantity === "number" &&
+                patch.quantity !== previousQuantity
+              ) {
+                return scaleDraftNutritionByQuantity(next, previousQuantity);
+              }
             }
             return next;
           })
@@ -661,18 +701,14 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
                   </p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <input
-                    aria-label={`Quantity for ${item.name}`}
-                    type="number"
-                    min={0.1}
-                    step="any"
+                  <QuantityField
+                    itemId={item.id}
+                    itemName={item.name}
                     value={item.quantity}
-                    onChange={(e) =>
-                      updateItem(item.id, {
-                        quantity: Number(e.target.value) || item.quantity,
-                      })
+                    disabled={saving}
+                    onCommit={(quantity) =>
+                      updateItem(item.id, { quantity })
                     }
-                    className="w-20 rounded-lg border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700"
                   />
                   <select
                     aria-label={`Unit for ${item.name}`}

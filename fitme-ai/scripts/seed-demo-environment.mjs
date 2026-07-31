@@ -187,151 +187,119 @@ async function clearDemoData(prisma, userId) {
   await prisma.glucoseEntry.deleteMany({ where: { userId } });
 }
 
+const FOOD_INCLUDE = {
+  recipeIngredients: { include: { ingredient: true } },
+};
+
+function scaleFromPer100g(value, grams) {
+  if (value == null) return null;
+  return Math.round(value * (grams / 100) * 10) / 10;
+}
+
+function nutritionForCatalogFood(food, quantity = 1) {
+  const totals = {
+    energyKcal: 0,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+    fibreG: 0,
+    sugarG: 0,
+    sodiumMg: 0,
+  };
+  for (const line of food.recipeIngredients) {
+    const grams = line.grams * quantity;
+    const ing = line.ingredient;
+    totals.energyKcal += scaleFromPer100g(ing.energyKcal, grams) ?? 0;
+    totals.proteinG += scaleFromPer100g(ing.proteinG, grams) ?? 0;
+    totals.carbsG += scaleFromPer100g(ing.carbsG, grams) ?? 0;
+    totals.fatG += scaleFromPer100g(ing.fatG, grams) ?? 0;
+    totals.fibreG += scaleFromPer100g(ing.fibreG, grams) ?? 0;
+    totals.sugarG += scaleFromPer100g(ing.sugarG, grams) ?? 0;
+    totals.sodiumMg += scaleFromPer100g(ing.sodiumMg, grams) ?? 0;
+  }
+  return totals;
+}
+
+async function createCatalogMeal(prisma, userId, opts) {
+  const {
+    foodSlug,
+    mealType,
+    day,
+    hour,
+    minute = 0,
+    quantity = 1,
+    unit = "serving",
+    isFavorite = false,
+  } = opts;
+
+  const food = await prisma.food.findUnique({
+    where: { slug: foodSlug },
+    include: FOOD_INCLUDE,
+  });
+  if (!food) {
+    throw new Error(
+      `Catalog food "${foodSlug}" missing — run npm run db:seed before demo seed.`,
+    );
+  }
+
+  const nutrition = nutritionForCatalogFood(food, quantity);
+  await prisma.foodEntry.create({
+    data: {
+      userId,
+      foodId: food.id,
+      name: food.name,
+      quantity,
+      unit,
+      mealType,
+      loggedAt: daysAgoAt(day, hour, minute),
+      dataSource: "database",
+      confidence: 1,
+      energyKcal: nutrition.energyKcal,
+      proteinG: nutrition.proteinG,
+      carbsG: nutrition.carbsG,
+      fatG: nutrition.fatG,
+      fibreG: nutrition.fibreG,
+      sugarG: nutrition.sugarG,
+      sodiumMg: nutrition.sodiumMg,
+      isFavorite,
+    },
+  });
+}
+
 async function seedDemoData(prisma, userId) {
+  /** Individual catalog foods only — no combined pairs like "Milk tea & biscuits". */
   const meals = [
+    { foodSlug: "oats-porridge", mealType: "breakfast", day: 0, hour: 8, minute: 0 },
     {
-      name: "Oats with banana",
+      foodSlug: "banana",
       mealType: "breakfast",
       day: 0,
       hour: 8,
-      energyKcal: 320,
-      proteinG: 12,
-      carbsG: 52,
-      fatG: 8,
-      fibreG: 6,
-      sugarG: 18,
+      minute: 5,
       isFavorite: true,
     },
-    {
-      name: "Chicken rice & dal",
-      mealType: "lunch",
-      day: 0,
-      hour: 13,
-      energyKcal: 680,
-      proteinG: 38,
-      carbsG: 72,
-      fatG: 22,
-      fibreG: 9,
-      sugarG: 4,
-    },
-    {
-      name: "Milk tea & biscuits",
-      mealType: "snack",
-      day: 0,
-      hour: 16,
-      energyKcal: 210,
-      proteinG: 4,
-      carbsG: 28,
-      fatG: 9,
-      fibreG: 1,
-      sugarG: 22,
-    },
-    {
-      name: "Grilled fish & salad",
-      mealType: "dinner",
-      day: 1,
-      hour: 19,
-      energyKcal: 520,
-      proteinG: 42,
-      carbsG: 18,
-      fatG: 28,
-      fibreG: 5,
-      sugarG: 6,
-    },
-    {
-      name: "Hopper & sambol",
-      mealType: "breakfast",
-      day: 1,
-      hour: 7,
-      energyKcal: 410,
-      proteinG: 9,
-      carbsG: 58,
-      fatG: 14,
-      fibreG: 3,
-      sugarG: 8,
-    },
-    {
-      name: "Kottu roti (small)",
-      mealType: "dinner",
-      day: 2,
-      hour: 20,
-      energyKcal: 890,
-      proteinG: 24,
-      carbsG: 95,
-      fatG: 42,
-      fibreG: 7,
-      sugarG: 12,
-    },
-    {
-      name: "Greek yogurt & berries",
-      mealType: "snack",
-      day: 3,
-      hour: 10,
-      energyKcal: 180,
-      proteinG: 14,
-      carbsG: 20,
-      fatG: 4,
-      fibreG: 2,
-      sugarG: 16,
-    },
-    {
-      name: "Vegetable roti",
-      mealType: "breakfast",
-      day: 5,
-      hour: 8,
-      energyKcal: 350,
-      proteinG: 8,
-      carbsG: 48,
-      fatG: 12,
-      fibreG: 4,
-      sugarG: 5,
-    },
-    {
-      name: "Rice & curry platter",
-      mealType: "lunch",
-      day: 7,
-      hour: 12,
-      energyKcal: 750,
-      proteinG: 28,
-      carbsG: 88,
-      fatG: 26,
-      fibreG: 10,
-      sugarG: 9,
-    },
-    {
-      name: "Protein shake",
-      mealType: "snack",
-      day: 10,
-      hour: 17,
-      energyKcal: 240,
-      proteinG: 30,
-      carbsG: 12,
-      fatG: 6,
-      fibreG: 2,
-      sugarG: 8,
-    },
+    { foodSlug: "rice", mealType: "lunch", day: 0, hour: 13, minute: 0 },
+    { foodSlug: "dhal-curry", mealType: "lunch", day: 0, hour: 13, minute: 5 },
+    { foodSlug: "chicken-curry", mealType: "lunch", day: 0, hour: 13, minute: 10 },
+    { foodSlug: "milk-tea", mealType: "snack", day: 0, hour: 16, minute: 0 },
+    { foodSlug: "marie-biscuits", mealType: "snack", day: 0, hour: 16, minute: 5 },
+    { foodSlug: "fish-curry", mealType: "dinner", day: 1, hour: 19, minute: 0 },
+    { foodSlug: "green-salad", mealType: "dinner", day: 1, hour: 19, minute: 5 },
+    { foodSlug: "hoppers", mealType: "breakfast", day: 1, hour: 7, minute: 0 },
+    { foodSlug: "pol-sambol", mealType: "breakfast", day: 1, hour: 7, minute: 5 },
+    { foodSlug: "kottu", mealType: "dinner", day: 2, hour: 20 },
+    { foodSlug: "greek-yogurt-cup", mealType: "snack", day: 3, hour: 10, minute: 0 },
+    { foodSlug: "banana", mealType: "snack", day: 3, hour: 10, minute: 5 },
+    { foodSlug: "boiled-potato", mealType: "lunch", day: 4, hour: 12 },
+    { foodSlug: "vegetable-roti", mealType: "breakfast", day: 5, hour: 8 },
+    { foodSlug: "rice", mealType: "lunch", day: 7, hour: 12, minute: 0 },
+    { foodSlug: "dhal-curry", mealType: "lunch", day: 7, hour: 12, minute: 5 },
+    { foodSlug: "chicken-curry", mealType: "lunch", day: 7, hour: 12, minute: 10 },
+    { foodSlug: "protein-shake", mealType: "snack", day: 10, hour: 17 },
   ];
 
-  for (const m of meals) {
-    await prisma.foodEntry.create({
-      data: {
-        userId,
-        name: m.name,
-        quantity: 1,
-        unit: "serving",
-        mealType: m.mealType,
-        loggedAt: daysAgoAt(m.day, m.hour),
-        dataSource: "database",
-        energyKcal: m.energyKcal,
-        proteinG: m.proteinG,
-        carbsG: m.carbsG,
-        fatG: m.fatG,
-        fibreG: m.fibreG,
-        sugarG: m.sugarG,
-        sodiumMg: 400,
-        isFavorite: m.isFavorite ?? false,
-      },
-    });
+  for (const meal of meals) {
+    await createCatalogMeal(prisma, userId, meal);
   }
 
   const waterSlots = [
@@ -463,7 +431,7 @@ function printSummary() {
   console.log("Password: ", DEMO_PASSWORD);
   console.log("\nSeeded for demo user:");
   console.log("  • Profile + calorie/macro/water targets");
-  console.log("  • Meals (10) incl. sugar/fibre — today + history");
+  console.log("  • Meals (20) — individual catalog foods, no pairs");
   console.log("  • Water logs (14) across multiple days");
   console.log("  • Exercise (4) + weight trend (7 weigh-ins)");
   console.log("  • Fasting: 1 active + 4 completed");
@@ -488,6 +456,11 @@ try {
   if (!args.has("--skip-migrate")) {
     console.log("Applying migrations…");
     run("npx prisma migrate deploy");
+  }
+
+  if (!args.has("--skip-seed")) {
+    console.log("Seeding nutrition catalog…");
+    run("npm run db:seed");
   }
 
   const user = await ensureDemoUser(prisma);

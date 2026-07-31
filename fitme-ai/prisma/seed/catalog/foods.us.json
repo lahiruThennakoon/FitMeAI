@@ -222,25 +222,6 @@
       ]
     },
     {
-      "slug": "bagel-cream-cheese",
-      "name": "Bagel with cream cheese",
-      "aliases": [
-        "bagel"
-      ],
-      "kind": "composite",
-      "sourceLabel": "FitMe US — bagel + cream cheese",
-      "recipe": {
-        "bagel-plain": 90,
-        "cream-cheese": 30
-      },
-      "servings": [
-        {
-          "name": "bagel",
-          "grams": 120
-        }
-      ]
-    },
-    {
       "slug": "avocado-toast",
       "name": "Avocado toast",
       "aliases": [
@@ -481,27 +462,6 @@
         {
           "name": "side",
           "grams": 150
-        }
-      ]
-    },
-    {
-      "slug": "cereal-with-milk",
-      "name": "Cereal with milk",
-      "aliases": [
-        "cereal"
-      ],
-      "kind": "composite",
-      "sourceLabel": "FitMe US — cereal bowl",
-      "recipe": {
-        "oats-rolled": 40,
-        "milk-whole": 200,
-        "sugar-white": 10,
-        "banana-raw": 20
-      },
-      "servings": [
-        {
-          "name": "bowl",
-          "grams": 270
         }
       ]
     }
