@@ -39,8 +39,10 @@ function serverActionAllowedOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
-  serverActions: {
-    allowedOrigins: serverActionAllowedOrigins(),
+  experimental: {
+    serverActions: {
+      allowedOrigins: serverActionAllowedOrigins(),
+    },
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
