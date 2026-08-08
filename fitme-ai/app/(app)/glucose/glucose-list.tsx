@@ -254,19 +254,23 @@ function GlucoseEditRow({
       return;
     }
     startTransition(async () => {
-      const result = await updateGlucoseEntryAction({
-        id: entry.id,
-        value: num,
-        unit,
-        context,
-        measuredAt: measured.toISOString(),
-        note: note.trim() || null,
-      });
-      if (!result.ok) {
-        onError(result.error);
-        return;
+      try {
+        const result = await updateGlucoseEntryAction({
+          id: entry.id,
+          value: num,
+          unit,
+          context,
+          measuredAt: measured.toISOString(),
+          note: note.trim() || null,
+        });
+        if (!result.ok) {
+          onError(result.error);
+          return;
+        }
+        onSaved();
+      } catch {
+        onError("Could not update that reading. Please try again.");
       }
-      onSaved();
     });
   }
 

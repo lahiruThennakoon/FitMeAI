@@ -69,11 +69,21 @@ export function niceScale(
   const maxStep = (max - min) / 2;
   if (step > maxStep) step = maxStep;
 
+  // Guard against step=0 / non-finite (would infinite-loop and freeze the tab).
+  if (!Number.isFinite(step) || step <= 0) {
+    return { min, max: min === max ? min + 1 : max, ticks: [min, max] };
+  }
+
   const niceMin = Math.floor(min / step) * step;
   const niceMax = Math.ceil(max / step) * step;
 
   const ticks: number[] = [];
-  for (let v = niceMin; v <= niceMax + step * 0.001; v += step) {
+  const tickGuard = 64;
+  for (
+    let v = niceMin, i = 0;
+    v <= niceMax + step * 0.001 && i < tickGuard;
+    v += step, i += 1
+  ) {
     ticks.push(Math.round(v * 1000) / 1000);
   }
 

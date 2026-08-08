@@ -91,16 +91,21 @@ export function DatetimeLocalField({
       )}
 
       <div className={compact && hideLabel ? "relative" : "relative mt-1"}>
+        {/*
+          Mirror value for progressive enhancement only. Do NOT put required/max
+          here — native constraint validation on an sr-only datetime-local can
+          hang or crash mobile Safari on submit (focus scrolls to a hidden field).
+          Validation stays in the custom picker + form JS.
+        */}
         <input
           id={id}
           name={id}
           type="datetime-local"
-          required={required}
-          max={max}
           value={value}
           onChange={() => {}}
           tabIndex={-1}
           aria-hidden="true"
+          readOnly
           className="sr-only"
         />
 
@@ -111,6 +116,7 @@ export function DatetimeLocalField({
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? pickerId : undefined}
+          aria-required={required || undefined}
           onClick={openPicker}
           className={triggerClassName}
         >

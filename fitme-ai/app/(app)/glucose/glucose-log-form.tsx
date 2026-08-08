@@ -67,22 +67,26 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
     }
 
     startTransition(async () => {
-      const result = await createGlucoseEntryAction({
-        value: num,
-        unit,
-        context,
-        measuredAt: measured.toISOString(),
-        note: note.trim() || null,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await createGlucoseEntryAction({
+          value: num,
+          unit,
+          context,
+          measuredAt: measured.toISOString(),
+          note: note.trim() || null,
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setValue("");
+        setNote("");
+        setMeasuredAt(toDatetimeLocalValue(new Date()));
+        showLogToast("Reading saved — thanks for logging it.");
+        router.refresh();
+      } catch {
+        setError("Could not save that reading. Please try again.");
       }
-      setValue("");
-      setNote("");
-      setMeasuredAt(toDatetimeLocalValue(new Date()));
-      showLogToast("Reading saved — thanks for logging it.");
-      router.refresh();
     });
   }
 
@@ -99,7 +103,7 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
         Log your own measurement — this is not a diagnosis tool.
       </p>
 
-      <form onSubmit={onSubmit} className="mt-4 space-y-3">
+      <form noValidate onSubmit={onSubmit} className="mt-4 space-y-3">
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">
             <label
