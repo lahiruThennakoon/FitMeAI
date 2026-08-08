@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createGlucoseEntryAction } from "@/app/actions/glucose";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
 import { AppButton } from "@/components/app-button";
 import { useLogToast } from "@/components/log-toast-provider";
+import { postGlucoseCreate } from "@/lib/client/glucose-api";
 import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
@@ -68,7 +68,9 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
 
     startTransition(async () => {
       try {
-        const result = await createGlucoseEntryAction({
+        // Prefer the JSON API over Server Actions: iOS standalone PWAs often
+        // fail Next's Origin/Host CSRF check and only surface a generic error.
+        const result = await postGlucoseCreate({
           value: num,
           unit,
           context,

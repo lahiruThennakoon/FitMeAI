@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  deleteGlucoseEntryAction,
-  restoreGlucoseEntryAction,
-  updateGlucoseEntryAction,
-} from "@/app/actions/glucose";
+  deleteGlucoseReading,
+  patchGlucoseUpdate,
+  putGlucoseRestore,
+} from "@/lib/client/glucose-api";
 import { UndoNotice } from "@/components/undo-notice";
 import type { GlucoseEntryDto } from "@/lib/dal/glucose-entry";
 import type { GlucoseContext } from "@prisma/client";
@@ -53,28 +53,37 @@ export function GlucoseList({ entries, displayUnit }: Props) {
   function onDelete(id: string) {
     setError(null);
     startTransition(async () => {
-      const result = await deleteGlucoseEntryAction({ id });
-      if (!result.ok) {
-        setError(result.error);
+      try {
+        const result = await deleteGlucoseReading({ id });
+        if (!result.ok) {
+          setError(result.error);
+          setConfirmingId(null);
+          return;
+        }
         setConfirmingId(null);
-        return;
+        setRemovedId(id);
+        router.refresh();
+      } catch {
+        setError("Could not remove that reading. Please try again.");
+        setConfirmingId(null);
       }
-      setConfirmingId(null);
-      setRemovedId(id);
-      router.refresh();
     });
   }
 
   function onRestore(id: string) {
     setError(null);
     startTransition(async () => {
-      const result = await restoreGlucoseEntryAction({ id });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await putGlucoseRestore({ id });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setRemovedId(null);
+        router.refresh();
+      } catch {
+        setError("Could not restore that reading. Please try again.");
       }
-      setRemovedId(null);
-      router.refresh();
     });
   }
 
@@ -255,7 +264,7 @@ function GlucoseEditRow({
     }
     startTransition(async () => {
       try {
-        const result = await updateGlucoseEntryAction({
+        const result = await patchGlucoseUpdate({
           id: entry.id,
           value: num,
           unit,
