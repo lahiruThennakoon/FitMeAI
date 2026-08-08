@@ -248,6 +248,36 @@ export function buildHomeDayLabels(
   };
 }
 
+/** First-visit copy when today has no meals logged yet. */
+export const FIRST_VISIT_HEADER_BLURB =
+  "Start by logging what you've eaten — your numbers will show up here.";
+
+export function resolveDashboardHeaderBlurb(
+  labels: HomeDayLabels,
+  opts: { showFirstVisit: boolean },
+): string {
+  if (opts.showFirstVisit && labels.isToday) {
+    return FIRST_VISIT_HEADER_BLURB;
+  }
+  return labels.headerBlurb;
+}
+
+/** True when the dashboard should orient a new user instead of showing analytics. */
+export function isDashboardFirstVisitMode(input: {
+  isToday: boolean;
+  mealCountToday: number;
+}): boolean {
+  return input.isToday && input.mealCountToday === 0;
+}
+
+/** True for users who have never logged food and are viewing today. */
+export function isDashboardOnboardingMode(input: {
+  isToday: boolean;
+  hasEverLoggedMeal: boolean;
+}): boolean {
+  return input.isToday && !input.hasEverLoggedMeal;
+}
+
 export type HomeDaySelection = {
   bounds: DayBounds;
   todayKey: string;

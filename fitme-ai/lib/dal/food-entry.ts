@@ -151,6 +151,15 @@ export async function saveConfirmedFoodEntries(
   return saved;
 }
 
+/** Whether the user has ever logged a meal (active entries only). */
+export async function hasAnyFoodEntriesForUser(userId: string): Promise<boolean> {
+  const row = await prisma.foodEntry.findFirst({
+    where: { userId, deletedAt: null },
+    select: { id: true },
+  });
+  return row != null;
+}
+
 /** Active (non-deleted) entries for a user — used by tests / later dashboard. */
 export async function listActiveFoodEntriesForUser(userId: string) {
   return prisma.foodEntry.findMany({

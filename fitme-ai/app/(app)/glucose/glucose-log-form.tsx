@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGlucoseEntryAction } from "@/app/actions/glucose";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { AppButton } from "@/components/app-button";
 import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
@@ -186,13 +187,9 @@ export function GlucoseLogForm({ defaultUnit = "mg_dl" }: Props) {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="brand-gradient inline-flex h-11 w-full items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
-        >
+        <AppButton type="submit" disabled={pending} block>
           {pending ? "Saving…" : "Save reading"}
-        </button>
+        </AppButton>
       </form>
 
       {error ? (

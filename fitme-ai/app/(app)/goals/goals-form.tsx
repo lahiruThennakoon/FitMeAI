@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfileAction } from "@/app/actions/profile";
+import { AppButton } from "@/components/app-button";
 import { useAppearance } from "@/components/theme-provider";
 import {
   ACTIVITY_MULTIPLIERS,
@@ -256,7 +257,6 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   function setOverride(key: OverrideKey, value: string) {
     setOverrides((prev) => ({ ...prev, [key]: value }));
@@ -412,7 +412,6 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
     event.preventDefault();
     setFormError(null);
     setFieldErrors({});
-    setSavedMessage(null);
 
     if (live?.safety.requiresConsent && !safetyConsent) {
       setFormError(SAFETY_CONSENT_REQUIRED_ERROR);
@@ -452,8 +451,7 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           setFieldErrors(result.fieldErrors ?? {});
           return;
         }
-        setSavedMessage("Profile and targets saved.");
-        router.refresh();
+        router.push("/dashboard");
       } catch {
         setFormError("Something went wrong. Please try again.");
       }
@@ -954,21 +952,16 @@ export function GoalsForm({ initialProfile, initialGoal }: Props) {
           {formError}
         </p>
       ) : null}
-      {savedMessage ? (
-        <p role="status" className="text-sm text-green-700 dark:text-green-400">
-          {savedMessage}
-        </p>
-      ) : null}
 
-      <button
+      <AppButton
         type="submit"
         disabled={
           pending || Boolean(live?.safety.requiresConsent && !safetyConsent)
         }
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60"
+        block
       >
         {pending ? "Saving…" : "Save profile & targets"}
-      </button>
+      </AppButton>
     </form>
   );
 }

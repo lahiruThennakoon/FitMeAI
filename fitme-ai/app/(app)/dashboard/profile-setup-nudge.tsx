@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLinkButton } from "@/components/app-button";
 
 /** Shown on Home when targets can't be computed yet (Tier 3). */
 export function ProfileSetupNudge() {
@@ -18,12 +18,9 @@ export function ProfileSetupNudge() {
         Add your height, weight, and activity level so FitMe can suggest daily
         calories and macros. Country is optional.
       </p>
-      <Link
-        href="/goals"
-        className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-brand-blue px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-blue/90"
-      >
+      <AppLinkButton href="/goals" variant="solid-blue" className="mt-4">
         Set up profile
-      </Link>
+      </AppLinkButton>
     </section>
   );
 }

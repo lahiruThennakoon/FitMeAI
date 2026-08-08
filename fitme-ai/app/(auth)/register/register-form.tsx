@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { registerAction } from "@/app/actions/auth";
+import { AppButton, AppLinkButton } from "@/components/app-button";
+import { PasswordField } from "@/components/password-field";
 import { clientFieldErrors } from "@/lib/auth/client-validation";
 import { validateEmail } from "@/lib/domain/auth/email";
 import {
@@ -71,12 +73,9 @@ export function RegisterForm() {
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           Check your email to verify your account, then sign in.
         </p>
-        <Link
-          href="/login"
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
-        >
+        <AppLinkButton href="/login" block>
           Continue to sign in
-        </Link>
+        </AppLinkButton>
       </div>
     );
   }
@@ -120,50 +119,43 @@ export function RegisterForm() {
         ) : null}
       </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-neutral-800 dark:text-neutral-200"
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (fieldErrors.password) {
-              setFieldErrors((prev) => ({ ...prev, password: undefined }));
-            }
-          }}
-          onBlur={() => {
-            const message = validateRegisterPassword(password);
-            if (message) {
-              setFieldErrors((prev) => ({ ...prev, password: message }));
-            }
-          }}
-          aria-invalid={Boolean(fieldErrors.password)}
-          aria-describedby={
-            fieldErrors.password ? "password-error" : "password-hint"
+      <PasswordField
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete="new-password"
+        value={password}
+        onChange={(next) => {
+          setPassword(next);
+          if (fieldErrors.password) {
+            setFieldErrors((prev) => ({ ...prev, password: undefined }));
           }
-          className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-        />
-        {fieldErrors.password ? (
-          <p id="password-error" role="alert" className="text-sm text-red-600">
-            {fieldErrors.password}
-          </p>
-        ) : (
-          <p
-            id="password-hint"
-            className="text-sm text-neutral-500 dark:text-neutral-400"
-          >
-            Use at least 8 characters.
-          </p>
-        )}
-      </div>
+        }}
+        onBlur={() => {
+          const message = validateRegisterPassword(password);
+          if (message) {
+            setFieldErrors((prev) => ({ ...prev, password: message }));
+          }
+        }}
+        aria-invalid={Boolean(fieldErrors.password)}
+        aria-describedby={
+          fieldErrors.password ? "password-error" : "password-hint"
+        }
+        error={
+          fieldErrors.password ? (
+            <p id="password-error" role="alert" className="text-sm text-red-600">
+              {fieldErrors.password}
+            </p>
+          ) : undefined
+        }
+        hint={
+          !fieldErrors.password ? (
+            <p id="password-hint" className="text-sm text-neutral-500">
+              At least 8 characters.
+            </p>
+          ) : undefined
+        }
+      />
 
       {formError && !fieldErrors.email && !fieldErrors.password ? (
         <p role="alert" className="text-sm text-red-600">
@@ -171,13 +163,9 @@ export function RegisterForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending} block>
         {pending ? "Creating account…" : "Create account"}
-      </button>
+      </AppButton>
 
       <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
         Already have an account?{" "}

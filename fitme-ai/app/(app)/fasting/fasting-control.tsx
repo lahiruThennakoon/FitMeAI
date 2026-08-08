@@ -10,7 +10,9 @@ import {
   updateFastingSessionAction,
 } from "@/app/actions/fasting";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { AppButton } from "@/components/app-button";
 import { useLogToast } from "@/components/log-toast-provider";
+import { btnClass } from "@/lib/ui/buttons";
 import type { FastingSessionDto } from "@/lib/dal/fasting-session";
 import {
   fromDatetimeLocalValue,
@@ -337,7 +339,7 @@ export function FastingControl({ active, nowMs }: Props) {
               <button
                 type="submit"
                 disabled={pending}
-                className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                className={btnClass("primary", { size: "sm" })}
               >
                 {pending ? "Saving…" : "Save"}
               </button>
@@ -345,7 +347,7 @@ export function FastingControl({ active, nowMs }: Props) {
                 type="button"
                 disabled={pending}
                 onClick={() => setAdjusting(false)}
-                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+                className={btnClass("secondary", { size: "sm", className: "px-3" })}
               >
                 Cancel
               </button>
@@ -383,30 +385,28 @@ export function FastingControl({ active, nowMs }: Props) {
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={onEnd}
-            className="brand-gradient inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
-          >
+          <AppButton type="button" disabled={pending} onClick={onEnd}>
             {pending ? "Ending…" : "End fast"}
-          </button>
+          </AppButton>
           {adjusting ? null : (
-            <button
+            <AppButton
               type="button"
+              variant="secondary"
               disabled={pending}
               onClick={startAdjust}
-              className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium text-neutral-700 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-200 dark:ring-neutral-600 dark:hover:bg-neutral-900"
             >
               Adjust start time
-            </button>
+            </AppButton>
           )}
           {confirmingDiscard ? null : (
             <button
               type="button"
               disabled={pending}
               onClick={() => setConfirmingDiscard(true)}
-              className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium text-neutral-500 underline-offset-2 transition hover:text-red-600 hover:underline disabled:opacity-60 dark:text-neutral-400 dark:hover:text-red-300"
+              className={btnClass("secondary", {
+                className:
+                  "bg-transparent shadow-none ring-0 text-neutral-500 underline-offset-2 hover:bg-transparent hover:underline hover:text-red-600 dark:text-neutral-400 dark:hover:bg-transparent dark:hover:text-red-300",
+              })}
             >
               Discard
             </button>
@@ -552,11 +552,7 @@ export function FastingControl({ active, nowMs }: Props) {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="brand-gradient inline-flex h-11 w-full items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
-        >
+        <AppButton type="submit" disabled={pending} block>
           {mode === "start"
             ? pending
               ? "Starting…"
@@ -564,7 +560,7 @@ export function FastingControl({ active, nowMs }: Props) {
             : pending
               ? "Saving…"
               : "Log this fast"}
-        </button>
+        </AppButton>
       </form>
 
       <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">

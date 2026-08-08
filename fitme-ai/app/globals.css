@@ -514,6 +514,25 @@ input[type="number"] {
   background: color-mix(in srgb, var(--brand-blue) 14%, transparent);
 }
 
+.app-quick-nav-item--hint {
+  color: var(--brand-blue);
+  animation: app-quick-nav-hint-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes app-quick-nav-hint-pulse {
+  0%,
+  100% {
+    background: color-mix(in srgb, var(--brand-blue) 8%, transparent);
+  }
+  50% {
+    background: color-mix(in srgb, var(--brand-blue) 18%, transparent);
+  }
+}
+
+.dark .app-quick-nav-item--hint {
+  color: rgb(147 197 253);
+}
+
 .dark .app-quick-nav-item {
   color: rgb(200 200 200);
 }

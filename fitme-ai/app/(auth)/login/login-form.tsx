@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { loginAction } from "@/app/actions/auth";
+import { AppButton } from "@/components/app-button";
+import { PasswordField } from "@/components/password-field";
 import { clientFieldErrors } from "@/lib/auth/client-validation";
 import { validateEmail } from "@/lib/domain/auth/email";
 import {
@@ -98,41 +100,34 @@ export function LoginForm() {
         ) : null}
       </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-neutral-800 dark:text-neutral-200"
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (fieldErrors.password) {
-              setFieldErrors((prev) => ({ ...prev, password: undefined }));
-            }
-          }}
-          onBlur={() => {
-            const message = validateLoginPassword(password);
-            if (message) {
-              setFieldErrors((prev) => ({ ...prev, password: message }));
-            }
-          }}
-          aria-invalid={Boolean(fieldErrors.password)}
-          aria-describedby={fieldErrors.password ? "password-error" : undefined}
-          className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-        />
-        {fieldErrors.password ? (
-          <p id="password-error" role="alert" className="text-sm text-red-600">
-            {fieldErrors.password}
-          </p>
-        ) : null}
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(next) => {
+          setPassword(next);
+          if (fieldErrors.password) {
+            setFieldErrors((prev) => ({ ...prev, password: undefined }));
+          }
+        }}
+        onBlur={() => {
+          const message = validateLoginPassword(password);
+          if (message) {
+            setFieldErrors((prev) => ({ ...prev, password: message }));
+          }
+        }}
+        aria-invalid={Boolean(fieldErrors.password)}
+        aria-describedby={fieldErrors.password ? "password-error" : undefined}
+        error={
+          fieldErrors.password ? (
+            <p id="password-error" role="alert" className="text-sm text-red-600">
+              {fieldErrors.password}
+            </p>
+          ) : undefined
+        }
+      />
 
       {formError && !fieldErrors.email && !fieldErrors.password ? (
         <p role="alert" className="text-sm text-red-600">
@@ -149,13 +144,9 @@ export function LoginForm() {
         </Link>
       </p>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending} block>
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </AppButton>
 
       <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
         New here?{" "}

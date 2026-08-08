@@ -9,7 +9,9 @@ import {
   updateWeightEntryAction,
 } from "@/app/actions/weight";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { AppButton } from "@/components/app-button";
 import { useLogToast } from "@/components/log-toast-provider";
+import { btnClass } from "@/lib/ui/buttons";
 import type { WeightEntryDto } from "@/lib/dal/weight-entry";
 import {
   fromDatetimeLocalValue,
@@ -180,7 +182,7 @@ function WeightHistoryRow({
             <button
               type="submit"
               disabled={saving}
-              className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              className={btnClass("primary", { size: "sm" })}
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -188,7 +190,7 @@ function WeightHistoryRow({
               type="button"
               disabled={saving}
               onClick={() => setEditing(false)}
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+              className={btnClass("secondary", { size: "sm", className: "px-3" })}
             >
               Cancel
             </button>
@@ -444,13 +446,9 @@ export function WeightCheckIn({
             className={fieldClass}
           />
         </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="brand-gradient inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
-        >
+        <AppButton type="submit" disabled={pending} block>
           {pending ? "Saving…" : "Save weigh-in"}
-        </button>
+        </AppButton>
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
           Backdate a missed weigh-in freely — profile weight always follows your
           most recent one.

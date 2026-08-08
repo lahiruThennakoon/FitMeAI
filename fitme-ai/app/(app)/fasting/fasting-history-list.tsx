@@ -8,6 +8,7 @@ import {
   updateFastingSessionAction,
 } from "@/app/actions/fasting";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { btnClass } from "@/lib/ui/buttons";
 import { UndoNotice } from "@/components/undo-notice";
 import type { FastingSessionDto } from "@/lib/dal/fasting-session";
 import {
@@ -275,7 +276,7 @@ function HistoryRow({
             <button
               type="submit"
               disabled={saving}
-              className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              className={btnClass("primary", { size: "sm" })}
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -283,7 +284,7 @@ function HistoryRow({
               type="button"
               disabled={saving}
               onClick={() => setEditing(false)}
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+              className={btnClass("secondary", { size: "sm", className: "px-3" })}
             >
               Cancel
             </button>

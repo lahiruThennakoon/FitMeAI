@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { resetPasswordAction } from "@/app/actions/auth";
+import { AppButton, AppLinkButton } from "@/components/app-button";
+import { PasswordField } from "@/components/password-field";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -53,50 +54,43 @@ export function ResetPasswordForm() {
         <p className="text-sm text-red-600" role="alert">
           This reset link is invalid or has expired. Request a new one.
         </p>
-        <Link
-          href="/forgot-password"
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white"
-        >
+        <AppLinkButton href="/forgot-password" block>
           Request a new link
-        </Link>
+        </AppLinkButton>
       </div>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-neutral-800 dark:text-neutral-200"
-        >
-          New password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={Boolean(fieldErrors.password)}
-          aria-describedby={
-            fieldErrors.password ? "password-error" : "password-hint"
-          }
-          className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950"
-        />
-        {fieldErrors.password ? (
-          <p id="password-error" role="alert" className="text-sm text-red-600">
-            {fieldErrors.password}
-          </p>
-        ) : (
-          <p id="password-hint" className="text-sm text-neutral-500">
-            Use at least 8 characters.
-          </p>
-        )}
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="New password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        value={password}
+        onChange={setPassword}
+        aria-invalid={Boolean(fieldErrors.password)}
+        aria-describedby={
+          fieldErrors.password ? "password-error" : "password-hint"
+        }
+        error={
+          fieldErrors.password ? (
+            <p id="password-error" role="alert" className="text-sm text-red-600">
+              {fieldErrors.password}
+            </p>
+          ) : undefined
+        }
+        hint={
+          !fieldErrors.password ? (
+            <p id="password-hint" className="text-sm text-neutral-500">
+              Use at least 8 characters.
+            </p>
+          ) : undefined
+        }
+      />
 
       {formError && !fieldErrors.password ? (
         <p role="alert" className="text-sm text-red-600">
@@ -104,13 +98,9 @@ export function ResetPasswordForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending || !token}
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending || !token} block>
         {pending ? "Updating password…" : "Update password"}
-      </button>
+      </AppButton>
     </form>
   );
 }

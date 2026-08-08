@@ -17,6 +17,7 @@ import {
   isWithinDay,
   nextZonedDayKey,
   previousZonedDayKey,
+  resolveDashboardHeaderBlurb,
   resolveHomeDaySelection,
 } from "@/lib/domain/dashboard/day-bounds";
 import { gToKg } from "@/lib/domain/targets/units";
@@ -27,6 +28,8 @@ import { TodayMealsList } from "./today-meals-list";
 import { FastingStatusChip } from "./fasting-status-chip";
 import { GlucoseGlance } from "./glucose-glance";
 import { ProfileSetupNudge } from "./profile-setup-nudge";
+import { FirstVisitGuide } from "./first-visit-guide";
+import { GettingStartedChecklist } from "./getting-started-checklist";
 import { SignOutButton } from "../sign-out-button";
 
 type PageProps = {
@@ -123,6 +126,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const displayName = user?.name?.trim() || "there";
   const mealsHeading = labels.mealsHeading;
   const exerciseHeading = labels.exerciseHeading;
+  const hasEverLoggedMeal = entries.length > 0;
+  const onboardingMode = isToday && !hasEverLoggedMeal;
+  const firstVisitMode = onboardingMode && summary.mealCount === 0;
+  const showMealsLogCta = isToday && summary.mealCount === 0;
+  const headerBlurb = resolveDashboardHeaderBlurb(labels, {
+    showFirstVisit: onboardingMode,
+  });
 
   return (
     <main className="relative mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-5 py-10">
@@ -142,11 +152,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           className="dashboard-helper-text text-sm leading-relaxed text-neutral-600 dark:text-neutral-300"
           data-testid="dashboard-header-blurb"
         >
-          {labels.headerBlurb}
+          {headerBlurb}
         </p>
       </header>
 
-      {!profile ? <ProfileSetupNudge /> : null}
+      {firstVisitMode ? <FirstVisitGuide hasProfile={profile != null} /> : null}
+
+      {onboardingMode ? (
+        <GettingStartedChecklist
+          hasProfile={profile != null}
+          hasEverLoggedMeal={hasEverLoggedMeal}
+        />
+      ) : null}
+
+      {!profile && !onboardingMode ? <ProfileSetupNudge /> : null}
 
       <DaySwitcher
         todayKey={todayKey}
@@ -163,6 +182,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         labels={labels}
         waterEntries={dayWaterEntries}
         waterLogAtIso={waterLogAtIso}
+        compactMode={firstVisitMode}
       />
 
       {activeFast ? (
@@ -191,7 +211,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <TodayMealsList entries={mealRows} labels={labels} />
+        <TodayMealsList
+          entries={mealRows}
+          labels={labels}
+          showLogCta={showMealsLogCta}
+        />
       </section>
 
       <section

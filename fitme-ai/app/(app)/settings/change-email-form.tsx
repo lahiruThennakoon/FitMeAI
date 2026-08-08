@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { changeEmailAction } from "@/app/actions/auth";
+import { AppButton } from "@/components/app-button";
 
 export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
   const [pending, startTransition] = useTransition();
@@ -77,13 +78,9 @@ export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-brand-blue px-6 text-base font-medium text-brand-blue transition hover:bg-brand-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending} variant="outline-brand" block>
         {pending ? "Sending confirmation…" : "Change email"}
-      </button>
+      </AppButton>
     </form>
   );
 }

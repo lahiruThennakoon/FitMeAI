@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { saveDisplayPreferencesAction } from "@/app/actions/profile";
+import { AppButton } from "@/components/app-button";
 import type { GlucoseDisplayUnit } from "@/lib/domain/glucose/units";
 import type { PreferredUnits } from "@/lib/domain/targets/units";
 
@@ -187,13 +188,9 @@ export function DisplayPreferencesForm({
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending || !dirty}
-        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-blue px-6 text-base font-medium text-white shadow-sm transition hover:bg-brand-blue/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending || !dirty} variant="solid-blue" block>
         {pending ? "Saving…" : "Save preferences"}
-      </button>
+      </AppButton>
     </form>
   );
 }

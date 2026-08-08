@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { requestPasswordResetAction } from "@/app/actions/auth";
+import { AppButton, AppLinkButton } from "@/components/app-button";
 
 export function ForgotPasswordForm() {
   const [pending, startTransition] = useTransition();
@@ -37,12 +38,9 @@ export function ForgotPasswordForm() {
         <p className="text-sm text-neutral-700 dark:text-neutral-300">
           {successMessage}
         </p>
-        <Link
-          href="/login"
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
-        >
+        <AppLinkButton href="/login" block>
           Back to sign in
-        </Link>
+        </AppLinkButton>
       </div>
     );
   }
@@ -81,13 +79,9 @@ export function ForgotPasswordForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending} block>
         {pending ? "Sending link…" : "Send reset link"}
-      </button>
+      </AppButton>
 
       <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
         Remember your password?{" "}

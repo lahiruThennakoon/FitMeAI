@@ -19,6 +19,8 @@ type Props = {
   waterEntries: WaterEntryDto[];
   /** Instant to stamp quick-adds with; null on today (uses "now"). */
   waterLogAtIso: string | null;
+  /** Hide heavy analytics until the user has logged food today. */
+  compactMode?: boolean;
 };
 
 function fmt(v: number, unit: string): string {
@@ -136,19 +138,19 @@ function ProgressBar({
   /** `ratio` arrives clamped to 1, so recompute to recover the overage. */
   const trueRatio = hasTarget ? consumed / target : null;
   const isOver = trueRatio != null && trueRatio > OVER_TOLERANCE;
-  /**
-   * Past the aim the bar stays full and only the slice beyond the aim turns red.
-   * The colour boundary lands at 1/ratio, so it marks the target while the red
-   * width grows with the overage — 105% no longer looks like 155%.
-   */
-  const overSharePct = trueRatio && isOver ? (1 - 1 / trueRatio) * 100 : 0;
+  const overAmount =
+    isOver && target != null ? Math.round(consumed - target) : 0;
+  /** Sugar/sodium use WHO soft limits — copy says "limit" not "aim". */
+  const aimLabel = targetNote ? "limit" : "aim";
+  const overflowWidthPct =
+    trueRatio && isOver ? (trueRatio - 1) * 100 : 0;
 
   const valueText = !hasTarget
     ? undefined
     : isOver
-      ? `${Math.round(consumed)} of ${Math.round(target)} ${unit} — ${Math.round(
+      ? `${Math.round(consumed)} ${unit}, +${overAmount} ${unit} over ${aimLabel}, ${Math.round(
           trueRatio * 100,
-        )}% of aim, ${Math.round(consumed - target)} ${unit} over`
+        )}% of ${aimLabel}`
       : `${Math.round(consumed)} of ${Math.round(target)} ${unit} — ${barPct}% of aim`;
 
   return (
@@ -160,48 +162,63 @@ function ProgressBar({
           {label}
         </span>
         <span className="inline-flex items-center gap-1.5 tabular-nums text-neutral-600 dark:text-neutral-300">
-          {isOver ? (
-            <DeviationMark
-              kind="up"
-              label={`${label} over daily aim`}
-              size="sm"
-              alert
-            />
-          ) : null}
           {target != null ? (
-            <>
-              <span className="font-medium text-neutral-800 dark:text-neutral-100">
-                {Math.round(consumed)}
-              </span>
-              <span className="text-neutral-400 dark:text-neutral-500">
-                of {Math.round(target)} {unit}
-              </span>
-            </>
+            isOver ? (
+              <>
+                <span className="font-medium text-neutral-800 dark:text-neutral-100">
+                  {Math.round(consumed)} {unit}
+                </span>
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  · +{overAmount} over {aimLabel}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-neutral-800 dark:text-neutral-100">
+                  {Math.round(consumed)}
+                </span>
+                <span className="text-neutral-400 dark:text-neutral-500">
+                  of {Math.round(target)} {unit}
+                </span>
+              </>
+            )
           ) : (
             fmt(consumed, unit)
           )}
         </span>
       </div>
-      <MeterTrack
-        trackClass={theme.track}
-        label={`${label} progress`}
-        valueNow={hasTarget ? barPct : undefined}
-        valueText={valueText}
+      <div
+        className="mt-2 flex h-2.5 w-full overflow-visible"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={hasTarget ? Math.min(100, barPct) : undefined}
+        aria-valuetext={valueText}
+        aria-label={`${label} progress`}
       >
         <div
-          className={`h-full rounded-full transition-[width] duration-500 ease-out ${theme.fill} ${
-            hasFill ? theme.glow : ""
-          }`}
-          style={{ width: hasTarget ? `${barPct}%` : "0%" }}
-        />
-        {overSharePct > 0 ? (
+          className={`relative h-full min-w-0 flex-1 rounded-full p-px shadow-[inset_0_1px_2px_rgba(15,23,42,0.16)] dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] ${theme.track}`}
+        >
+          <div className="relative h-full overflow-hidden rounded-full">
+            <div
+              className={`h-full rounded-full transition-[width] duration-500 ease-out ${theme.fill} ${
+                hasFill && !isOver ? theme.glow : ""
+              }`}
+              style={{
+                width: hasTarget ? `${isOver ? 100 : barPct}%` : "0%",
+              }}
+            />
+          </div>
+        </div>
+        {isOver && overflowWidthPct > 0 ? (
           <div
-            className="absolute inset-y-0 right-0 rounded-r-full bg-red-500/90 shadow-[inset_1px_0_0_rgba(255,255,255,0.65)] transition-[width] duration-500 ease-out"
-            style={{ width: `${overSharePct}%` }}
+            data-testid="macro-overflow"
+            className="h-full shrink-0 rounded-r-full bg-red-500/95 shadow-[inset_1px_0_0_rgba(255,255,255,0.65)] transition-[width] duration-500 ease-out"
+            style={{ width: `${overflowWidthPct}%` }}
             aria-hidden="true"
           />
         ) : null}
-      </MeterTrack>
+      </div>
       {targetNote ? (
         <p className="mt-1.5 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400">
           {targetNote}
@@ -373,6 +390,7 @@ export function DailySummaryPanel({
   labels,
   waterEntries,
   waterLogAtIso,
+  compactMode = false,
 }: Props) {
   const net = summary.netKcal;
   const remaining = summary.remainingKcal;
@@ -518,7 +536,7 @@ export function DailySummaryPanel({
         </div>
       </dl>
 
-      {summary.remainingBasis ? (
+      {summary.remainingBasis && !compactMode ? (
         <p
           className="rounded-xl border border-neutral-200/70 bg-neutral-50/70 px-3 py-2 text-[11px] leading-snug text-neutral-600 dark:border-neutral-700/80 dark:bg-neutral-950/40 dark:text-neutral-300"
           data-testid="remaining-basis"
@@ -527,13 +545,15 @@ export function DailySummaryPanel({
         </p>
       ) : null}
 
-      <MovementAims
-        exerciseMinutes={summary.exerciseMinutes}
-        exerciseMinutesTarget={summary.exerciseMinutesTarget}
-        stepsTarget={summary.stepsTarget}
-      />
+      {!compactMode ? (
+        <MovementAims
+          exerciseMinutes={summary.exerciseMinutes}
+          exerciseMinutesTarget={summary.exerciseMinutesTarget}
+          stepsTarget={summary.stepsTarget}
+        />
+      ) : null}
 
-      {summary.baseline && net != null ? (
+      {!compactMode && summary.baseline && net != null ? (
         <EnergyBalanceCard
           intakeKcal={summary.intakeKcal}
           exerciseKcal={summary.exerciseKcal}
@@ -541,31 +561,42 @@ export function DailySummaryPanel({
           netKcal={net}
           energyTitle={labels.energyTitle}
         />
-      ) : (
+      ) : null}
+
+      {!compactMode && !summary.baseline ? (
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
           Intake is shown above. Add a profile to unlock Baseline Burn and net
           calories.
         </p>
-      )}
+      ) : null}
 
-      <div className="space-y-2.5 border-t border-neutral-200 pt-4 dark:border-neutral-700">
+      <div className="space-y-2.5 overflow-x-visible border-t border-neutral-200 pt-4 dark:border-neutral-700">
         <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
           Macros
         </p>
-        <div className="grid gap-2.5">
-          {summary.progress.map((p) => (
-            <ProgressBar
-              key={p.key}
-              label={p.label}
-              consumed={p.consumed}
-              target={p.target}
-              ratio={p.ratio}
-              unit={p.unit}
-              themeKey={p.key}
-              targetNote={p.targetNote}
-            />
-          ))}
-        </div>
+        {compactMode ? (
+          <p
+            className="rounded-xl border border-dashed border-neutral-300/80 bg-neutral-50/60 px-3 py-4 text-sm leading-relaxed text-neutral-600 dark:border-neutral-600 dark:bg-neutral-950/30 dark:text-neutral-300"
+            data-testid="macros-placeholder"
+          >
+            Log food to see calories, protein, and other macros here.
+          </p>
+        ) : (
+          <div className="grid gap-2.5">
+            {summary.progress.map((p) => (
+              <ProgressBar
+                key={p.key}
+                label={p.label}
+                consumed={p.consumed}
+                target={p.target}
+                ratio={p.ratio}
+                unit={p.unit}
+                themeKey={p.key}
+                targetNote={p.targetNote}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { saveExerciseEntryAction } from "@/app/actions/exercise";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { AppButton, AppLinkButton } from "@/components/app-button";
 import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
@@ -351,19 +351,12 @@ export function ExerciseForm({ weightKg, units }: Props) {
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <button
-          type="submit"
-          disabled={pending}
-          className="brand-gradient inline-flex h-12 flex-1 items-center justify-center rounded-xl px-5 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
-        >
+        <AppButton type="submit" disabled={pending} flex1>
           {pending ? "Saving…" : "Save workout"}
-        </button>
-        <Link
-          href="/dashboard"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
-        >
+        </AppButton>
+        <AppLinkButton href="/dashboard" variant="secondary">
           Cancel
-        </Link>
+        </AppLinkButton>
       </div>
     </form>
   );

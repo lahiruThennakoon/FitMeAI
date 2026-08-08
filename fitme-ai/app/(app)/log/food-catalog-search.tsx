@@ -36,7 +36,8 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<FoodSearchHit[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [searchPending, startSearchTransition] = useTransition();
+  const [logPending, startLogTransition] = useTransition();
   const [servingsRaw, setServingsRaw] = useState("1");
   const [mealType, setMealType] = useState<MealType>("unknown");
   const servings = servingsFrom(servingsRaw);
@@ -50,7 +51,7 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
     }
     const generation = ++searchGeneration.current;
     const handle = window.setTimeout(() => {
-      startTransition(async () => {
+      startSearchTransition(async () => {
         const result = await searchFoodCatalogAction({ query: trimmed });
         if (generation !== searchGeneration.current) return;
         if (!result.ok) {
@@ -80,7 +81,7 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
         ? `${servings} ${servings === 1 ? "serving" : "servings"}`
         : `${servings} ${servings === 1 ? "serving" : "servings"} · ${mealTypeLabel(mealType)}`;
 
-    startTransition(async () => {
+    startLogTransition(async () => {
       if (isBrowserOffline()) {
         appendWriteQueue({
           ...payload,
@@ -129,10 +130,10 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
             id="catalog-search"
             type="search"
             value={query}
-            disabled={pending}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. oats, chicken, rice"
-            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+            aria-busy={searchPending}
+            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
           />
         </div>
         <div>
@@ -149,9 +150,8 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
             min={0.25}
             step="0.25"
             value={servingsRaw}
-            disabled={pending}
             onChange={(e) => setServingsRaw(e.target.value)}
-            className="mt-1 w-20 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+            className="mt-1 w-20 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
           />
         </div>
         <div>
@@ -164,9 +164,8 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
           <select
             id="catalog-meal-type"
             value={mealType}
-            disabled={pending}
             onChange={(e) => setMealType(e.target.value as MealType)}
-            className="mt-1 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+            className="mt-1 rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
           >
             {MEAL_TYPE_OPTIONS.map(([value, label]) => (
               <option key={value} value={value}>
@@ -177,7 +176,7 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
         </div>
       </div>
 
-      {trimmed.length >= 2 && hits.length === 0 && !pending ? (
+      {trimmed.length >= 2 && hits.length === 0 && !searchPending ? (
         <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
           No catalog match for “{trimmed}”. Try AI parse below.
         </p>
@@ -204,7 +203,7 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
                 {onAddToReview ? (
                   <button
                     type="button"
-                    disabled={pending}
+                    disabled={logPending}
                     onClick={() => onAddToReview(hit)}
                     className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-900"
                   >
@@ -213,7 +212,7 @@ export function FoodCatalogSearch({ onAddToReview }: Props) {
                 ) : null}
                 <button
                   type="button"
-                  disabled={pending}
+                  disabled={logPending}
                   onClick={() => logHit(hit)}
                   className="rounded-lg bg-brand-blue/10 px-2.5 py-1 text-xs font-medium text-brand-blue transition hover:bg-brand-blue/15 disabled:opacity-50 dark:text-blue-300"
                 >

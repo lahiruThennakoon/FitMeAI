@@ -8,6 +8,7 @@ import {
   updateExerciseEntryAction,
 } from "@/app/actions/exercise";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { btnClass } from "@/lib/ui/buttons";
 import { useLogToast } from "@/components/log-toast-provider";
 import {
   fromDatetimeLocalValue,
@@ -617,7 +618,7 @@ function ExerciseRow({
             <button
               type="submit"
               disabled={pending}
-              className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              className={btnClass("primary", { size: "sm" })}
             >
               {pending ? "Saving…" : "Save"}
             </button>
@@ -625,7 +626,7 @@ function ExerciseRow({
               type="button"
               disabled={pending}
               onClick={cancelEdit}
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+              className={btnClass("secondary", { size: "sm", className: "px-3" })}
             >
               Cancel
             </button>

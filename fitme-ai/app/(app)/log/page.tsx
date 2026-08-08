@@ -26,7 +26,7 @@ export default async function LogPage() {
       eyebrow="Log food"
       emoji="🍽️"
       title="What did you eat?"
-      description="Pick a recent meal, search the catalog, tap a cached staple, or describe something new. Nothing is saved until you confirm."
+      description="Describe a meal in plain language, tap a cached staple, or pick a recent favorite. Nothing is saved until you confirm."
     >
       <LogPageContent
         recent={recent}

@@ -131,7 +131,7 @@ function isMoreRoute(pathname: string) {
   );
 }
 
-export function AppQuickNav() {
+export function AppQuickNav({ highlightLogNav = false }: { highlightLogNav?: boolean }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -172,6 +172,8 @@ export function AppQuickNav() {
       <div className="app-quick-nav-inner">
         {NAV_ITEMS.map((item) => {
           const active = item.match(pathname) && !moreOpen;
+          const isLogItem = item.href === "/log";
+          const showStartHint = highlightLogNav && isLogItem && !active;
           return (
             <Link
               key={item.href}
@@ -181,11 +183,13 @@ export function AppQuickNav() {
               className={
                 active
                   ? "app-quick-nav-item app-quick-nav-item--active"
-                  : "app-quick-nav-item"
+                  : showStartHint
+                    ? "app-quick-nav-item app-quick-nav-item--hint"
+                    : "app-quick-nav-item"
               }
             >
               {item.icon(active)}
-              <span>{item.shortLabel}</span>
+              <span>{showStartHint ? "Start here" : item.shortLabel}</span>
             </Link>
           );
         })}

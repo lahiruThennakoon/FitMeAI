@@ -8,6 +8,8 @@ import {
   updateFoodEntryAction,
 } from "@/app/actions/food-entry";
 import { DatetimeLocalField } from "@/components/datetime-local-field";
+import { AppLinkButton } from "@/components/app-button";
+import { btnClass } from "@/lib/ui/buttons";
 import { useLogToast } from "@/components/log-toast-provider";
 import type { HomeDayLabels } from "@/lib/domain/dashboard/day-bounds";
 import type { FoodEntryEditableDto } from "@/lib/dal/food-entry";
@@ -130,13 +132,15 @@ function unitOptions(current: string): string[] {
 type Props = {
   entries: FoodEntryEditableDto[];
   labels: HomeDayLabels;
+  /** Show a primary log button in the empty state (first visit today). */
+  showLogCta?: boolean;
 };
 
 /**
  * Today's meal list with inline edit/soft-delete (Story 5.2 / FR-9 correction
  * path). Fixing a mistake is calm and reversible-feeling — no shame copy.
  */
-export function TodayMealsList({ entries, labels }: Props) {
+export function TodayMealsList({ entries, labels, showLogCta = false }: Props) {
   const router = useRouter();
   const { showLogToast } = useLogToast();
   const [, startUndo] = useTransition();
@@ -163,6 +167,15 @@ export function TodayMealsList({ entries, labels }: Props) {
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
           {labels.mealsEmpty}
         </p>
+        {showLogCta ? (
+          <AppLinkButton
+            href="/log"
+            className="mt-4"
+            data-testid="meals-empty-log-cta"
+          >
+            Log food
+          </AppLinkButton>
+        ) : null}
       </div>
     );
   }
@@ -546,7 +559,7 @@ function MealRow({
             <button
               type="submit"
               disabled={pending}
-              className="brand-gradient inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              className={btnClass("primary", { size: "sm" })}
             >
               {pending ? "Saving…" : "Save"}
             </button>
@@ -554,7 +567,7 @@ function MealRow({
               type="button"
               disabled={pending}
               onClick={() => setMode("view")}
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-neutral-600 ring-1 ring-inset ring-neutral-300 transition hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-900"
+              className={btnClass("secondary", { size: "sm", className: "px-3" })}
             >
               Cancel
             </button>

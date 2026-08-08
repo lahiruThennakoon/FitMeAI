@@ -15,6 +15,8 @@ import {
   saveMealDraftAction,
 } from "@/app/actions/log";
 import { useLogToast } from "@/components/log-toast-provider";
+import { AppButton, AppLinkButton } from "@/components/app-button";
+import { btnClass } from "@/lib/ui/buttons";
 import {
   PARSE_QUEUE_EVENT,
   appendParseQueue,
@@ -596,13 +598,9 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={pending || !text.trim()}
-          className="brand-gradient inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
-        >
+        <AppButton type="submit" disabled={pending || !text.trim()} block>
           {pending ? "Parsing…" : "Parse meal"}
-        </button>
+        </AppButton>
       </form>
 
       <ParseLoading active={pending} />
@@ -824,22 +822,23 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
             ))}
           </ul>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button
+            <AppButton
               type="button"
               disabled={saving || pending}
               onClick={onSave}
-              className="brand-gradient inline-flex h-12 flex-1 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50"
+              flex1
             >
               {saving ? "Saving…" : "Save log"}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               type="button"
+              variant="secondary"
               disabled={saving || pending}
               onClick={onDiscard}
-              className="inline-flex h-12 flex-1 items-center justify-center rounded-xl px-6 text-base font-medium text-neutral-700 ring-1 ring-inset ring-neutral-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50 dark:text-neutral-200 dark:ring-neutral-600"
+              flex1
             >
               Discard
-            </button>
+            </AppButton>
           </div>
           <p className="text-xs text-neutral-500">
             Nothing is stored until you tap Save log. Discard clears this review
@@ -885,7 +884,7 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
                 />
                 <button
                   type="submit"
-                  className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/30"
+                  className={btnClass("outline-brand", { size: "sm" })}
                 >
                   Add
                 </button>
@@ -903,12 +902,9 @@ export function LogMealForm({ ref, aiParsesRemaining = null, freePlan = false }:
         </button>
       )}
 
-      <Link
-        href="/dashboard"
-        className="inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-base font-medium text-brand-blue ring-1 ring-inset ring-brand-blue/30"
-      >
+      <AppLinkButton href="/dashboard" variant="outline-brand" block>
         Back to dashboard
-      </Link>
+      </AppLinkButton>
     </div>
   );
 }

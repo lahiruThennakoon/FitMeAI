@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { AppLinkButton } from "@/components/app-button";
 
 export default function Home() {
   return (
@@ -39,18 +39,17 @@ export default function Home() {
       </section>
 
       <div className="flex flex-col gap-3">
-        <Link
-          href="/register"
-          className="brand-gradient inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-white shadow-md shadow-brand-blue/25 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue"
-        >
+        <AppLinkButton href="/register" variant="primary" block>
           Get started
-        </Link>
-        <Link
+        </AppLinkButton>
+        <AppLinkButton
           href="/login"
-          className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base font-medium text-brand-teal ring-1 ring-inset ring-brand-teal/40 transition hover:bg-brand-teal/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-teal dark:text-teal-200 dark:hover:bg-brand-teal/15"
+          variant="secondary"
+          block
+          className="text-brand-teal ring-brand-teal/40 hover:bg-brand-teal/10 focus-visible:outline-brand-teal dark:text-teal-200 dark:hover:bg-brand-teal/15"
         >
           I already have an account
-        </Link>
+        </AppLinkButton>
       </div>
 
       <p className="text-center text-[11px] leading-snug text-neutral-400 dark:text-neutral-500">

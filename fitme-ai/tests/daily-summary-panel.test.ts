@@ -211,8 +211,8 @@ describe("DailySummaryPanel", () => {
     expect(html).not.toContain('data-deviation="alert-over"');
   });
 
-  it("scales the over-target slice so a small overage differs from a large one", () => {
-    function overWidths(fatG: number) {
+  it("extends red overflow past the aim track when over target", () => {
+    function overHtml(fatG: number) {
       const summary = buildDailySummary({
         dayKey: "2026-07-26",
         entries: [
@@ -231,22 +231,22 @@ describe("DailySummaryPanel", () => {
         profile,
         goal,
       });
-      const html = renderToStaticMarkup(
+      return renderToStaticMarkup(
         createElement(DailySummaryPanel, { summary, labels: panelLabels(), waterEntries: [], waterLogAtIso: null }),
       );
-      return html;
     }
 
     // Fat aim is 70 g. Just over vs. far over must not render identically.
-    const slightlyOver = overWidths(74);
-    const farOver = overWidths(140);
+    const slightlyOver = overHtml(74);
+    const farOver = overHtml(140);
 
-    // The macro keeps its own colour; only the excess slice is red.
     expect(slightlyOver).toContain("bg-amber-500");
-    expect(slightlyOver).toContain("bg-red-500/90");
+    expect(slightlyOver).toContain('data-testid="macro-overflow"');
+    expect(slightlyOver).toContain("+4 over aim");
+    expect(slightlyOver).not.toContain("74 of 70");
 
     const widthOf = (html: string) =>
-      [...html.matchAll(/bg-red-500\/90[^"]*"\s+style="width:([\d.]+)%/g)].map(
+      [...html.matchAll(/data-testid="macro-overflow"[^>]*style="width:([\d.]+)%/g)].map(
         (m) => Number(m[1]),
       );
 
@@ -255,9 +255,9 @@ describe("DailySummaryPanel", () => {
     expect(smallSlice.length).toBeGreaterThan(0);
     expect(bigSlice.length).toBeGreaterThan(0);
     expect(bigSlice[0]).toBeGreaterThan(smallSlice[0]);
-    // 74 of 70 → ~5% excess; 140 of 70 → 50% excess.
+    // 74 of 70 → ~5.7% overflow; 140 of 70 → 100% overflow past the aim track.
     expect(smallSlice[0]).toBeLessThan(10);
-    expect(bigSlice[0]).toBeCloseTo(50, 0);
+    expect(bigSlice[0]).toBeCloseTo(100, 0);
   });
 
   it("keeps the real percentage available to assistive tech when over the aim", () => {
@@ -283,7 +283,7 @@ describe("DailySummaryPanel", () => {
       createElement(DailySummaryPanel, { summary, labels: panelLabels(), waterEntries: [], waterLogAtIso: null }),
     );
     // aria-valuenow saturates at 100; valuetext must still carry the overage.
-    expect(html).toContain("200% of aim, 70 g over");
+    expect(html).toContain("+70 g over aim, 200% of aim");
   });
 
   it("labels the water target as a default when there is no goal", () => {
@@ -319,5 +319,29 @@ describe("DailySummaryPanel", () => {
     expect(html).toContain("fl oz");
     expect(html).not.toContain("of 2450 ml");
     expect(summary.waterMlTarget).toBe(2450);
+  });
+
+  it("hides advanced analytics in compact first-visit mode", () => {
+    const summary = buildDailySummary({
+      dayKey: "2026-07-26",
+      entries: [],
+      exerciseKcal: 0,
+      waterMlConsumed: 0,
+      profile,
+      goal,
+    });
+    const html = renderToStaticMarkup(
+      createElement(DailySummaryPanel, {
+        summary,
+        labels: panelLabels(),
+        waterEntries: [],
+        waterLogAtIso: null,
+        compactMode: true,
+      }),
+    );
+    expect(html).toContain('data-testid="macros-placeholder"');
+    expect(html).not.toContain('data-testid="energy-balance"');
+    expect(html).not.toContain('data-testid="movement-aims"');
+    expect(html).toContain('data-testid="water-card"');
   });
 });

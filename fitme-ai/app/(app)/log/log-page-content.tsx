@@ -36,12 +36,18 @@ export function LogPageContent({
         return;
       }
       formRef.current?.addDraft(result.data);
-      setCatalogMessage(`Review ${result.data.name} below, then save.`);
+      setCatalogMessage(`Review ${result.data.name} in the form above, then save.`);
     });
   }
 
   return (
     <>
+      <LogMealForm
+        ref={formRef}
+        aiParsesRemaining={aiParsesRemaining}
+        freePlan={freePlan}
+      />
+      <InstantLog />
       <RecentFavorites
         recent={recent}
         favorites={favorites}
@@ -57,12 +63,6 @@ export function LogPageContent({
           {catalogMessage}
         </p>
       ) : null}
-      <InstantLog />
-      <LogMealForm
-        ref={formRef}
-        aiParsesRemaining={aiParsesRemaining}
-        freePlan={freePlan}
-      />
     </>
   );
 }

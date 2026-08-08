@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { saveNotificationPreferencesAction } from "@/app/actions/profile";
+import { AppButton } from "@/components/app-button";
 
 type Props = {
   notifyFastingEnd: boolean;
@@ -86,13 +87,9 @@ export function NotificationPreferencesForm({
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending || !dirty}
-        className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-blue px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <AppButton type="submit" disabled={pending || !dirty} variant="solid-blue">
         {pending ? "Saving…" : "Save reminders"}
-      </button>
+      </AppButton>
     </form>
   );
 }

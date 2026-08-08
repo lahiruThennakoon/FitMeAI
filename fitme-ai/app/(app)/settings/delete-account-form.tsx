@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteAccountAction } from "@/app/actions/auth";
+import { AppButton } from "@/components/app-button";
+import { PasswordField } from "@/components/password-field";
 
 export function DeleteAccountForm() {
   const router = useRouter();
@@ -47,37 +49,30 @@ export function DeleteAccountForm() {
         account. This cannot be undone.
       </p>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="delete-password"
-          className="block text-sm font-medium text-neutral-800 dark:text-neutral-200"
-        >
-          Current password
-        </label>
-        <input
-          id="delete-password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={Boolean(fieldErrors.password)}
-          aria-describedby={
-            fieldErrors.password ? "delete-password-error" : undefined
-          }
-          className="h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base outline-none ring-brand-blue/30 focus-visible:ring-2 dark:border-neutral-700 dark:bg-neutral-950"
-        />
-        {fieldErrors.password ? (
-          <p
-            id="delete-password-error"
-            role="alert"
-            className="text-sm text-red-600"
-          >
-            {fieldErrors.password}
-          </p>
-        ) : null}
-      </div>
+      <PasswordField
+        id="delete-password"
+        name="password"
+        label="Current password"
+        autoComplete="current-password"
+        required
+        value={password}
+        onChange={setPassword}
+        aria-invalid={Boolean(fieldErrors.password)}
+        aria-describedby={
+          fieldErrors.password ? "delete-password-error" : undefined
+        }
+        error={
+          fieldErrors.password ? (
+            <p
+              id="delete-password-error"
+              role="alert"
+              className="text-sm text-red-600"
+            >
+              {fieldErrors.password}
+            </p>
+          ) : undefined
+        }
+      />
 
       <div className="space-y-2">
         <label
@@ -117,13 +112,9 @@ export function DeleteAccountForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-red-600 px-6 text-base font-medium text-white shadow-sm transition hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <AppButton type="submit" disabled={pending} variant="danger" block>
         {pending ? "Deleting account…" : "Delete my account permanently"}
-      </button>
+      </AppButton>
     </form>
   );
 }
