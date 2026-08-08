@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { AppButton } from "@/components/app-button";
 
-const DISMISS_KEY = "fitme-pwa-install-dismissed";
-const DISMISS_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+/** Session-only: banner returns on the next browser visit. */
+const DISMISS_KEY = "fitme-pwa-install-dismissed-session";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -15,48 +15,42 @@ function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return true;
   const mq = window.matchMedia("(display-mode: standalone)");
   if (mq.matches) return true;
-  // iOS Safari legacy
+  // iOS Safari / WebKit legacy home-screen launch
   const nav = window.navigator as Navigator & { standalone?: boolean };
   return Boolean(nav.standalone);
 }
 
-function isIosSafari(): boolean {
+/** Any iPhone/iPad browser (all use WebKit; none fire beforeinstallprompt). */
+function isIosBrowser(): boolean {
   if (typeof window === "undefined") return false;
   const ua = window.navigator.userAgent;
-  const iOS =
-    /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  // Chrome/Firefox/Edge on iOS do not support Add to Home Screen the same way.
   return (
-    iOS &&
-    /Safari/.test(ua) &&
-    !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
   );
 }
 
-function wasDismissedRecently(): boolean {
+function wasDismissedThisSession(): boolean {
   try {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const at = Number(raw);
-    if (!Number.isFinite(at)) return false;
-    return Date.now() - at < DISMISS_MS;
+    return sessionStorage.getItem(DISMISS_KEY) === "1";
   } catch {
     return false;
   }
 }
 
-function markDismissed(): void {
+function markDismissedThisSession(): void {
   try {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    sessionStorage.setItem(DISMISS_KEY, "1");
   } catch {
     // ignore quota / private mode
   }
 }
 
 /**
- * In-app install nudge: Android/desktop via beforeinstallprompt;
- * iOS Safari gets Share → Add to Home Screen instructions.
+ * In-app install nudge.
+ * - iOS browser: always show Add to Home Screen instructions (no BIP API).
+ * - Android/desktop: show when beforeinstallprompt is available.
+ * Hidden only in standalone / installed PWA mode.
  */
 export function PwaInstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
@@ -68,9 +62,9 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (isStandaloneDisplay()) return;
-    if (wasDismissedRecently()) return;
+    if (wasDismissedThisSession()) return;
 
-    if (isIosSafari()) {
+    if (isIosBrowser()) {
       setShowIosHint(true);
       setVisible(true);
       return;
@@ -89,7 +83,7 @@ export function PwaInstallPrompt() {
   if (!visible) return null;
 
   const dismiss = () => {
-    markDismissed();
+    markDismissedThisSession();
     setVisible(false);
     setDeferred(null);
     setShowIosHint(false);
@@ -103,7 +97,7 @@ export function PwaInstallPrompt() {
     } catch {
       // User dismissed or browser rejected — keep quiet
     } finally {
-      markDismissed();
+      markDismissedThisSession();
       setVisible(false);
       setDeferred(null);
     }
@@ -112,11 +106,11 @@ export function PwaInstallPrompt() {
   return (
     <div className="pwa-install-prompt" role="region" aria-label="Install FitMe">
       <div className="pwa-install-prompt-copy">
-        <p className="pwa-install-prompt-title">Install FitMe</p>
+        <p className="pwa-install-prompt-title">Add FitMe to Home Screen</p>
         <p className="pwa-install-prompt-body">
           {showIosHint
-            ? "Tap Share, then Add to Home Screen for a full-screen app."
-            : "Add FitMe to your home screen for faster logging."}
+            ? "Tap Share, then Add to Home Screen to use FitMe like an app."
+            : "Install FitMe for faster logging and offline quick log."}
         </p>
       </div>
       <div className="pwa-install-prompt-actions">
