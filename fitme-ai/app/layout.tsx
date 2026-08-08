@@ -26,7 +26,12 @@ export const metadata: Metadata = {
     "Accuracy-first calorie & nutrition tracker with Sri Lankan food support.",
   manifest: "/manifest.webmanifest",
   applicationName: "FitMe AI",
-  appleWebApp: { capable: true, title: "FitMe AI", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true,
+    title: "FitMe AI",
+    // Translucent bar + body safe-area padding keeps content clear of the notch.
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

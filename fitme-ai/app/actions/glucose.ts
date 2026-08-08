@@ -66,8 +66,11 @@ export async function createGlucoseEntryAction(
     });
     logger.info("glucose.create.ok", { event: "glucose_create_ok" });
     return ok({ entry });
-  } catch {
-    logger.error("glucose.create.failed", { event: "glucose_create_failed" });
+  } catch (e) {
+    logger.error("glucose.create.failed", {
+      event: "glucose_create_failed",
+      message: e instanceof Error ? e.message : "unknown",
+    });
     return err("Could not save that reading. Please try again.");
   }
 }

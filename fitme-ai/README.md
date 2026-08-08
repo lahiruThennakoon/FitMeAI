@@ -133,7 +133,8 @@ Profile includes a **Weight check-in** card: log kg/lb (preferred units), see ca
 - Smart-parse prompts queue offline and resume on reconnect.
 - Installable PWA: `manifest.webmanifest` + service worker (`/sw.js`) with shell + catalog caching.
 - **Install nudge:** top banner shows Add to Home Screen on any iOS browser session (hidden only when launched as installed PWA). Android/desktop uses `beforeinstallprompt`. PNG icons at 192/512.
-- **Mobile viewport:** `width=device-width`, `initial-scale=1`, `maximum-scale=1`, `user-scalable=no`, plus document `overflow-x: clip` / `text-size-adjust: 100%` so the PWA stays locked to the device CSS width (no zoom-driven rescaling).
+- **Mobile viewport:** `width=device-width`, `initial-scale=1`, `maximum-scale=1`, `user-scalable=no`, plus document `overflow-x: clip` / `text-size-adjust: 100%` and top `safe-area-inset` padding so the PWA stays locked under the status bar without zoom-driven rescaling.
+- **PWA server actions:** `serverActions.allowedOrigins` includes `NEXT_PUBLIC_APP_URL` / `BETTER_AUTH_URL` / `VERCEL_URL` hosts so iOS standalone installs are not blocked by Origin/Host CSRF checks.
 - **Bottom tab bar** on authenticated routes: Home · Log · Exercise · More (`AppQuickNav` in `app/(app)/layout.tsx`). Fixed to the bottom with safe-area padding; active tab uses a filled pill + brand color. More opens fasting, glucose, progress, goals, and settings.
 - **Log save toast** — global snackbar above the tab bar (`LogToastProvider`) confirms successful saves across water, food, exercise, glucose, weight, and fasting flows; removable entries offer Undo in the toast.
 
