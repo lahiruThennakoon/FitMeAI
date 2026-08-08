@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { OfflineReconciler } from "@/components/offline-reconciler";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemeInit } from "@/components/theme-init";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -27,8 +28,12 @@ export const metadata: Metadata = {
   applicationName: "FitMe AI",
   appleWebApp: { capable: true, title: "FitMe AI", statusBarStyle: "default" },
   icons: {
-    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
-    apple: "/icons/icon.svg",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
 };
 
@@ -61,6 +66,7 @@ export default async function RootLayout({
         <ThemeProvider serverAppearance={serverAppearance}>
           <ServiceWorkerRegister />
           <OfflineReconciler />
+          <PwaInstallPrompt />
           {children}
         </ThemeProvider>
       </body>

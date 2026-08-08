@@ -38,15 +38,20 @@ so that nothing is lost or duplicated and the app feels native.
 - fitme-ai/components/offline-reconciler.tsx
 - fitme-ai/public/manifest.webmanifest
 - fitme-ai/public/icons/icon.svg
+- fitme-ai/public/icons/icon-192.png
+- fitme-ai/public/icons/icon-512.png
+- fitme-ai/components/pwa-install-prompt.tsx
 - fitme-ai/components/app-quick-nav.tsx
 - fitme-ai/app/globals.css
 - fitme-ai/app/(app)/layout.tsx
 - fitme-ai/components/log-toast-provider.tsx
 - fitme-ai/components/app-authenticated-shell.tsx
 - fitme-ai/tests/log-toast-provider.test.tsx
+- fitme-ai/tests/pwa-install-prompt.test.tsx
 
 ### Change Log
 
+- 2026-08-08: PWA install polish — 192/512 PNG icons, in-app Install banner (`beforeinstallprompt` + iOS Share hint)
 - 2026-07-30: Log save toast — global snackbar above bottom nav for save confirmation + undo on soft-deletes (all log modules)
 - 2026-07-30: PWA mobile nav polish — bottom tab bar, single active pill treatment, utensils Log icon, higher inactive contrast (follow-up UX)
 - 2026-07-26: Implemented Story 4.2 — status → done

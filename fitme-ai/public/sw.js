@@ -1,8 +1,17 @@
 // FitMe AI service worker — Epic 4 offline instant-path (AD-12 / FR-16).
 
-const SHELL_CACHE = "fitme-shell-v2";
+const SHELL_CACHE = "fitme-shell-v3";
 const DATA_CACHE = "fitme-data-v2";
-const SHELL = ["/", "/dashboard", "/log", "/exercise", "/manifest.webmanifest", "/icons/icon.svg"];
+const SHELL = [
+  "/",
+  "/dashboard",
+  "/log",
+  "/exercise",
+  "/manifest.webmanifest",
+  "/icons/icon.svg",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -34,7 +34,7 @@ Features are delivered in epics aligned with functional requirements (FR) from t
 | **1** | Secure account & setup | Done | Register, login, password reset, account deletion, profile, BMR/TDEE targets, safety ladder | None |
 | **2** | Food logging | Done | NL parse, review UI, clarifying chips, source badges, catalog match, AI fallback estimates, guardrails, audit | **Core AI epic** |
 | **3** | Activity & dashboard | Done | Baseline burn, exercise log, net calories, macro dashboard | None |
-| **4** | Offline PWA | Done | Service worker, offline catalog, instant quick log, reconcile queue | Queues smart parse offline; AI runs on reconnect |
+| **4** | Offline PWA | Done | Service worker, offline catalog, instant quick log, reconcile queue, install banner + PNG icons | Queues smart parse offline; AI runs on reconnect |
 | **5** | Daily habit loop | Done | Water log, edit/delete meals & exercise, day switcher, recent/favorites | None |
 | **6** | Body progress | In progress | Weight check-in, pacing feedback; trend via Epic 9 | None |
 | **7** | Fasting tracker | Done | Start/stop fast, timer, history, home chip | None |
