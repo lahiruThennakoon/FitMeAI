@@ -33,7 +33,27 @@
   --foreground: #ededed;
 }
 
+/*
+  PWA / mobile viewport contract:
+  - Lock layout width to the device CSS viewport (pairs with meta viewport
+    width=device-width). Prevents the “designed for ~980px then scaled down” look.
+  - Disable iOS text inflation so type/layout don’t enlarge independently of the
+    layout viewport.
+  - Clip horizontal overflow at the document edge so a wide child cannot expand
+    the layout viewport and force whole-page downscaling.
+*/
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;

@@ -39,8 +39,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#2f57e3",
+  // Lock the layout viewport to device CSS pixels and forbid zoom.
+  // Mobile zoom (esp. iOS input focus-zoom) expands/shrinks the visual
+  // viewport and makes the PWA look incorrectly scaled.
   width: "device-width",
   initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -58,10 +64,10 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full w-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex min-h-full w-full max-w-full flex-col bg-background text-foreground">
         <ThemeInit fallbackAppearance={serverAppearance} />
         <ThemeProvider serverAppearance={serverAppearance}>
           <ServiceWorkerRegister />
